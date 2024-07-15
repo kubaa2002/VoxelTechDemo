@@ -18,9 +18,22 @@ namespace VoxelTechDemo
         public (int x,int y,int z) CurrentChunkCoordinates;
         public Player(World world){
             currentWorld = world;
-            int ylevel = 53+(int)Math.Floor(currentWorld.MountainNoise(35,35));
+            int ylevel = 53+(int)Math.Floor(currentWorld.MountainNoise(0,0));
             camTarget = Vector3.Zero;
-            camPosition = new Vector3(35.5f, ylevel, 35.5f);
+            if(ylevel>=64){
+                camPosition = new Vector3(0.5f, ylevel, 0.5f);
+            }
+            else{
+                for(int x=-1;x<=1;x++){
+                    for(int z=-1;z<=1;z++){
+                        if(world.GetBlock(x,63,z)==14){
+                            world.SetBlock(x,63,z,6);
+                        }
+                    }
+                }
+                camPosition = new Vector3(0.5f, 66.7f, 0.5f);
+            }
+            playerHitBox = new(new Vector3(camPosition.X-0.2499f,camPosition.Y-1.6999f,camPosition.Z-0.2499f),new Vector3(camPosition.X+0.2499f,camPosition.Y+0.0999f,camPosition.Z+0.2499f));
         }
         public void GetLookedAtBlock(){
             blockFound = false;
@@ -86,7 +99,6 @@ namespace VoxelTechDemo
         }
         public void NormalMovement(KeyboardState keyboardState, GameTime gameTime, float yaw){
             forward = Vector3.Zero;
-            playerHitBox = new(new Vector3(camPosition.X-0.2499f,camPosition.Y-1.6999f,camPosition.Z-0.2499f),new Vector3(camPosition.X+0.2499f,camPosition.Y+0.0999f,camPosition.Z+0.2499f));
             if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z))==14){
                 if(keyboardState.IsKeyDown(Keys.LeftShift)){
                     movementSpeed = 0.005f;
@@ -143,7 +155,8 @@ namespace VoxelTechDemo
                         camPosition.X = (float)Math.Floor(camPosition.X+forward.X*movementSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds)+0.25f;
                     }
                 }
-                playerHitBox = new(new Vector3(camPosition.X-0.2499f,camPosition.Y-1.6999f,camPosition.Z-0.2499f),new Vector3(camPosition.X+0.2499f,camPosition.Y+0.0999f,camPosition.Z+0.2499f));
+                playerHitBox.Min.X = camPosition.X-0.2499f;
+                playerHitBox.Max.X = camPosition.X+0.2499f;
                 if(forward.Z>0){
                     if(Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Max.Z+forward.Z*movementSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds)))
                     && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Max.Z+forward.Z*movementSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds)))
@@ -170,7 +183,8 @@ namespace VoxelTechDemo
                         camPosition.Z = (float)Math.Floor(camPosition.Z+forward.Z*movementSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds)+0.25f;
                     }
                 }
-                playerHitBox = new(new Vector3(camPosition.X-0.2499f,camPosition.Y-1.6999f,camPosition.Z-0.2499f),new Vector3(camPosition.X+0.2499f,camPosition.Y+0.0999f,camPosition.Z+0.2499f));
+                playerHitBox.Min.Z = camPosition.Z-0.2499f;
+                playerHitBox.Max.Z = camPosition.Z+0.2499f;
             }
             if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z))==14){
                 if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y+0.8f),(int)Math.Floor(camPosition.Z))==14){
@@ -230,6 +244,8 @@ namespace VoxelTechDemo
                     verticalSpeed = 0;
                 }
             }
+            playerHitBox.Min.Y = camPosition.Y-1.6999f;
+            playerHitBox.Max.Y = camPosition.Y+0.0999f;
             if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(camPosition.Y),(int)Math.Floor(camPosition.Z))==14){
                 IsUnderWater = true;
             }

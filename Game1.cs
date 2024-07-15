@@ -21,7 +21,7 @@ namespace VoxelTechDemo
         Matrix projectionMatrix, worldMatrix, viewMatrix, blockIconProjection, blockIconView = Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f,0.5f,0.5f), Vector3.Up);
         AlphaTestEffect basicEffect;
         readonly FrameCounter _frameCounter = new();
-        readonly World world = new(12356);
+        readonly World world = new(DateTime.UtcNow.ToBinary());
         Point WindowCenter;
         float yaw=MathHelper.PiOver2, pitch, rotationSpeed = 0.005f;
         MouseState currentMouseState;
@@ -30,7 +30,7 @@ namespace VoxelTechDemo
         int ScrollWheelValue;
         Player player;
         byte RenderDistance = 3;
-        readonly Dictionary<(int x,int z), Chunk> CurrentlyLoadedChunks = new(); 
+        readonly Dictionary<(int x,int z), Chunk> CurrentlyLoadedChunkLines = new(); 
         public Game1(){
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
@@ -43,6 +43,20 @@ namespace VoxelTechDemo
 
             _graphics.ApplyChanges();
             InitializeVoxelRenderer(GraphicsDevice);
+
+            for(int x=-(RenderDistance+1);x<=RenderDistance+1;x++){
+                for(int z=-(RenderDistance+1);z<=RenderDistance+1;z++){
+                    world.GenerateChunkLine(x,z);
+                }
+            }
+            for(int x=-RenderDistance;x<=RenderDistance;x++){
+                for(int z=-RenderDistance;z<=RenderDistance;z++){
+                    for(int y=0;y<8;y++){
+                        CurrentlyLoadedChunkLines[(x,z)]=world.WorldMap[(x,0,z)];
+                        GenerateVertexVerticesAsync(world.WorldMap[(x,y,z)]);
+                    }
+                }
+            }
 
             player = new Player(world);
             player.CurrentChunkCoordinates = (World.Mod((int)player.camPosition.X,ChunkSize),World.Mod((int)player.camPosition.Y,ChunkSize),World.Mod((int)player.camPosition.Z,ChunkSize));
@@ -60,20 +74,6 @@ namespace VoxelTechDemo
                 Texture = Content.Load<Texture2D>("Textures"),
                 World = worldMatrix
             };
-
-            for(int x=-(RenderDistance+1);x<=RenderDistance+1;x++){
-                for(int z=-(RenderDistance+1);z<=RenderDistance+1;z++){
-                    world.GenerateChunkLine(x,z);
-                }
-            }
-            for(int x=-RenderDistance;x<=RenderDistance;x++){
-                for(int z=-RenderDistance;z<=RenderDistance;z++){
-                    for(int y=0;y<8;y++){
-                        CurrentlyLoadedChunks[(x,z)]=world.WorldMap[(x,0,z)];
-                        GenerateVertexVerticesAsync(world.WorldMap[(x,y,z)]);
-                    }
-                }
-            }
 
             base.Initialize();
         }
@@ -209,6 +209,7 @@ namespace VoxelTechDemo
                     IsNoClipOn = !IsNoClipOn;
                     IsNPressed = true;
                     player.ResetPlayerSpeed();
+                    player.playerHitBox = new(new Vector3(player.camPosition.X-0.2499f,player.camPosition.Y-1.6999f,player.camPosition.Z-0.2499f),new Vector3(player.camPosition.X+0.2499f,player.camPosition.Y+0.0999f,player.camPosition.Z+0.2499f));
                 }
                 if(IsNoClipOn){
                     player.NoClipMovement(keyboardState,gameTime);
@@ -253,15 +254,15 @@ namespace VoxelTechDemo
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
                     if(x*x+z*z<=(RenderDistance+0.5)*(RenderDistance+0.5)){
-                        if(!CurrentlyLoadedChunks.ContainsKey((player.CurrentChunkCoordinates.x+x,player.CurrentChunkCoordinates.z+z))){
+                        if(!CurrentlyLoadedChunkLines.ContainsKey((player.CurrentChunkCoordinates.x+x,player.CurrentChunkCoordinates.z+z))){
                             LoadChunkLine(player.CurrentChunkCoordinates.x+x,player.CurrentChunkCoordinates.z+z);
-                            CurrentlyLoadedChunks[(player.CurrentChunkCoordinates.x+x,player.CurrentChunkCoordinates.z+z)]=world.WorldMap[(player.CurrentChunkCoordinates.x+x,0,player.CurrentChunkCoordinates.z+z)];
+                            CurrentlyLoadedChunkLines[(player.CurrentChunkCoordinates.x+x,player.CurrentChunkCoordinates.z+z)]=world.WorldMap[(player.CurrentChunkCoordinates.x+x,0,player.CurrentChunkCoordinates.z+z)];
                         }
                     }
                 }
             }
             List<(int x,int z)> ChunkForUnload = new();
-            foreach(KeyValuePair<(int x,int z),Chunk> pair in CurrentlyLoadedChunks){
+            foreach(KeyValuePair<(int x,int z),Chunk> pair in CurrentlyLoadedChunkLines){
                 if((pair.Key.x-player.CurrentChunkCoordinates.x)*(pair.Key.x-player.CurrentChunkCoordinates.x)+(pair.Key.z-player.CurrentChunkCoordinates.z)*(pair.Key.z-player.CurrentChunkCoordinates.z)>(RenderDistance+1.5)*(RenderDistance+1.5)){
                     ChunkForUnload.Add((pair.Key.x,pair.Key.z));
                 }
@@ -296,7 +297,7 @@ namespace VoxelTechDemo
             for(int y=0;y<8;y++){
                 world.WorldMap[(x,y,z)].vertexBufferOpaque?.Dispose();
                 world.WorldMap[(x,y,z)].vertexBufferTransparent?.Dispose();
-                CurrentlyLoadedChunks.Remove((x,z));
+                CurrentlyLoadedChunkLines.Remove((x,z));
             }
         }
         protected override void Draw(GameTime gameTime)
@@ -309,12 +310,12 @@ namespace VoxelTechDemo
             GraphicsDevice.DepthStencilState = DepthStencilState.Default;
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
 
-            foreach(KeyValuePair<(int,int),Chunk> pair in CurrentlyLoadedChunks){
+            foreach(KeyValuePair<(int,int),Chunk> pair in CurrentlyLoadedChunkLines){
                 for(int y=0;y<8;y++){
                     DrawChunkOpaque(world.WorldMap[(pair.Key.Item1,y,pair.Key.Item2)]);
                 }
             }
-            foreach(KeyValuePair<(int,int),Chunk> pair in CurrentlyLoadedChunks){
+            foreach(KeyValuePair<(int,int),Chunk> pair in CurrentlyLoadedChunkLines){
                 for(int y=0;y<8;y++){
                     DrawChunkTransparent(world.WorldMap[(pair.Key.Item1,y,pair.Key.Item2)]);
                 }
