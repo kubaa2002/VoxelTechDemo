@@ -33,7 +33,7 @@ namespace VoxelTechDemo
                 }
                 camPosition = new Vector3(0.5f, 66.7f, 0.5f);
             }
-            playerHitBox = new(new Vector3(camPosition.X-0.2499f,camPosition.Y-1.6999f,camPosition.Z-0.2499f),new Vector3(camPosition.X+0.2499f,camPosition.Y+0.0999f,camPosition.Z+0.2499f));
+            playerHitBox = new(new Vector3(camPosition.X-0.2499f,(float)Math.Round(camPosition.Y-1.6999f,2),camPosition.Z-0.2499f),new Vector3(camPosition.X+0.2499f,(float)Math.Round(camPosition.Y+0.0999f,2),camPosition.Z+0.2499f));
         }
         public void GetLookedAtBlock(){
             blockFound = false;
@@ -244,8 +244,8 @@ namespace VoxelTechDemo
                     verticalSpeed = 0;
                 }
             }
-            playerHitBox.Min.Y = camPosition.Y-1.6999f;
-            playerHitBox.Max.Y = camPosition.Y+0.0999f;
+            playerHitBox.Min.Y = (float)Math.Round(camPosition.Y-1.6999f,2);
+            playerHitBox.Max.Y = (float)Math.Round(camPosition.Y+0.0999f,2);
             if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(camPosition.Y),(int)Math.Floor(camPosition.Z))==14){
                 IsUnderWater = true;
             }
