@@ -36,11 +36,11 @@ namespace VoxelTechDemo
             chunk.vertexBufferTransparent = vertexBuffers[1];
             oldVertexBuffer?.Dispose();
         }
-        //TOFIX cant see glass behind another glass
         public static VertexBuffer[] GenerateVertices(Chunk chunk){
-            int CurrentChunkX = chunk.coordinateX*ChunkSize;
-            int CurrentChunkY = chunk.coordinateY*ChunkSize;
-            int CurrentChunkZ = chunk.coordinateZ*ChunkSize;
+            //TODO: Try to combine multiple chunks into single region to reduce number of world matrixes needed
+            //int CurrentChunkX = (chunk.coordinateX%4)*ChunkSize;
+            //int CurrentChunkY = (chunk.coordinateY%4)*ChunkSize;
+            //int CurrentChunkZ = (chunk.coordinateZ%4)*ChunkSize;
             int possition = 0, transparentIndex = cubed*24 - 1;
             VertexPositionTexture[] vertices = new VertexPositionTexture[cubed*24];
             Vector3 voxelPosition;
@@ -58,18 +58,18 @@ namespace VoxelTechDemo
                                 textureCoordinates = blockIds.GiveTextureVectorArrayById(chunk.blocks[currentBlock]);
                                 if(Block.IsTransparent(chunk.blocks[currentBlock])){
                                     for(int k=face*4;k<face*4+4;k++){
-                                        voxelPosition.X = CurrentChunkX+(currentBlock&ChunkSizeOne)+((offsetX&(1<<k))>>k);
-                                        voxelPosition.Y = CurrentChunkY+((currentBlock&(ChunkSizeOne<<6))>>6)+((offsetY&(1<<k))>>k);
-                                        voxelPosition.Z = CurrentChunkZ+((currentBlock&(ChunkSizeOne<<12))>>12)+((offsetZ&(1<<k))>>k);
+                                        voxelPosition.X = (currentBlock&ChunkSizeOne)+((offsetX&(1<<k))>>k);
+                                        voxelPosition.Y = ((currentBlock&(ChunkSizeOne<<6))>>6)+((offsetY&(1<<k))>>k);
+                                        voxelPosition.Z = ((currentBlock&(ChunkSizeOne<<12))>>12)+((offsetZ&(1<<k))>>k);
                                         vertices[transparentIndex] = new VertexPositionTexture(voxelPosition, textureCoordinates[k]);
                                         transparentIndex--;
                                     }
                                 }
                                 else{
                                     for(int k=face*4;k<face*4+4;k++){
-                                        voxelPosition.X = CurrentChunkX+(currentBlock&ChunkSizeOne)+((offsetX&(1<<k))>>k);
-                                        voxelPosition.Y = CurrentChunkY+((currentBlock&(ChunkSizeOne<<6))>>6)+((offsetY&(1<<k))>>k);
-                                        voxelPosition.Z = CurrentChunkZ+((currentBlock&(ChunkSizeOne<<12))>>12)+((offsetZ&(1<<k))>>k);
+                                        voxelPosition.X = (currentBlock&ChunkSizeOne)+((offsetX&(1<<k))>>k);
+                                        voxelPosition.Y = ((currentBlock&(ChunkSizeOne<<6))>>6)+((offsetY&(1<<k))>>k);
+                                        voxelPosition.Z = ((currentBlock&(ChunkSizeOne<<12))>>12)+((offsetZ&(1<<k))>>k);
                                         vertices[possition] = new VertexPositionTexture(voxelPosition, textureCoordinates[k]);
                                         possition++;
                                     }
@@ -132,9 +132,9 @@ namespace VoxelTechDemo
                 graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, chunk.vertexBufferTransparent.VertexCount/2);
             }
         }
-        static DynamicVertexBuffer cubeVertex;
+        static VertexBuffer cubeFrameVertex;
+        static VertexBuffer cubePreviewVertex;
         static IndexBuffer cubeIndices;
-        static Vector2[] cubeFrameTextureCoordinates;
         static public void SetupCubeFrame(){
             short[] indices={
                 0,1,2,1,3,2,
@@ -146,35 +146,34 @@ namespace VoxelTechDemo
             };
             cubeIndices = new IndexBuffer(graphicsDevice, IndexElementSize.SixteenBits, 36, BufferUsage.None);
             cubeIndices.SetData(indices);
-            cubeVertex = new DynamicVertexBuffer(graphicsDevice,typeof(VertexPositionTexture), 24, BufferUsage.None);
-            cubeFrameTextureCoordinates = blockIds.GiveTextureVectorArrayById(15);
-        }
-        static public void DrawCubeFrame((int x,int y,int z) coordinates)
-        {
+            cubeFrameVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionTexture), 24, BufferUsage.None);
+            cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionTexture), 12, BufferUsage.None);
+            Vector2[] cubeFrameTextureCoordinates = blockIds.GiveTextureVectorArrayById(15);
             VertexPositionTexture[] cubeVertices = new VertexPositionTexture[24];
-            for(int i=0;i<24;i++)
-            {
-                cubeVertices[i] = new VertexPositionTexture(new Vector3(coordinates.x+((offsetX&(1<<i))>>i),coordinates.y+((offsetY&(1<<i))>>i),coordinates.z+((offsetZ&(1<<i))>>i)),cubeFrameTextureCoordinates[i]);
+            for(int i=0;i<24;i++){
+                cubeVertices[i] = new VertexPositionTexture(new Vector3(1.0025f*((offsetX&(1<<i))>>i)-0.00125f,1.0025f*((offsetY&(1<<i))>>i)-0.00125f,1.0025f*((offsetZ&(1<<i))>>i)-0.00125f),cubeFrameTextureCoordinates[i]);
             }
-            cubeVertex.SetData(cubeVertices);
-            graphicsDevice.SetVertexBuffer(cubeVertex);
+            cubeFrameVertex.SetData(cubeVertices);
+        }
+        static public void DrawCubeFrame(){
+            graphicsDevice.SetVertexBuffer(cubeFrameVertex);
             graphicsDevice.Indices = cubeIndices;
             graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, 12);
         }
         static public void DrawCubePreview(byte id){
-            VertexPositionTexture[] cubeVertices = new VertexPositionTexture[12];
+            VertexPositionTexture[] cubeVerticesPreview = new VertexPositionTexture[12];
             Vector2[] TextureCoordinates = blockIds.GiveTextureVectorArrayById(id);
             for(int i=0;i<4;i++){
-                cubeVertices[i] = new VertexPositionTexture(new Vector3((offsetX&(1<<i))>>i,(offsetY&(1<<i))>>i,(offsetZ&(1<<i))>>i),TextureCoordinates[i]);
+                cubeVerticesPreview[i] = new VertexPositionTexture(new Vector3((offsetX&(1<<i))>>i,(offsetY&(1<<i))>>i,(offsetZ&(1<<i))>>i),TextureCoordinates[i]);
             }
             for(int i=8;i<12;i++){
-                cubeVertices[i-4] = new VertexPositionTexture(new Vector3((offsetX&(1<<i))>>i,(offsetY&(1<<i))>>i,(offsetZ&(1<<i))>>i),TextureCoordinates[i]);
+                cubeVerticesPreview[i-4] = new VertexPositionTexture(new Vector3((offsetX&(1<<i))>>i,(offsetY&(1<<i))>>i,(offsetZ&(1<<i))>>i),TextureCoordinates[i]);
             }
             for(int i=16;i<20;i++){
-                cubeVertices[i-8] = new VertexPositionTexture(new Vector3((offsetX&(1<<i))>>i,(offsetY&(1<<i))>>i,(offsetZ&(1<<i))>>i),TextureCoordinates[i]);
+                cubeVerticesPreview[i-8] = new VertexPositionTexture(new Vector3((offsetX&(1<<i))>>i,(offsetY&(1<<i))>>i,(offsetZ&(1<<i))>>i),TextureCoordinates[i]);
             }
-            cubeVertex.SetData(cubeVertices);
-            graphicsDevice.SetVertexBuffer(cubeVertex);
+            cubePreviewVertex.SetData(cubeVerticesPreview);
+            graphicsDevice.SetVertexBuffer(cubePreviewVertex);
             graphicsDevice.Indices = cubeIndices;
             graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, 6);
         }

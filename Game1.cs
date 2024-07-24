@@ -21,7 +21,7 @@ namespace VoxelTechDemo
         Matrix projectionMatrix, worldMatrix, viewMatrix, blockIconProjection, blockIconView = Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f,0.5f,0.5f), Vector3.Up);
         AlphaTestEffect basicEffect;
         readonly FrameCounter _frameCounter = new();
-        readonly World world = new(DateTime.UtcNow.ToBinary());
+        readonly World world = new(12345);//DateTime.UtcNow.ToBinary());
         Point WindowCenter;
         float yaw=MathHelper.PiOver2, pitch, rotationSpeed = 0.005f;
         MouseState currentMouseState;
@@ -59,7 +59,6 @@ namespace VoxelTechDemo
             }
 
             player = new Player(world);
-            player.CurrentChunkCoordinates = (World.Mod((int)player.camPosition.X,ChunkSize),World.Mod((int)player.camPosition.Y,ChunkSize),World.Mod((int)player.camPosition.Z,ChunkSize));
 
             //Camera setup
             projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45f),GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f);
@@ -189,15 +188,12 @@ namespace VoxelTechDemo
                 yaw -= (currentMouseState.X - WindowCenter.X)*rotationSpeed;
                 pitch -= (currentMouseState.Y - WindowCenter.Y)*rotationSpeed;
                 pitch = MathHelper.Clamp(pitch, -1.57f,1.57f);//-MathHelper.PiOver2, MathHelper.PiOver2
-                player.camTarget = player.camPosition + player.forward;
-                viewMatrix = Matrix.CreateLookAt(player.camPosition, player.camTarget, Vector3.Up);
                 player.right = Vector3.Transform(Vector3.Right, Matrix.CreateFromYawPitchRoll(yaw, pitch, 0f));
 
                 //Check looked at block
                 player.GetLookedAtBlock();
 
-                if((int)Math.Floor(player.camPosition.X/ChunkSize) != player.CurrentChunkCoordinates.x
-                || (int)Math.Floor(player.camPosition.Z/ChunkSize) != player.CurrentChunkCoordinates.z){
+                if(player.ChunkChanged){
                     CheckChunks();
                 }
 
@@ -218,14 +214,14 @@ namespace VoxelTechDemo
                     player.NormalMovement(keyboardState, gameTime, yaw);
                 }
                 if(currentMouseState.LeftButton == ButtonState.Pressed && LeftButtonPressed == false && player.blockFound == true){
-                    world.SetBlock(player.LookedAtBlock.x,player.LookedAtBlock.y,player.LookedAtBlock.z,0);
+                    world.SetBlock(player.LookedAtBlock.x,player.LookedAtBlock.y,player.LookedAtBlock.z,player.CurrentChunk,0);
                     LeftButtonPressed = true;
                 }
                 if(currentMouseState.LeftButton == ButtonState.Released){
                     LeftButtonPressed = false;
                 }
                 if(currentMouseState.RightButton == ButtonState.Pressed && RightButtonPressed == false && player.blockFound == true){
-                    world.SetBlock(player.LookedAtBlock.x,player.LookedAtBlock.y,player.LookedAtBlock.z,chosenBlock,player.currentSide, player.playerHitBox);
+                    world.SetBlock(player.LookedAtBlock.x,player.LookedAtBlock.y,player.LookedAtBlock.z,player.CurrentChunk,chosenBlock,player.currentSide, player.playerHitBox);
                     RightButtonPressed = true;
                 }
                 if(currentMouseState.RightButton == ButtonState.Released){
@@ -247,23 +243,25 @@ namespace VoxelTechDemo
                 ScrollWheelValue = currentMouseState.ScrollWheelValue;
                 Mouse.SetPosition(WindowCenter.X,WindowCenter.Y);
             }
+            player.camTarget = player.camPosition + player.forward;
+            viewMatrix = Matrix.CreateLookAt(player.camPosition, player.camTarget, Vector3.Up);
             base.Update(gameTime);
         }
         void CheckChunks(){
-            player.CurrentChunkCoordinates = ((int)Math.Floor(player.camPosition.X/ChunkSize),World.Mod((int)player.camPosition.Y,ChunkSize),(int)Math.Floor(player.camPosition.Z/ChunkSize));
+            player.ChunkChanged = false;
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
                     if(x*x+z*z<=(RenderDistance+0.5)*(RenderDistance+0.5)){
-                        if(!CurrentlyLoadedChunkLines.ContainsKey((player.CurrentChunkCoordinates.x+x,player.CurrentChunkCoordinates.z+z))){
-                            LoadChunkLine(player.CurrentChunkCoordinates.x+x,player.CurrentChunkCoordinates.z+z);
-                            CurrentlyLoadedChunkLines[(player.CurrentChunkCoordinates.x+x,player.CurrentChunkCoordinates.z+z)]=world.WorldMap[(player.CurrentChunkCoordinates.x+x,0,player.CurrentChunkCoordinates.z+z)];
+                        if(!CurrentlyLoadedChunkLines.ContainsKey((player.CurrentChunk.x+x,player.CurrentChunk.z+z))){
+                            LoadChunkLine(player.CurrentChunk.x+x,player.CurrentChunk.z+z);
+                            CurrentlyLoadedChunkLines[(player.CurrentChunk.x+x,player.CurrentChunk.z+z)]=world.WorldMap[(player.CurrentChunk.x+x,0,player.CurrentChunk.z+z)];
                         }
                     }
                 }
             }
             List<(int x,int z)> ChunkForUnload = new();
             foreach(KeyValuePair<(int x,int z),Chunk> pair in CurrentlyLoadedChunkLines){
-                if((pair.Key.x-player.CurrentChunkCoordinates.x)*(pair.Key.x-player.CurrentChunkCoordinates.x)+(pair.Key.z-player.CurrentChunkCoordinates.z)*(pair.Key.z-player.CurrentChunkCoordinates.z)>(RenderDistance+1.5)*(RenderDistance+1.5)){
+                if((pair.Key.x-player.CurrentChunk.x)*(pair.Key.x-player.CurrentChunk.x)+(pair.Key.z-player.CurrentChunk.z)*(pair.Key.z-player.CurrentChunk.z)>(RenderDistance+1.5)*(RenderDistance+1.5)){
                     ChunkForUnload.Add((pair.Key.x,pair.Key.z));
                 }
             }
@@ -310,18 +308,36 @@ namespace VoxelTechDemo
             GraphicsDevice.DepthStencilState = DepthStencilState.Default;
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
 
-            foreach(KeyValuePair<(int,int),Chunk> pair in CurrentlyLoadedChunkLines){
-                for(int y=0;y<8;y++){
-                    DrawChunkOpaque(world.WorldMap[(pair.Key.Item1,y,pair.Key.Item2)]);
+            //TODO: Make it so it doesn't recalculate world matrixes every frame
+            for(int x=-RenderDistance;x<=RenderDistance;x++){
+                for(int z=-RenderDistance;z<=RenderDistance;z++){
+                    for(int y=-RenderDistance;y<=RenderDistance;y++){
+                        if(world.WorldMap.ContainsKey((x+player.CurrentChunk.x,y+player.CurrentChunk.y,z+player.CurrentChunk.z)) && CurrentlyLoadedChunkLines.ContainsKey((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
+                            basicEffect.World = Matrix.CreateWorld(new Vector3(x*64,y*64,z*64),Vector3.Forward,Vector3.Up);
+                            basicEffect.CurrentTechnique.Passes[0].Apply();
+                            DrawChunkOpaque(world.WorldMap[(x+player.CurrentChunk.x,y+player.CurrentChunk.y,z+player.CurrentChunk.z)]);
+                        }
+                    }
                 }
             }
-            foreach(KeyValuePair<(int,int),Chunk> pair in CurrentlyLoadedChunkLines){
-                for(int y=0;y<8;y++){
-                    DrawChunkTransparent(world.WorldMap[(pair.Key.Item1,y,pair.Key.Item2)]);
+
+            //Opengl on windows doesn't like when transparent meshes are mixed with opaque ones
+            for(int x=-RenderDistance;x<=RenderDistance;x++){
+                for(int z=-RenderDistance;z<=RenderDistance;z++){
+                    for(int y=-RenderDistance;y<=RenderDistance;y++){
+                        if(world.WorldMap.ContainsKey((x+player.CurrentChunk.x,y+player.CurrentChunk.y,z+player.CurrentChunk.z)) && CurrentlyLoadedChunkLines.ContainsKey((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
+                            basicEffect.World = Matrix.CreateWorld(new Vector3(x*64,y*64,z*64),Vector3.Forward,Vector3.Up);
+                            basicEffect.CurrentTechnique.Passes[0].Apply();
+                            DrawChunkTransparent(world.WorldMap[(x+player.CurrentChunk.x,y+player.CurrentChunk.y,z+player.CurrentChunk.z)]);
+                        }
+                    }
                 }
             }
+
+            basicEffect.World = Matrix.CreateWorld(new Vector3(player.LookedAtBlock.x,player.LookedAtBlock.y,player.LookedAtBlock.z),Vector3.Forward,Vector3.Up);
+            basicEffect.CurrentTechnique.Passes[0].Apply();
             if(player.blockFound == true){
-                DrawCubeFrame(player.LookedAtBlock);
+                DrawCubeFrame();
             }     
 
             //FPS counter and other UI
@@ -331,9 +347,9 @@ namespace VoxelTechDemo
                 _spriteBatch.Draw(basicEffect.Texture,new Rectangle(0,0,GraphicsDevice.Viewport.Width,GraphicsDevice.Viewport.Height),new Rectangle(33,49,14,14),Color.White);
             }
             _spriteBatch.DrawString(_spriteFont, string.Format("FPS: {0}", _frameCounter.AverageFramesPerSecond), new(1,3), Color.Black);
-            _spriteBatch.DrawString(_spriteFont,"X:"+player.camPosition.X.ToString(),new(1,23),Color.Black);
-            _spriteBatch.DrawString(_spriteFont,"Y:"+(player.camPosition.Y-1.7f).ToString(),new(1,43),Color.Black);
-            _spriteBatch.DrawString(_spriteFont,"Z:"+player.camPosition.Z.ToString(),new(1,63),Color.Black);
+            _spriteBatch.DrawString(_spriteFont,"X:"+Math.Round((double)player.camPosition.X+(long)player.CurrentChunk.x*64,2).ToString(),new(1,23),Color.Black);
+            _spriteBatch.DrawString(_spriteFont,"Y:"+Math.Round(player.playerHitBox.Min.Y+player.CurrentChunk.y*64,2).ToString(),new(1,43),Color.Black);
+            _spriteBatch.DrawString(_spriteFont,"Z:"+Math.Round((double)player.camPosition.Z+(long)player.CurrentChunk.z*64,2).ToString(),new(1,63),Color.Black);
             if(!IsPaused){
                 _spriteBatch.DrawString(_spriteFont,"+",new Vector2(WindowCenter.X,WindowCenter.Y) - (_spriteFont.MeasureString("+")/2),Color.Black);
             }
@@ -344,6 +360,9 @@ namespace VoxelTechDemo
             basicEffect.View = blockIconView;
             basicEffect.CurrentTechnique.Passes[0].Apply();
             GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
+
+            basicEffect.World = Matrix.CreateWorld(Vector3.Zero,Vector3.Forward,Vector3.Up);
+            basicEffect.CurrentTechnique.Passes[0].Apply();
             DrawCubePreview(chosenBlock);
 
             if(IsPaused){
