@@ -194,6 +194,9 @@ namespace VoxelTechDemo
                     }
                 }
             }
+            for(int i=0;i<8;i++){
+                chunks[i].IsGenerated = true;
+            }
         }
         private void CreateTree(int x,int y, int z, Chunk chunk){
             for(int tempy=4;tempy<=5;tempy++){

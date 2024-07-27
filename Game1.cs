@@ -274,16 +274,17 @@ namespace VoxelTechDemo
                 world.GenerateChunkLine(x,z);
             }    
             return Task.Run(()=>{
-                if(!world.WorldMap.ContainsKey((x+1,0,z))){
+                //TOFIX: Sometimes chunk is generated 2 times
+                if(!world.WorldMap.ContainsKey((x+1,0,z)) || (world.WorldMap.ContainsKey((x+1,0,z)) && !world.WorldMap[(x+1,0,z)].IsGenerated)){
                     world.GenerateChunkLine(x+1,z);
                 }
-                if(!world.WorldMap.ContainsKey((x,0,z+1))){
+                if(!world.WorldMap.ContainsKey((x,0,z+1)) || (world.WorldMap.ContainsKey((x,0,z+1)) && !world.WorldMap[(x,0,z+1)].IsGenerated)){
                     world.GenerateChunkLine(x,z+1);
                 }
-                if(!world.WorldMap.ContainsKey((x-1,0,z))){
+                if(!world.WorldMap.ContainsKey((x-1,0,z)) || (world.WorldMap.ContainsKey((x-1,0,z)) && !world.WorldMap[(x-1,0,z)].IsGenerated)){
                     world.GenerateChunkLine(x-1,z);
                 }
-                if(!world.WorldMap.ContainsKey((x,0,z-1))){
+                if(!world.WorldMap.ContainsKey((x,0,z-1)) || (world.WorldMap.ContainsKey((x,0,z-1)) && !world.WorldMap[(x,0,z-1)].IsGenerated)){
                     world.GenerateChunkLine(x,z-1);
                 }
                 for(int y=0;y<8;y++){
@@ -338,7 +339,7 @@ namespace VoxelTechDemo
             basicEffect.CurrentTechnique.Passes[0].Apply();
             if(player.blockFound == true){
                 DrawCubeFrame();
-            }     
+            }
 
             //FPS counter and other UI
             _frameCounter.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
@@ -347,9 +348,9 @@ namespace VoxelTechDemo
                 _spriteBatch.Draw(basicEffect.Texture,new Rectangle(0,0,GraphicsDevice.Viewport.Width,GraphicsDevice.Viewport.Height),new Rectangle(33,49,14,14),Color.White);
             }
             _spriteBatch.DrawString(_spriteFont, string.Format("FPS: {0}", _frameCounter.AverageFramesPerSecond), new(1,3), Color.Black);
-            _spriteBatch.DrawString(_spriteFont,"X:"+Math.Round((double)player.camPosition.X+(long)player.CurrentChunk.x*64,2).ToString(),new(1,23),Color.Black);
-            _spriteBatch.DrawString(_spriteFont,"Y:"+Math.Round(player.playerHitBox.Min.Y+player.CurrentChunk.y*64,2).ToString(),new(1,43),Color.Black);
-            _spriteBatch.DrawString(_spriteFont,"Z:"+Math.Round((double)player.camPosition.Z+(long)player.CurrentChunk.z*64,2).ToString(),new(1,63),Color.Black);
+            _spriteBatch.DrawString(_spriteFont,$"X:{Math.Round((double)player.camPosition.X+(long)player.CurrentChunk.x*64,2)}",new(1,23),Color.Black);
+            _spriteBatch.DrawString(_spriteFont,$"Y:{Math.Round(player.camPosition.Y+player.CurrentChunk.y*64-1.7f,2)}",new(1,43),Color.Black);
+            _spriteBatch.DrawString(_spriteFont,$"Z:{Math.Round((double)player.camPosition.Z+(long)player.CurrentChunk.z*64,2)}",new(1,63),Color.Black);
             if(!IsPaused){
                 _spriteBatch.DrawString(_spriteFont,"+",new Vector2(WindowCenter.X,WindowCenter.Y) - (_spriteFont.MeasureString("+")/2),Color.Black);
             }

@@ -11,6 +11,7 @@ namespace VoxelTechDemo
         readonly World world;
         public VertexBuffer vertexBufferOpaque;
         public VertexBuffer vertexBufferTransparent;
+        public bool IsGenerated = false;
         static readonly (int x, int y, int z)[] coordinatesOffset = new (int, int, int)[]{(1,0,0),(-1,0,0),(0,1,0),(0,-1,0),(0,0,1),(0,0,-1)};
         static readonly int maxValue=VoxelRenderer.ChunkSize-1;
         static readonly int maxValueY=VoxelRenderer.ChunkSize*maxValue;
