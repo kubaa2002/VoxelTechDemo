@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -13,7 +12,6 @@ namespace VoxelTechDemo
         static readonly int offsetY = 0b110011000000111111001100;
         static readonly int offsetZ = 0b000011110011110001011010;
         public const int ChunkSize = 64;
-        readonly static int ChunkSizeOne = ChunkSize-1;
         public static int square = (int)Math.Pow(ChunkSize,2);
         public static int cubed = (int)Math.Pow(ChunkSize,3);
         static IndexBuffer indexBuffer;
@@ -21,11 +19,6 @@ namespace VoxelTechDemo
             graphicsDevice=_graphicsDevice;
             SetupCubeFrame();
             GenerateIndexBuffer();
-        }
-        static public Task GenerateVertexVerticesAsync(Chunk chunk){
-            return Task.Run(()=>{
-                GenerateVertexVertices(chunk);
-            });
         }
         static public void GenerateVertexVertices(Chunk chunk){
             VertexBuffer[] vertexBuffers = GenerateVertices(chunk);
@@ -58,18 +51,18 @@ namespace VoxelTechDemo
                                 textureCoordinates = blockIds.GiveTextureVectorArrayById(chunk.blocks[currentBlock]);
                                 if(Block.IsTransparent(chunk.blocks[currentBlock])){
                                     for(int k=face*4;k<face*4+4;k++){
-                                        voxelPosition.X = (currentBlock&ChunkSizeOne)+((offsetX&(1<<k))>>k);
-                                        voxelPosition.Y = ((currentBlock&(ChunkSizeOne<<6))>>6)+((offsetY&(1<<k))>>k);
-                                        voxelPosition.Z = ((currentBlock&(ChunkSizeOne<<12))>>12)+((offsetZ&(1<<k))>>k);
+                                        voxelPosition.X = (currentBlock&(ChunkSize-1))+((offsetX&(1<<k))>>k);
+                                        voxelPosition.Y = ((currentBlock&((ChunkSize-1)<<6))>>6)+((offsetY&(1<<k))>>k);
+                                        voxelPosition.Z = ((currentBlock&((ChunkSize-1)<<12))>>12)+((offsetZ&(1<<k))>>k);
                                         vertices[transparentIndex] = new VertexPositionTexture(voxelPosition, textureCoordinates[k]);
                                         transparentIndex--;
                                     }
                                 }
                                 else{
                                     for(int k=face*4;k<face*4+4;k++){
-                                        voxelPosition.X = (currentBlock&ChunkSizeOne)+((offsetX&(1<<k))>>k);
-                                        voxelPosition.Y = ((currentBlock&(ChunkSizeOne<<6))>>6)+((offsetY&(1<<k))>>k);
-                                        voxelPosition.Z = ((currentBlock&(ChunkSizeOne<<12))>>12)+((offsetZ&(1<<k))>>k);
+                                        voxelPosition.X = (currentBlock&(ChunkSize-1))+((offsetX&(1<<k))>>k);
+                                        voxelPosition.Y = ((currentBlock&((ChunkSize-1)<<6))>>6)+((offsetY&(1<<k))>>k);
+                                        voxelPosition.Z = ((currentBlock&((ChunkSize-1)<<12))>>12)+((offsetZ&(1<<k))>>k);
                                         vertices[possition] = new VertexPositionTexture(voxelPosition, textureCoordinates[k]);
                                         possition++;
                                     }

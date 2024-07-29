@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using static VoxelTechDemo.VoxelRenderer;
@@ -58,49 +57,41 @@ namespace VoxelTechDemo
         }
         public void SetBlock(int x, int y, int z, (int x,int y,int z) chunkCoordinate,byte Id){
             NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
-            if(!WorldMap.ContainsKey(chunkCoordinate)){
-                WorldMap.TryAdd((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z),new(chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z,this));
-            }
+            WorldMap.TryAdd(chunkCoordinate,new(chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z,this));
             Chunk chunk = WorldMap[chunkCoordinate];
             chunk.blocks[x+(y*ChunkSize)+(z*square)]=Id;
             Dictionary<Chunk,VertexBuffer[]> buffers = new();
+            buffers[chunk]=GenerateVertices(chunk);
             if(x==0){
-                if(WorldMap.ContainsKey((chunkCoordinate.x-1,chunkCoordinate.y,chunkCoordinate.z))){
-                    Chunk chunk2 = WorldMap[(chunkCoordinate.x-1,chunkCoordinate.y,chunkCoordinate.z)];
-                    buffers[chunk2] = GenerateVertices(chunk2);
+                if(WorldMap.TryGetValue((chunkCoordinate.x-1,chunkCoordinate.y,chunkCoordinate.z),out chunk)){
+                    buffers[chunk] = GenerateVertices(chunk);
                 }
             }
             if(x==ChunkSize-1){
-                if(WorldMap.ContainsKey((chunkCoordinate.x+1,chunkCoordinate.y,chunkCoordinate.z))){
-                    Chunk chunk2 = WorldMap[(chunkCoordinate.x+1,chunkCoordinate.y,chunkCoordinate.z)];
-                    buffers[chunk2] = GenerateVertices(chunk2);
+                if(WorldMap.TryGetValue((chunkCoordinate.x+1,chunkCoordinate.y,chunkCoordinate.z),out chunk)){
+                    buffers[chunk] = GenerateVertices(chunk);
                 }
             }
             if(y==0){
-                if(WorldMap.ContainsKey((chunkCoordinate.x,chunkCoordinate.y-1,chunkCoordinate.z))){
-                    Chunk chunk2 = WorldMap[(chunkCoordinate.x,chunkCoordinate.y-1,chunkCoordinate.z)];
-                    buffers[chunk2] = GenerateVertices(chunk2);
+                if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y-1,chunkCoordinate.z),out chunk)){
+                    buffers[chunk] = GenerateVertices(chunk);
                 }
             }
             if(y==ChunkSize-1){
-                if(WorldMap.ContainsKey((chunkCoordinate.x,chunkCoordinate.y+1,chunkCoordinate.z))){
-                    Chunk chunk2 = WorldMap[(chunkCoordinate.x,chunkCoordinate.y+1,chunkCoordinate.z)];
-                    buffers[chunk2] = GenerateVertices(chunk2);
+                if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y+1,chunkCoordinate.z),out chunk)){
+                    buffers[chunk] = GenerateVertices(chunk);
                 }
             }
             if(z==0){
-                if(WorldMap.ContainsKey((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z-1))){
-                    Chunk chunk2 = WorldMap[(chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z-1)];
-                    buffers[chunk2] = GenerateVertices(chunk2);
+                if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z-1),out chunk)){
+                    buffers[chunk] = GenerateVertices(chunk);
                 }
             }
             if(z==ChunkSize-1){
-                if(WorldMap.ContainsKey((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z+1))){
-                    Chunk chunk2 = WorldMap[(chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z+1)];
-                    buffers[chunk2] = GenerateVertices(chunk2);
+                if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z+1),out chunk)){
+                    buffers[chunk] = GenerateVertices(chunk);
                 }
             }
-            buffers[chunk]=GenerateVertices(chunk);
             foreach(KeyValuePair<Chunk,VertexBuffer[]> pair in buffers){
                 VertexBuffer oldBuffer = pair.Key.vertexBufferOpaque;
                 pair.Key.vertexBufferOpaque = pair.Value[0];
@@ -112,9 +103,7 @@ namespace VoxelTechDemo
         }
         public void SetBlockWithoutUpdating(int x,int y,int z,(int x,int y,int z) chunkCoordinate,byte Id){
             NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
-            if(!WorldMap.ContainsKey(chunkCoordinate)){
-                WorldMap.TryAdd((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z),new(chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z,this));
-            }
+            WorldMap.TryAdd(chunkCoordinate,new(chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z,this));
             WorldMap[chunkCoordinate].blocks[x+y*ChunkSize+z*square]=Id;
         }
         public byte GetBlock(int x,int y,int z, (int x,int y,int z) chunkCoordinate){
@@ -129,20 +118,11 @@ namespace VoxelTechDemo
         public static int Mod(int a, int b){
             return (a%=b)<0 ? a+b : a;
         }
-        public Task GenerateChunkLineAsync(int chunkX,int chunkZ){
-            InitializeChunkLine(chunkX,chunkZ);
-            return Task.Run(()=>{
-                GenerateTerrain(chunkX,chunkZ);
-            });
-        }
         public void GenerateChunkLine(int chunkX,int chunkZ){
-            InitializeChunkLine(chunkX,chunkZ);
-            GenerateTerrain(chunkX,chunkZ);
-        }
-        public void InitializeChunkLine(int chunkX, int chunkZ){
             for(int i=0;i<8;i++){
                 WorldMap.TryAdd((chunkX,i,chunkZ),new(chunkX,i,chunkZ,this));
             }
+            GenerateTerrain(chunkX,chunkZ);
         }
         public void GenerateTerrain(int chunkX,int chunkZ){
             Chunk[] chunks = new Chunk[8];

@@ -19,22 +19,10 @@ namespace VoxelTechDemo
         public bool ChunkChanged = false;
         public Player(World world){
             currentWorld = world;
-            int ylevel = 53+(int)Math.Floor(currentWorld.MountainNoise(0,0));
+            int ylevel = 53+(int)Math.Floor(currentWorld.MountainNoise(35,35));
             camTarget = Vector3.Zero;
-            if(ylevel>=64){
-                camPosition = new Vector3(0.5f, ylevel, 0.5f);
-            }
-            else{
-                for(int x=-1;x<=1;x++){
-                    for(int z=-1;z<=1;z++){
-                        if(world.GetBlock(x,63,z,(0,0,0))==14){
-                            world.SetBlock(x,63,z,(0,0,0),6);
-                        }
-                    }
-                }
-                camPosition = new Vector3(0.5f, 66.7f, 0.5f);
-            }
-            playerHitBox = new(new Vector3(camPosition.X-0.2499f,(float)Math.Round(camPosition.Y-1.6999f,2),camPosition.Z-0.2499f),new Vector3(camPosition.X+0.2499f,(float)Math.Round(camPosition.Y+0.0999f,2),camPosition.Z+0.2499f));
+            camPosition = new Vector3(35.5f, ylevel, 35.5f);
+            playerHitBox = new(new Vector3(camPosition.X-0.2499f,camPosition.Y-1.6999f,camPosition.Z-0.2499f),new Vector3(camPosition.X+0.2499f,camPosition.Y+0.0999f,camPosition.Z+0.2499f));
         }
         public void GetLookedAtBlock(){
             blockFound = false;
@@ -248,8 +236,8 @@ namespace VoxelTechDemo
                 }
             }
             ResetCamera();
-            playerHitBox.Min.Y = (float)Math.Round(camPosition.Y-1.6999f,2);
-            playerHitBox.Max.Y = (float)Math.Round(camPosition.Y+0.0999f,2);
+            playerHitBox.Min.Y = camPosition.Y-1.6999f;
+            playerHitBox.Max.Y = camPosition.Y+0.0999f;
             if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(camPosition.Y),(int)Math.Floor(camPosition.Z),CurrentChunk)==14){
                 IsUnderWater = true;
             }

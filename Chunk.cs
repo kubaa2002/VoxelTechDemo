@@ -135,16 +135,5 @@ namespace VoxelTechDemo
             }
             return result; 
         }
-        
-        public void UpdateAdjacentChunks()
-        {
-            for(int i=0;i<6;i++)
-            {
-                if(world.WorldMap.ContainsKey((coordinateX+coordinatesOffset[i].x,coordinateY+coordinatesOffset[i].y,coordinateZ+coordinatesOffset[i].z)))
-                {
-                    VoxelRenderer.GenerateVertexVerticesAsync(world.WorldMap[(coordinateX+coordinatesOffset[i].x,coordinateY+coordinatesOffset[i].y,coordinateZ+coordinatesOffset[i].z)]);
-                }
-            }
-        }
     }
 }

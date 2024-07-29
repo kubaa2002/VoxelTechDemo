@@ -9,6 +9,7 @@ using Myra;
 using Myra.Graphics2D.UI;
 using FontStashSharp;
 using System.IO;
+using System.Collections.Concurrent;
 
 namespace VoxelTechDemo
 {
@@ -18,7 +19,7 @@ namespace VoxelTechDemo
         private readonly GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
         private SpriteFont _spriteFont;
-        Matrix projectionMatrix, worldMatrix, viewMatrix, blockIconProjection, blockIconView = Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f,0.5f,0.5f), Vector3.Up);
+        Matrix projectionMatrix, viewMatrix, blockIconProjection, blockIconView = Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f,0.5f,0.5f), Vector3.Up);
         AlphaTestEffect basicEffect;
         readonly FrameCounter _frameCounter = new();
         readonly World world = new(12345);//DateTime.UtcNow.ToBinary());
@@ -30,7 +31,7 @@ namespace VoxelTechDemo
         int ScrollWheelValue;
         Player player;
         byte RenderDistance = 3;
-        readonly Dictionary<(int x,int z), Chunk> CurrentlyLoadedChunkLines = new(); 
+        readonly ConcurrentDictionary<(int x,int z), Chunk> CurrentlyLoadedChunkLines = new(); 
         public Game1(){
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
@@ -44,25 +45,11 @@ namespace VoxelTechDemo
             _graphics.ApplyChanges();
             InitializeVoxelRenderer(GraphicsDevice);
 
-            for(int x=-(RenderDistance+1);x<=RenderDistance+1;x++){
-                for(int z=-(RenderDistance+1);z<=RenderDistance+1;z++){
-                    world.GenerateChunkLine(x,z);
-                }
-            }
-            for(int x=-RenderDistance;x<=RenderDistance;x++){
-                for(int z=-RenderDistance;z<=RenderDistance;z++){
-                    for(int y=0;y<8;y++){
-                        CurrentlyLoadedChunkLines[(x,z)]=world.WorldMap[(x,0,z)];
-                        GenerateVertexVerticesAsync(world.WorldMap[(x,y,z)]);
-                    }
-                }
-            }
-
             player = new Player(world);
+            CheckChunks();
 
             //Camera setup
             projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45f),GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f);
-            worldMatrix = Matrix.CreateWorld(player.camTarget, Vector3.Forward, Vector3.Up);
             viewMatrix = Matrix.CreateLookAt(player.camPosition, player.camTarget, Vector3.Up);
             WindowCenter = new Point(GraphicsDevice.Viewport.Width/2,GraphicsDevice.Viewport.Height/2);
             blockIconProjection = BlockIcon((int)(GraphicsDevice.Viewport.Width*0.93f),(int)(GraphicsDevice.Viewport.Height*0.9f),5);
@@ -70,8 +57,7 @@ namespace VoxelTechDemo
             //Basic shader setup
             basicEffect = new AlphaTestEffect(GraphicsDevice){
                 Alpha = 1f,
-                Texture = Content.Load<Texture2D>("Textures"),
-                World = worldMatrix
+                Texture = Content.Load<Texture2D>("Textures")
             };
 
             base.Initialize();
@@ -80,9 +66,8 @@ namespace VoxelTechDemo
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
             _spriteFont = Content.Load<SpriteFont>("PublicPixel");
-            byte[] ttfData = File.ReadAllBytes("Content/PublicPixel.ttf");
             FontSystem ordinaryFontSystem = new FontSystem();
-            ordinaryFontSystem.AddFont(ttfData);
+            ordinaryFontSystem.AddFont(File.ReadAllBytes("Content/PublicPixel.ttf"));
             MyraEnvironment.Game = this;
 
             Grid grid = new(){
@@ -254,7 +239,6 @@ namespace VoxelTechDemo
                     if(x*x+z*z<=(RenderDistance+0.5)*(RenderDistance+0.5)){
                         if(!CurrentlyLoadedChunkLines.ContainsKey((player.CurrentChunk.x+x,player.CurrentChunk.z+z))){
                             LoadChunkLine(player.CurrentChunk.x+x,player.CurrentChunk.z+z);
-                            CurrentlyLoadedChunkLines[(player.CurrentChunk.x+x,player.CurrentChunk.z+z)]=world.WorldMap[(player.CurrentChunk.x+x,0,player.CurrentChunk.z+z)];
                         }
                     }
                 }
@@ -269,12 +253,12 @@ namespace VoxelTechDemo
                 UnloadChunkLine(ChunkForUnload[i].x,ChunkForUnload[i].z);
             }
         }
-        Task LoadChunkLine(int x,int z){        
-            if(!world.WorldMap.ContainsKey((x,0,z))){
-                world.GenerateChunkLine(x,z);
-            }    
+        Task LoadChunkLine(int x,int z){
             return Task.Run(()=>{
                 //TOFIX: Sometimes chunk is generated 2 times
+                if(!world.WorldMap.ContainsKey((x,0,z)) || (world.WorldMap.ContainsKey((x,0,z)) && !world.WorldMap[(x,0,z)].IsGenerated)){
+                    world.GenerateChunkLine(x,z);
+                }
                 if(!world.WorldMap.ContainsKey((x+1,0,z)) || (world.WorldMap.ContainsKey((x+1,0,z)) && !world.WorldMap[(x+1,0,z)].IsGenerated)){
                     world.GenerateChunkLine(x+1,z);
                 }
@@ -290,13 +274,14 @@ namespace VoxelTechDemo
                 for(int y=0;y<8;y++){
                     GenerateVertexVertices(world.WorldMap[(x,y,z)]);
                 }
+                CurrentlyLoadedChunkLines.TryAdd((x,z),world.WorldMap[(x,0,z)]);
             });
         }
         void UnloadChunkLine(int x,int z){
             for(int y=0;y<8;y++){
                 world.WorldMap[(x,y,z)].vertexBufferOpaque?.Dispose();
                 world.WorldMap[(x,y,z)].vertexBufferTransparent?.Dispose();
-                CurrentlyLoadedChunkLines.Remove((x,z));
+                CurrentlyLoadedChunkLines.TryRemove((x,z),out _);
             }
         }
         protected override void Draw(GameTime gameTime)
