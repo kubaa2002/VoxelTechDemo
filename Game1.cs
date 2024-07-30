@@ -47,10 +47,11 @@ namespace VoxelTechDemo
 
             player = new Player(world);
             CheckChunks();
+            ChangeCubePreview(chosenBlock);
 
             //Camera setup
             projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45f),GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f);
-            viewMatrix = Matrix.CreateLookAt(player.camPosition, player.camTarget, Vector3.Up);
+            viewMatrix = Matrix.CreateLookAt(player.camPosition, Vector3.Zero, Vector3.Up);
             WindowCenter = new Point(GraphicsDevice.Viewport.Width/2,GraphicsDevice.Viewport.Height/2);
             blockIconProjection = BlockIcon((int)(GraphicsDevice.Viewport.Width*0.93f),(int)(GraphicsDevice.Viewport.Height*0.9f),5);
 
@@ -168,7 +169,6 @@ namespace VoxelTechDemo
             }
             if(!IsPaused){
                 //Camera look
-                //TOFIX when looking at block at high distances for example 1000000f float point precision loss will cause jittering and eventually camera stops working at all
                 currentMouseState = Mouse.GetState();
                 yaw -= (currentMouseState.X - WindowCenter.X)*rotationSpeed;
                 pitch -= (currentMouseState.Y - WindowCenter.Y)*rotationSpeed;
@@ -217,19 +217,20 @@ namespace VoxelTechDemo
                     if(chosenBlock==15){
                         chosenBlock = 1;
                     }
+                    ChangeCubePreview(chosenBlock);
                 }
                 if(currentMouseState.ScrollWheelValue<ScrollWheelValue){
                     chosenBlock--;
                     if(chosenBlock==0){
                         chosenBlock=14;
                     }
+                    ChangeCubePreview(chosenBlock);
                 }
                 player.forward = Vector3.Transform(Vector3.Forward, Matrix.CreateFromYawPitchRoll(yaw, pitch, 0f));
                 ScrollWheelValue = currentMouseState.ScrollWheelValue;
                 Mouse.SetPosition(WindowCenter.X,WindowCenter.Y);
             }
-            player.camTarget = player.camPosition + player.forward;
-            viewMatrix = Matrix.CreateLookAt(player.camPosition, player.camTarget, Vector3.Up);
+            viewMatrix = Matrix.CreateLookAt(player.camPosition, player.camPosition+player.forward, Vector3.Up);
             base.Update(gameTime);
         }
         void CheckChunks(){
@@ -243,14 +244,10 @@ namespace VoxelTechDemo
                     }
                 }
             }
-            List<(int x,int z)> ChunkForUnload = new();
             foreach(KeyValuePair<(int x,int z),Chunk> pair in CurrentlyLoadedChunkLines){
                 if((pair.Key.x-player.CurrentChunk.x)*(pair.Key.x-player.CurrentChunk.x)+(pair.Key.z-player.CurrentChunk.z)*(pair.Key.z-player.CurrentChunk.z)>(RenderDistance+1.5)*(RenderDistance+1.5)){
-                    ChunkForUnload.Add((pair.Key.x,pair.Key.z));
+                    UnloadChunkLine(pair.Key.x,pair.Key.z);
                 }
-            }
-            for(int i=0;i<ChunkForUnload.Count;i++){
-                UnloadChunkLine(ChunkForUnload[i].x,ChunkForUnload[i].z);
             }
         }
         Task LoadChunkLine(int x,int z){
@@ -278,10 +275,10 @@ namespace VoxelTechDemo
             });
         }
         void UnloadChunkLine(int x,int z){
+            CurrentlyLoadedChunkLines.TryRemove((x,z),out _);
             for(int y=0;y<8;y++){
                 world.WorldMap[(x,y,z)].vertexBufferOpaque?.Dispose();
                 world.WorldMap[(x,y,z)].vertexBufferTransparent?.Dispose();
-                CurrentlyLoadedChunkLines.TryRemove((x,z),out _);
             }
         }
         protected override void Draw(GameTime gameTime)
@@ -293,15 +290,16 @@ namespace VoxelTechDemo
             GraphicsDevice.Clear(Color.CornflowerBlue);
             GraphicsDevice.DepthStencilState = DepthStencilState.Default;
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
+            GraphicsDevice.Indices = indexBuffer;
 
             //TODO: Make it so it doesn't recalculate world matrixes every frame
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
-                    for(int y=-RenderDistance;y<=RenderDistance;y++){
-                        if(world.WorldMap.ContainsKey((x+player.CurrentChunk.x,y+player.CurrentChunk.y,z+player.CurrentChunk.z)) && CurrentlyLoadedChunkLines.ContainsKey((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
-                            basicEffect.World = Matrix.CreateWorld(new Vector3(x*64,y*64,z*64),Vector3.Forward,Vector3.Up);
-                            basicEffect.CurrentTechnique.Passes[0].Apply();
-                            DrawChunkOpaque(world.WorldMap[(x+player.CurrentChunk.x,y+player.CurrentChunk.y,z+player.CurrentChunk.z)]);
+                    basicEffect.World = Matrix.CreateWorld(new Vector3(x*64,-player.CurrentChunk.y*64,z*64),Vector3.Forward,Vector3.Up);
+                    basicEffect.CurrentTechnique.Passes[0].Apply();
+                    if(CurrentlyLoadedChunkLines.ContainsKey((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
+                        for(int y=0;y<8;y++){
+                            DrawChunkOpaque(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
                         }
                     }
                 }
@@ -310,11 +308,11 @@ namespace VoxelTechDemo
             //Opengl on windows doesn't like when transparent meshes are mixed with opaque ones
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
-                    for(int y=-RenderDistance;y<=RenderDistance;y++){
-                        if(world.WorldMap.ContainsKey((x+player.CurrentChunk.x,y+player.CurrentChunk.y,z+player.CurrentChunk.z)) && CurrentlyLoadedChunkLines.ContainsKey((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
-                            basicEffect.World = Matrix.CreateWorld(new Vector3(x*64,y*64,z*64),Vector3.Forward,Vector3.Up);
-                            basicEffect.CurrentTechnique.Passes[0].Apply();
-                            DrawChunkTransparent(world.WorldMap[(x+player.CurrentChunk.x,y+player.CurrentChunk.y,z+player.CurrentChunk.z)]);
+                    basicEffect.World = Matrix.CreateWorld(new Vector3(x*64,-player.CurrentChunk.y*64,z*64),Vector3.Forward,Vector3.Up);
+                    basicEffect.CurrentTechnique.Passes[0].Apply();
+                    if(CurrentlyLoadedChunkLines.ContainsKey((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
+                        for(int y=0;y<8;y++){
+                            DrawChunkTransparent(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
                         }
                     }
                 }
@@ -322,17 +320,17 @@ namespace VoxelTechDemo
 
             basicEffect.World = Matrix.CreateWorld(new Vector3(player.LookedAtBlock.x,player.LookedAtBlock.y,player.LookedAtBlock.z),Vector3.Forward,Vector3.Up);
             basicEffect.CurrentTechnique.Passes[0].Apply();
-            if(player.blockFound == true){
+            if(player.blockFound){
                 DrawCubeFrame();
             }
 
             //FPS counter and other UI
-            _frameCounter.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
+            _frameCounter.Update(gameTime.ElapsedGameTime.TotalSeconds);
             _spriteBatch.Begin();
             if(player.IsUnderWater){
                 _spriteBatch.Draw(basicEffect.Texture,new Rectangle(0,0,GraphicsDevice.Viewport.Width,GraphicsDevice.Viewport.Height),new Rectangle(33,49,14,14),Color.White);
             }
-            _spriteBatch.DrawString(_spriteFont, string.Format("FPS: {0}", _frameCounter.AverageFramesPerSecond), new(1,3), Color.Black);
+            _spriteBatch.DrawString(_spriteFont,$"FPS:{_frameCounter.AverageFramesPerSecond}", new(1,3), Color.Black);
             _spriteBatch.DrawString(_spriteFont,$"X:{Math.Round((double)player.camPosition.X+(long)player.CurrentChunk.x*64,2)}",new(1,23),Color.Black);
             _spriteBatch.DrawString(_spriteFont,$"Y:{Math.Round(player.camPosition.Y+player.CurrentChunk.y*64-1.7f,2)}",new(1,43),Color.Black);
             _spriteBatch.DrawString(_spriteFont,$"Z:{Math.Round((double)player.camPosition.Z+(long)player.CurrentChunk.z*64,2)}",new(1,63),Color.Black);
@@ -349,7 +347,7 @@ namespace VoxelTechDemo
 
             basicEffect.World = Matrix.CreateWorld(Vector3.Zero,Vector3.Forward,Vector3.Up);
             basicEffect.CurrentTechnique.Passes[0].Apply();
-            DrawCubePreview(chosenBlock);
+            DrawCubePreview();
 
             if(IsPaused){
                 _desktop.Render();

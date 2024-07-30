@@ -3,25 +3,21 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using static VoxelTechDemo.VoxelRenderer;
 
-namespace VoxelTechDemo
-{
-    class Player
-    {
+namespace VoxelTechDemo{
+    class Player{
         World currentWorld;
         public (int x, int y, int z) LookedAtBlock;
         public bool IsUnderWater = false, blockFound = false;
         bool CanJump = false;
         float movementSpeed, verticalSpeed;
-        public Vector3 camPosition, camTarget, forward, right;
+        public Vector3 camPosition, forward, right;
         public BoundingBox playerHitBox;
         public BlockFace currentSide;
         public (int x,int y,int z) CurrentChunk;
         public bool ChunkChanged = false;
         public Player(World world){
             currentWorld = world;
-            int ylevel = 53+(int)Math.Floor(currentWorld.MountainNoise(35,35));
-            camTarget = Vector3.Zero;
-            camPosition = new Vector3(35.5f, ylevel, 35.5f);
+            camPosition = new Vector3(35.5f, 53+(int)Math.Floor(currentWorld.MountainNoise(35,35)), 35.5f);
             playerHitBox = new(new Vector3(camPosition.X-0.2499f,camPosition.Y-1.6999f,camPosition.Z-0.2499f),new Vector3(camPosition.X+0.2499f,camPosition.Y+0.0999f,camPosition.Z+0.2499f));
         }
         public void GetLookedAtBlock(){
@@ -130,7 +126,7 @@ namespace VoxelTechDemo
                         camPosition.X += forward.X;
                     }
                     else{
-                        camPosition.X = (float)Math.Floor(camPosition.X+forward.X)+0.75f;
+                        camPosition.X = (float)Math.Floor(camPosition.X)+0.75f;
                     }
                 }
                 else{
@@ -143,7 +139,7 @@ namespace VoxelTechDemo
                         camPosition.X += forward.X;
                     }
                     else{
-                        camPosition.X = (float)Math.Floor(camPosition.X+forward.X)+0.25f;
+                        camPosition.X = (float)Math.Floor(camPosition.X)+0.25f;
                     }
                 }
                 playerHitBox.Min.X = camPosition.X-0.2499f;
@@ -158,7 +154,7 @@ namespace VoxelTechDemo
                         camPosition.Z += forward.Z;
                     }
                     else{
-                        camPosition.Z = (float)Math.Floor(camPosition.Z+forward.Z)+0.75f;
+                        camPosition.Z = (float)Math.Floor(camPosition.Z)+0.75f;
                     }
                 }
                 else{
@@ -171,7 +167,7 @@ namespace VoxelTechDemo
                         camPosition.Z += forward.Z;
                     }
                     else{
-                        camPosition.Z = (float)Math.Floor(camPosition.Z+forward.Z)+0.25f;
+                        camPosition.Z = (float)Math.Floor(camPosition.Z)+0.25f;
                     }
                 }
                 playerHitBox.Min.Z = camPosition.Z-0.2499f;

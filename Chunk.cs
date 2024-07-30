@@ -1,28 +1,15 @@
 using Microsoft.Xna.Framework.Graphics;
 
-namespace VoxelTechDemo
-{
-    public class Chunk
-    {
-        public byte[] blocks;
-        public int coordinateX;
-        public int coordinateY;
-        public int coordinateZ;
+namespace VoxelTechDemo{
+    public class Chunk{
+        public byte[] blocks = new byte[VoxelRenderer.cubed];
+        public (int x,int y,int z) coordinates;
         readonly World world;
         public VertexBuffer vertexBufferOpaque;
         public VertexBuffer vertexBufferTransparent;
         public bool IsGenerated = false;
-        static readonly (int x, int y, int z)[] coordinatesOffset = new (int, int, int)[]{(1,0,0),(-1,0,0),(0,1,0),(0,-1,0),(0,0,1),(0,0,-1)};
-        static readonly int maxValue=VoxelRenderer.ChunkSize-1;
-        static readonly int maxValueY=VoxelRenderer.ChunkSize*maxValue;
-        static readonly int maxValueZ=VoxelRenderer.square*maxValue;
-        static readonly int[] maxValueOffset = new int[]{-maxValue,maxValue,-maxValueY,maxValueY,-maxValueZ,maxValueZ};
-        public Chunk(int X,int Y,int Z, World world)
-        {
-            blocks = new byte[VoxelRenderer.cubed];
-            coordinateX = X;
-            coordinateY = Y;
-            coordinateZ = Z;
+        public Chunk((int x,int y,int z) coordinates, World world){
+            this.coordinates = coordinates;
             this.world = world;
         }
         //this only works for 64 blocks wide chunks
@@ -30,12 +17,12 @@ namespace VoxelTechDemo
             //face x+ x- y+ y- z+ z- depth 0-63
             ulong[] result = new ulong[24576];
             Chunk[] adjacentChunks = new Chunk[6];
-            world.WorldMap.TryGetValue((coordinateX+1,coordinateY,coordinateZ),out adjacentChunks[0]);
-            world.WorldMap.TryGetValue((coordinateX-1,coordinateY,coordinateZ),out adjacentChunks[1]);
-            world.WorldMap.TryGetValue((coordinateX,coordinateY+1,coordinateZ),out adjacentChunks[2]);
-            world.WorldMap.TryGetValue((coordinateX,coordinateY-1,coordinateZ),out adjacentChunks[3]);
-            world.WorldMap.TryGetValue((coordinateX,coordinateY,coordinateZ+1),out adjacentChunks[4]);
-            world.WorldMap.TryGetValue((coordinateX,coordinateY,coordinateZ-1),out adjacentChunks[5]);
+            world.WorldMap.TryGetValue(coordinates with{x=coordinates.x+1},out adjacentChunks[0]);
+            world.WorldMap.TryGetValue(coordinates with{x=coordinates.x-1},out adjacentChunks[1]);
+            world.WorldMap.TryGetValue(coordinates with{y=coordinates.y+1},out adjacentChunks[2]);
+            world.WorldMap.TryGetValue(coordinates with{y=coordinates.y-1},out adjacentChunks[3]);
+            world.WorldMap.TryGetValue(coordinates with{z=coordinates.z+1},out adjacentChunks[4]);
+            world.WorldMap.TryGetValue(coordinates with{z=coordinates.z-1},out adjacentChunks[5]);
             int blockPossition = 0, resultPossition = 0;
             byte currentBlockId;
             for(int z=0;z<64;z++){
@@ -51,8 +38,8 @@ namespace VoxelTechDemo
                             }
                             else{
                                 if(adjacentChunks[0] is not null){
-                                    if(currentBlockId != adjacentChunks[0].blocks[blockPossition+maxValueOffset[0]]
-                                    && Block.IsTransparent(adjacentChunks[0].blocks[blockPossition+maxValueOffset[0]])){
+                                    if(currentBlockId != adjacentChunks[0].blocks[blockPossition-63]
+                                    && Block.IsTransparent(adjacentChunks[0].blocks[blockPossition-63])){
                                         result[resultPossition] |= 1uL << x;
                                     }
                                 }
@@ -65,8 +52,8 @@ namespace VoxelTechDemo
                             }
                             else{
                                 if(adjacentChunks[1] is not null){
-                                    if(currentBlockId != adjacentChunks[1].blocks[blockPossition+maxValueOffset[1]]
-                                    && Block.IsTransparent(adjacentChunks[1].blocks[blockPossition+maxValueOffset[1]])){
+                                    if(currentBlockId != adjacentChunks[1].blocks[blockPossition+63]
+                                    && Block.IsTransparent(adjacentChunks[1].blocks[blockPossition+63])){
                                         result[4096 + resultPossition] |= 1uL << x;
                                     }
                                 }
@@ -79,8 +66,8 @@ namespace VoxelTechDemo
                             }
                             else{
                                 if(adjacentChunks[2] is not null){
-                                    if(currentBlockId != adjacentChunks[2].blocks[blockPossition+maxValueOffset[2]]
-                                    && Block.IsTransparent(adjacentChunks[2].blocks[blockPossition+maxValueOffset[2]])){
+                                    if(currentBlockId != adjacentChunks[2].blocks[blockPossition-4032]
+                                    && Block.IsTransparent(adjacentChunks[2].blocks[blockPossition-4032])){
                                         result[8192 + resultPossition] |= 1uL << x;
                                     }
                                 }
@@ -93,8 +80,8 @@ namespace VoxelTechDemo
                             }
                             else{
                                 if(adjacentChunks[3] is not null){
-                                    if(currentBlockId != adjacentChunks[3].blocks[blockPossition+maxValueOffset[3]]
-                                    && Block.IsTransparent(adjacentChunks[3].blocks[blockPossition+maxValueOffset[3]])){
+                                    if(currentBlockId != adjacentChunks[3].blocks[blockPossition+4032]
+                                    && Block.IsTransparent(adjacentChunks[3].blocks[blockPossition+4032])){
                                         result[12288 + resultPossition] |= 1uL << x;
                                     }
                                 }
@@ -107,8 +94,8 @@ namespace VoxelTechDemo
                             }
                             else{
                                 if(adjacentChunks[4] is not null){
-                                    if(currentBlockId != adjacentChunks[4].blocks[blockPossition+maxValueOffset[4]]
-                                    && Block.IsTransparent(adjacentChunks[4].blocks[blockPossition+maxValueOffset[4]])){
+                                    if(currentBlockId != adjacentChunks[4].blocks[blockPossition-258048]
+                                    && Block.IsTransparent(adjacentChunks[4].blocks[blockPossition-258048])){
                                         result[16384 + resultPossition] |= 1uL << x;
                                     }
                                 }
@@ -121,8 +108,8 @@ namespace VoxelTechDemo
                             }
                             else{
                                 if(adjacentChunks[5] is not null){
-                                    if(currentBlockId != adjacentChunks[5].blocks[blockPossition+maxValueOffset[5]]
-                                    && Block.IsTransparent(adjacentChunks[5].blocks[blockPossition+maxValueOffset[5]])){
+                                    if(currentBlockId != adjacentChunks[5].blocks[blockPossition+258048]
+                                    && Block.IsTransparent(adjacentChunks[5].blocks[blockPossition+258048])){
                                         result[20480 + resultPossition] |= 1uL << x;
                                     }
                                 }

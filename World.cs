@@ -9,47 +9,38 @@ namespace VoxelTechDemo
 {
     public class World
     {
-        public ConcurrentDictionary<(int,int,int),Chunk> WorldMap;
+        public ConcurrentDictionary<(int,int,int),Chunk> WorldMap = new();
         readonly long seed;
-        public World(long seed)
-        {
-            WorldMap = new ConcurrentDictionary<(int,int,int),Chunk>();
+        public World(long seed){
             this.seed = seed;
         }
-        public void SetBlock(int x,int y,int z,(int, int, int) chunkCoordinate, byte Id, BlockFace blockSide, BoundingBox PlayerHitBox)
-        {
-            if(blockSide == BlockFace.Front)
-            {
+        public void SetBlock(int x,int y,int z,(int, int, int) chunkCoordinate, byte Id, BlockFace blockSide, BoundingBox PlayerHitBox){
+            if(blockSide == BlockFace.Front){
                 if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y,z-1),new Vector3(x+1,y+1,z)))){
                     SetBlock(x,y,z-1,chunkCoordinate,Id);
                 }
             }
-            if(blockSide == BlockFace.Back)
-            {
+            if(blockSide == BlockFace.Back){
                 if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y,z+1),new Vector3(x+1,y+1,z+2)))){
                     SetBlock(x,y,z+1,chunkCoordinate,Id);
                 }
             }
-            if(blockSide == BlockFace.Right)
-            {
+            if(blockSide == BlockFace.Right){
                 if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x-1,y,z),new Vector3(x,y+1,z+1)))){
                     SetBlock(x-1,y,z,chunkCoordinate,Id);
                 }
             }
-            if(blockSide == BlockFace.Left)
-            {
+            if(blockSide == BlockFace.Left){
                 if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x+1,y,z),new Vector3(x+2,y+1,z+1)))){
                     SetBlock(x+1,y,z,chunkCoordinate,Id);
                 }
             }
-            if(blockSide == BlockFace.Top)
-            {
+            if(blockSide == BlockFace.Top){
                 if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y+1,z),new Vector3(x+1,y+2,z+1)))){
                     SetBlock(x,y+1,z,chunkCoordinate,Id);
                 }
             }
-            if(blockSide == BlockFace.Bottom)
-            {
+            if(blockSide == BlockFace.Bottom){
                 if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y-1,z),new Vector3(x+1,y,z+1)))){
                     SetBlock(x,y-1,z,chunkCoordinate,Id);
                 }
@@ -57,7 +48,7 @@ namespace VoxelTechDemo
         }
         public void SetBlock(int x, int y, int z, (int x,int y,int z) chunkCoordinate,byte Id){
             NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
-            WorldMap.TryAdd(chunkCoordinate,new(chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z,this));
+            WorldMap.TryAdd(chunkCoordinate,new(chunkCoordinate,this));
             Chunk chunk = WorldMap[chunkCoordinate];
             chunk.blocks[x+(y*ChunkSize)+(z*square)]=Id;
             Dictionary<Chunk,VertexBuffer[]> buffers = new();
@@ -103,7 +94,7 @@ namespace VoxelTechDemo
         }
         public void SetBlockWithoutUpdating(int x,int y,int z,(int x,int y,int z) chunkCoordinate,byte Id){
             NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
-            WorldMap.TryAdd(chunkCoordinate,new(chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z,this));
+            WorldMap.TryAdd(chunkCoordinate,new(chunkCoordinate,this));
             WorldMap[chunkCoordinate].blocks[x+y*ChunkSize+z*square]=Id;
         }
         public byte GetBlock(int x,int y,int z, (int x,int y,int z) chunkCoordinate){
@@ -118,11 +109,11 @@ namespace VoxelTechDemo
         public static int Mod(int a, int b){
             return (a%=b)<0 ? a+b : a;
         }
-        public void GenerateChunkLine(int chunkX,int chunkZ){
-            for(int i=0;i<8;i++){
-                WorldMap.TryAdd((chunkX,i,chunkZ),new(chunkX,i,chunkZ,this));
+        public void GenerateChunkLine(int x,int z){
+            for(int y=0;y<8;y++){
+                WorldMap.TryAdd((x,y,z),new((x,y,z),this));
             }
-            GenerateTerrain(chunkX,chunkZ);
+            GenerateTerrain(x,z);
         }
         public void GenerateTerrain(int chunkX,int chunkZ){
             Chunk[] chunks = new Chunk[8];
@@ -183,8 +174,8 @@ namespace VoxelTechDemo
                 for(int tempx=-2;tempx<=2;tempx++){
                     for(int tempz=-2;tempz<=2;tempz++){
                         if(!((tempx == -2 || tempx == 2)&&(tempz == -2 || tempz == 2))){
-                            if(GetBlock(x+tempx,y+tempy,z+tempz,(chunk.coordinateX,chunk.coordinateY,chunk.coordinateZ))==0){
-                                SetBlockWithoutUpdating(x+tempx,y+tempy,z+tempz,(chunk.coordinateX,chunk.coordinateY,chunk.coordinateZ),7);
+                            if(GetBlock(x+tempx,y+tempy,z+tempz,chunk.coordinates)==0){
+                                SetBlockWithoutUpdating(x+tempx,y+tempy,z+tempz,chunk.coordinates,7);
                             }
                         }
                     }
@@ -194,17 +185,17 @@ namespace VoxelTechDemo
                 for(int tempx=-1;tempx<=1;tempx++){
                     for(int tempz=-1;tempz<=1;tempz++){
                         if(!((tempx == -1 || tempx == 1)&&(tempz == -1 || tempz == 1))){
-                            if(GetBlock(x+tempx,y+tempy,z+tempz,(chunk.coordinateX,chunk.coordinateY,chunk.coordinateZ))==0){
-                                SetBlockWithoutUpdating(x+tempx,y+tempy,z+tempz,(chunk.coordinateX,chunk.coordinateY,chunk.coordinateZ),7);
+                            if(GetBlock(x+tempx,y+tempy,z+tempz,chunk.coordinates)==0){
+                                SetBlockWithoutUpdating(x+tempx,y+tempy,z+tempz,chunk.coordinates,7);
                             }
                         }
                     }
                 }
             }
             for(int i=1;i<=6;i++){
-                SetBlockWithoutUpdating(x,y+i,z,(chunk.coordinateX,chunk.coordinateY,chunk.coordinateZ),5);
+                SetBlockWithoutUpdating(x,y+i,z,chunk.coordinates,5);
             }
-            SetBlockWithoutUpdating(x,y,z,(chunk.coordinateX,chunk.coordinateY,chunk.coordinateZ),2);
+            SetBlockWithoutUpdating(x,y,z,chunk.coordinates,2);
         }
         public double TerrainNoise(int x,int z){
             return OpenSimplex2.Noise2(seed,((double)x)/2000,((double)z)/2000)*160
