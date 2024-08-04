@@ -31,7 +31,7 @@ namespace VoxelTechDemo
         int ScrollWheelValue;
         Player player;
         byte RenderDistance = 3;
-        readonly ConcurrentDictionary<(int x,int z), Chunk> CurrentlyLoadedChunkLines = new(); 
+        readonly HashSet<(int x,int z)> CurrentlyLoadedChunkLines = new(); 
         public Game1(){
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
@@ -238,23 +238,27 @@ namespace VoxelTechDemo
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
                     if(x*x+z*z<=(RenderDistance+0.5)*(RenderDistance+0.5)){
-                        if(!CurrentlyLoadedChunkLines.ContainsKey((player.CurrentChunk.x+x,player.CurrentChunk.z+z))){
+                        if(!CurrentlyLoadedChunkLines.Contains((player.CurrentChunk.x+x,player.CurrentChunk.z+z))){
                             LoadChunkLine(player.CurrentChunk.x+x,player.CurrentChunk.z+z);
                         }
                     }
                 }
             }
-            foreach(KeyValuePair<(int x,int z),Chunk> pair in CurrentlyLoadedChunkLines){
-                if((pair.Key.x-player.CurrentChunk.x)*(pair.Key.x-player.CurrentChunk.x)+(pair.Key.z-player.CurrentChunk.z)*(pair.Key.z-player.CurrentChunk.z)>(RenderDistance+1.5)*(RenderDistance+1.5)){
-                    UnloadChunkLine(pair.Key.x,pair.Key.z);
+            foreach((int x,int z) in CurrentlyLoadedChunkLines){
+                if((x-player.CurrentChunk.x)*(x-player.CurrentChunk.x)+(z-player.CurrentChunk.z)*(z-player.CurrentChunk.z)>(RenderDistance+1.5)*(RenderDistance+1.5)){
+                    UnloadChunkLine(x,z);
                 }
             }
         }
         Task LoadChunkLine(int x,int z){
+            for(int y=0;y<8;y++){
+                world.WorldMap.TryAdd((x,y,z),new((x,y,z),world));
+            }
+            CurrentlyLoadedChunkLines.Add((x,z));
             return Task.Run(()=>{
                 //TOFIX: Sometimes chunk is generated 2 times
                 if(!world.WorldMap.ContainsKey((x,0,z)) || (world.WorldMap.ContainsKey((x,0,z)) && !world.WorldMap[(x,0,z)].IsGenerated)){
-                    world.GenerateChunkLine(x,z);
+                    world.GenerateTerrain(x,z);
                 }
                 if(!world.WorldMap.ContainsKey((x+1,0,z)) || (world.WorldMap.ContainsKey((x+1,0,z)) && !world.WorldMap[(x+1,0,z)].IsGenerated)){
                     world.GenerateChunkLine(x+1,z);
@@ -271,11 +275,10 @@ namespace VoxelTechDemo
                 for(int y=0;y<8;y++){
                     GenerateVertexVertices(world.WorldMap[(x,y,z)]);
                 }
-                CurrentlyLoadedChunkLines.TryAdd((x,z),world.WorldMap[(x,0,z)]);
             });
         }
         void UnloadChunkLine(int x,int z){
-            CurrentlyLoadedChunkLines.TryRemove((x,z),out _);
+            CurrentlyLoadedChunkLines.Remove((x,z));
             for(int y=0;y<8;y++){
                 world.WorldMap[(x,y,z)].vertexBufferOpaque?.Dispose();
                 world.WorldMap[(x,y,z)].vertexBufferTransparent?.Dispose();
@@ -297,7 +300,7 @@ namespace VoxelTechDemo
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
                     basicEffect.World = Matrix.CreateWorld(new Vector3(x*64,-player.CurrentChunk.y*64,z*64),Vector3.Forward,Vector3.Up);
                     basicEffect.CurrentTechnique.Passes[0].Apply();
-                    if(CurrentlyLoadedChunkLines.ContainsKey((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
+                    if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
                         for(int y=0;y<8;y++){
                             DrawChunkOpaque(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
                         }
@@ -310,7 +313,7 @@ namespace VoxelTechDemo
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
                     basicEffect.World = Matrix.CreateWorld(new Vector3(x*64,-player.CurrentChunk.y*64,z*64),Vector3.Forward,Vector3.Up);
                     basicEffect.CurrentTechnique.Passes[0].Apply();
-                    if(CurrentlyLoadedChunkLines.ContainsKey((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
+                    if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
                         for(int y=0;y<8;y++){
                             DrawChunkTransparent(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
                         }
