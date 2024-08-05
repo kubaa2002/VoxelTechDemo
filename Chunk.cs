@@ -37,11 +37,9 @@ namespace VoxelTechDemo{
                                 }
                             }
                             else{
-                                if(adjacentChunks[0] is not null){
-                                    if(currentBlockId != adjacentChunks[0].blocks[blockPossition-63]
-                                    && Block.IsTransparent(adjacentChunks[0].blocks[blockPossition-63])){
-                                        result[resultPossition] |= 1uL << x;
-                                    }
+                                if(currentBlockId != adjacentChunks[0].blocks[blockPossition-63]
+                                && Block.IsTransparent(adjacentChunks[0].blocks[blockPossition-63])){
+                                    result[resultPossition] |= 1uL << x;
                                 }
                             }
                             // Face x-
@@ -51,11 +49,9 @@ namespace VoxelTechDemo{
                                 }
                             }
                             else{
-                                if(adjacentChunks[1] is not null){
-                                    if(currentBlockId != adjacentChunks[1].blocks[blockPossition+63]
-                                    && Block.IsTransparent(adjacentChunks[1].blocks[blockPossition+63])){
-                                        result[4096 + resultPossition] |= 1uL << x;
-                                    }
+                                if(currentBlockId != adjacentChunks[1].blocks[blockPossition+63]
+                                && Block.IsTransparent(adjacentChunks[1].blocks[blockPossition+63])){
+                                    result[4096 + resultPossition] |= 1uL << x;
                                 }
                             }
                             // Face y+
@@ -93,11 +89,9 @@ namespace VoxelTechDemo{
                                 }
                             }
                             else{
-                                if(adjacentChunks[4] is not null){
-                                    if(currentBlockId != adjacentChunks[4].blocks[blockPossition-258048]
-                                    && Block.IsTransparent(adjacentChunks[4].blocks[blockPossition-258048])){
-                                        result[16384 + resultPossition] |= 1uL << x;
-                                    }
+                                if(currentBlockId != adjacentChunks[4].blocks[blockPossition-258048]
+                                && Block.IsTransparent(adjacentChunks[4].blocks[blockPossition-258048])){
+                                    result[16384 + resultPossition] |= 1uL << x;
                                 }
                             }
                             // Face z-
@@ -107,11 +101,9 @@ namespace VoxelTechDemo{
                                 }  
                             }
                             else{
-                                if(adjacentChunks[5] is not null){
-                                    if(currentBlockId != adjacentChunks[5].blocks[blockPossition+258048]
-                                    && Block.IsTransparent(adjacentChunks[5].blocks[blockPossition+258048])){
-                                        result[20480 + resultPossition] |= 1uL << x;
-                                    }
+                                if(currentBlockId != adjacentChunks[5].blocks[blockPossition+258048]
+                                && Block.IsTransparent(adjacentChunks[5].blocks[blockPossition+258048])){
+                                    result[20480 + resultPossition] |= 1uL << x;
                                 }
                             }
                         }

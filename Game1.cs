@@ -5,17 +5,11 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using static VoxelTechDemo.VoxelRenderer;
-using Myra;
-using Myra.Graphics2D.UI;
-using FontStashSharp;
-using System.IO;
-using System.Collections.Concurrent;
 
 namespace VoxelTechDemo
 {
     public class Game1 : Game
     {   
-        private Desktop _desktop;  
         private readonly GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
         private SpriteFont _spriteFont;
@@ -30,14 +24,14 @@ namespace VoxelTechDemo
         byte chosenBlock = 1;
         int ScrollWheelValue;
         Player player;
-        byte RenderDistance = 3;
+        public byte RenderDistance = 3;
         readonly HashSet<(int x,int z)> CurrentlyLoadedChunkLines = new(); 
         public Game1(){
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
         }
         protected override void Initialize(){
-            //Fullscrean setup
+            //Fullscreen setup
             _graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
             _graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
             _graphics.IsFullScreen = true;
@@ -63,97 +57,10 @@ namespace VoxelTechDemo
 
             base.Initialize();
         }
-        protected override void LoadContent()
-        {
+        protected override void LoadContent(){
             _spriteBatch = new SpriteBatch(GraphicsDevice);
             _spriteFont = Content.Load<SpriteFont>("PublicPixel");
-            FontSystem ordinaryFontSystem = new FontSystem();
-            ordinaryFontSystem.AddFont(File.ReadAllBytes("Content/PublicPixel.ttf"));
-            MyraEnvironment.Game = this;
-
-            Grid grid = new(){
-                RowSpacing = 8,
-                ColumnSpacing = 8
-            };
-
-            grid.ColumnsProportions.Add(new Proportion(ProportionType.Fill));
-            grid.RowsProportions.Add(new Proportion(ProportionType.Fill));
-
-            // Render distance option
-            Label textBox = new(){
-                Text = "Render Distance:",
-                Width = 320,
-                Height = 60,
-                Font = ordinaryFontSystem.GetFont(32)
-            };
-            Grid.SetColumn(textBox, 0);
-            Grid.SetRow(textBox, 1);
-            grid.Widgets.Add(textBox);
-
-            SpinButton spinButton = new(){
-                Width = 100,
-                Nullable = false,
-                Value = RenderDistance,
-                Integer = true,
-                Minimum = 1,
-                Maximum = 32,
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-            Grid.SetColumn(spinButton, 0);
-            Grid.SetRow(spinButton, 1);
-            spinButton.ValueChanged += (s, a) =>{
-                RenderDistance = (byte)spinButton.Value;
-                CheckChunks();
-            };
-            grid.Widgets.Add(spinButton);
-
-            // Unlock framerate option
-            Label framerate = new(){
-                Text = "Unlock framerate:",
-                Width = 320,
-                Height = 60,
-                Font = ordinaryFontSystem.GetFont(32)
-            };
-            Grid.SetColumn(framerate, 0);
-            Grid.SetRow(framerate, 2);
-            grid.Widgets.Add(framerate);
-
-            CheckButton checkBox = new(){
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-            Grid.SetColumn(checkBox, 0);
-            Grid.SetRow(checkBox, 2);
-            checkBox.Click += (s, a) =>{
-                //Unlockin Frame rate
-                _graphics.SynchronizeWithVerticalRetrace = !_graphics.SynchronizeWithVerticalRetrace;
-                IsFixedTimeStep = !IsFixedTimeStep;
-                _graphics.ApplyChanges();
-            };
-            grid.Widgets.Add(checkBox);
-
-            // Exit Button
-            Button button = new(){
-                Content = new Label{
-                    Text = "Exit",
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Font = ordinaryFontSystem.GetFont(64)
-                },
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Width = 270,
-                Height = 80
-            };
-            Grid.SetColumn(button, 0);
-            Grid.SetRow(button, 3);
-            button.Click += (s, a) =>{
-                Exit();
-            };
-            grid.Widgets.Add(button);
-
-            // Add it to the desktop
-            _desktop = new Desktop{
-                Root = grid
-            };
+            UserInterface.Initialize(this, _graphics);
         }
         protected override void Update(GameTime gameTime)
         {
@@ -233,7 +140,7 @@ namespace VoxelTechDemo
             viewMatrix = Matrix.CreateLookAt(player.camPosition, player.camPosition+player.forward, Vector3.Up);
             base.Update(gameTime);
         }
-        void CheckChunks(){
+        public void CheckChunks(){
             player.ChunkChanged = false;
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
@@ -353,7 +260,7 @@ namespace VoxelTechDemo
             DrawCubePreview();
 
             if(IsPaused){
-                _desktop.Render();
+                UserInterface._desktop.Render();
             }
 
             base.Draw(gameTime);

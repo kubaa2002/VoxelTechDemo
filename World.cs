@@ -48,7 +48,9 @@ namespace VoxelTechDemo
         }
         public void SetBlock(int x, int y, int z, (int x,int y,int z) chunkCoordinate,byte Id){
             NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
-            WorldMap.TryAdd(chunkCoordinate,new(chunkCoordinate,this));
+            if(!WorldMap.ContainsKey(chunkCoordinate)){
+                return;
+            }
             Chunk chunk = WorldMap[chunkCoordinate];
             chunk.blocks[x+(y*ChunkSize)+(z*square)]=Id;
             Dictionary<Chunk,VertexBuffer[]> buffers = new();
