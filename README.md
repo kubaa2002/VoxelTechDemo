@@ -1,5 +1,5 @@
 # VoxelTechDemo
-Voxel tech demo with infinite world generation and ability to build written in monogame for learning purposes.
+Voxel tech demo with infinite world generation and ability to build written in c# using [MonoGame](https://github.com/MonoGame/MonoGame) for learning purposes.
 ![img.png](Screenshot.png)
 # Credits
 Textures - [VoxeLibre](https://git.minetest.land/VoxeLibre/VoxeLibre)<br>
