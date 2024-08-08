@@ -32,13 +32,32 @@ namespace VoxelTechDemo{
                     blockFound = true;
                 }
                 for(int j=0;j<2;j++){
-                    BlockFace Intersection = GetFace(ray,currentBlock);
-                    if(Intersection == BlockFace.Front) currentBlock = new(new Vector3(currentBlock.Min.X,currentBlock.Min.Y,currentBlock.Min.Z-1),new Vector3(currentBlock.Max.X,currentBlock.Max.Y,currentBlock.Min.Z));
-                    if(Intersection == BlockFace.Back) currentBlock = new(new Vector3(currentBlock.Min.X,currentBlock.Min.Y,currentBlock.Max.Z),new Vector3(currentBlock.Max.X,currentBlock.Max.Y,currentBlock.Min.Z+2));
-                    if(Intersection == BlockFace.Right) currentBlock = new(new Vector3(currentBlock.Min.X-1,currentBlock.Min.Y,currentBlock.Min.Z),new Vector3(currentBlock.Min.X,currentBlock.Max.Y,currentBlock.Max.Z));
-                    if(Intersection == BlockFace.Left) currentBlock = new(new Vector3(currentBlock.Max.X,currentBlock.Min.Y,currentBlock.Min.Z),new Vector3(currentBlock.Min.X+2,currentBlock.Max.Y,currentBlock.Max.Z));
-                    if(Intersection == BlockFace.Top) currentBlock = new(new Vector3(currentBlock.Min.X,currentBlock.Max.Y,currentBlock.Min.Z),new Vector3(currentBlock.Max.X,currentBlock.Min.Y+2,currentBlock.Max.Z));
-                    if(Intersection == BlockFace.Bottom) currentBlock = new(new Vector3(currentBlock.Min.X,currentBlock.Min.Y-1,currentBlock.Min.Z),new Vector3(currentBlock.Max.X,currentBlock.Min.Y,currentBlock.Max.Z));
+                    switch(GetFace(ray,currentBlock)){
+                        case BlockFace.Front:
+                            currentBlock.Min.Z--;
+                            currentBlock.Max.Z--;
+                            break;
+                        case BlockFace.Back:
+                            currentBlock.Min.Z++;
+                            currentBlock.Max.Z++;
+                            break;
+                        case BlockFace.Right:
+                            currentBlock.Min.X--;
+                            currentBlock.Max.X--;
+                            break;
+                        case BlockFace.Left:
+                            currentBlock.Min.X++;
+                            currentBlock.Max.X++;
+                            break;
+                        case BlockFace.Top:
+                            currentBlock.Min.Y++;
+                            currentBlock.Max.Y++;
+                            break;
+                        case BlockFace.Bottom:
+                            currentBlock.Min.Y--;
+                            currentBlock.Max.Y--;
+                            break;
+                    }
                     if(!Block.IsNotSolid(currentWorld.GetBlock((int)currentBlock.Min.X,(int)currentBlock.Min.Y,(int)currentBlock.Min.Z,CurrentChunk))){
                         LookedAtBlock = ((int)currentBlock.Min.X,(int)currentBlock.Min.Y,(int)currentBlock.Min.Z);
                         blockFound = true;

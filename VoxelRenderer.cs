@@ -1,19 +1,16 @@
-﻿using System;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace VoxelTechDemo
-{
-    public static class VoxelRenderer
-    {
+namespace VoxelTechDemo{
+    public static class VoxelRenderer{
         static private GraphicsDevice graphicsDevice;
         static private readonly BlockIds blockIds = new();
-        static readonly int offsetX = 0b101001011010101000001111;
-        static readonly int offsetY = 0b110011000000111111001100;
-        static readonly int offsetZ = 0b000011110011110001011010;
+        const int offsetX = 0b101001011010101000001111;
+        const int offsetY = 0b110011000000111111001100;
+        const int offsetZ = 0b000011110011110001011010;
         public const int ChunkSize = 64;
-        public static int square = (int)Math.Pow(ChunkSize,2);
-        public static int cubed = (int)Math.Pow(ChunkSize,3);
+        public const int square = ChunkSize*ChunkSize;
+        public const int cubed = ChunkSize*ChunkSize*ChunkSize;
         public static IndexBuffer indexBuffer;
         public static void InitializeVoxelRenderer(GraphicsDevice _graphicsDevice){
             graphicsDevice=_graphicsDevice;
@@ -36,14 +33,13 @@ namespace VoxelTechDemo
             VertexPositionTexture[] vertices = new VertexPositionTexture[cubed*24];
             Vector3 voxelPosition;
             ulong[] result = chunk.CheckAllChunkFacesIfNeeded();
-            int facePossition = 0, currentBlock;
-            byte j;
+            int facePossition = 0;
             Vector2[] textureCoordinates;
             for(int face=0;face<6;face++){
-                currentBlock = 0;
+                int currentBlock = 0;
                 for(int depth=0;depth<ChunkSize;depth++){
                     for(int i=0;i<ChunkSize;i++){
-                        j=0;
+                        int j=0;
                         while(result[facePossition] != 0 && j<ChunkSize){
                             if((result[facePossition]&(1uL<<j))!=0){
                                 textureCoordinates = blockIds.GiveTextureVectorArrayById(chunk.blocks[currentBlock]);
@@ -74,23 +70,15 @@ namespace VoxelTechDemo
                     }
                 }
             }
-            VertexPositionTexture[] tempVerticesOpaque = new VertexPositionTexture[possition];
-            VertexPositionTexture[] tempVerticesTransparent = new VertexPositionTexture[cubed*24 - 1 - transparentIndex];
             VertexBuffer[] buffers = new VertexBuffer[2];
-            if(tempVerticesOpaque.Length != 0){
-                Array.Copy(vertices,tempVerticesOpaque,possition);
-                VertexBuffer vertexBufferOpaque = new(graphicsDevice,typeof(VertexPositionTexture),tempVerticesOpaque.Length,BufferUsage.None);
-                vertexBufferOpaque.SetData(tempVerticesOpaque);
+            if(possition != 0){
+                VertexBuffer vertexBufferOpaque = new(graphicsDevice,typeof(VertexPositionTexture),possition,BufferUsage.None);
+                vertexBufferOpaque.SetData(vertices,0,possition);
                 buffers[0]=vertexBufferOpaque;
             }
-            if(tempVerticesTransparent.Length != 0){
-                possition=0;
-                for(int i=cubed*24-1;i>transparentIndex;i--){
-                    tempVerticesTransparent[possition]=vertices[i];
-                    possition++;
-                }
-                VertexBuffer vertexBufferTransparent = new(graphicsDevice,typeof(VertexPositionTexture),tempVerticesTransparent.Length,BufferUsage.None);
-                vertexBufferTransparent.SetData(tempVerticesTransparent);
+            if(transparentIndex != cubed*24-1){
+                VertexBuffer vertexBufferTransparent = new(graphicsDevice,typeof(VertexPositionTexture),cubed*24-1-transparentIndex,BufferUsage.None);
+                vertexBufferTransparent.SetData(vertices,transparentIndex+1,cubed*24-1-transparentIndex);
                 buffers[1]=vertexBufferTransparent;
             }
             return buffers;
@@ -163,10 +151,8 @@ namespace VoxelTechDemo
         public enum BlockFace{Front,Back,Right,Left,Top,Bottom,None};
         public static BlockFace GetFace(Ray ray,BoundingBox box){
             float? distance = ray.Intersects(box);
-            if(distance.HasValue)
-            {
-                Vector3 intersectionPoint = ray.Position + ray.Direction*distance.Value;
-                Vector3 localIntersectionPoint = intersectionPoint - box.Min;
+            if(distance.HasValue){
+                Vector3 localIntersectionPoint = ray.Position + ray.Direction*distance.Value - box.Min;
 
                 if (localIntersectionPoint.X < 0.0001f) return BlockFace.Right;
                 if (localIntersectionPoint.X > 0.9999f) return BlockFace.Left;
