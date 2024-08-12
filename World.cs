@@ -5,45 +5,47 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using static VoxelTechDemo.VoxelRenderer;
 
-namespace VoxelTechDemo
-{
-    public class World
-    {
+namespace VoxelTechDemo{
+    public class World{
         public ConcurrentDictionary<(int,int,int),Chunk> WorldMap = new();
         readonly long seed;
+        //MaxHeight need to divisable by ChunkSize
+        public const int MaxHeight = 512;
         public World(long seed){
             this.seed = seed;
         }
         public void SetBlock(int x,int y,int z,(int, int, int) chunkCoordinate, byte Id, BlockFace blockSide, BoundingBox PlayerHitBox){
-            if(blockSide == BlockFace.Front){
-                if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y,z-1),new Vector3(x+1,y+1,z)))){
-                    SetBlock(x,y,z-1,chunkCoordinate,Id);
-                }
-            }
-            if(blockSide == BlockFace.Back){
-                if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y,z+1),new Vector3(x+1,y+1,z+2)))){
-                    SetBlock(x,y,z+1,chunkCoordinate,Id);
-                }
-            }
-            if(blockSide == BlockFace.Right){
-                if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x-1,y,z),new Vector3(x,y+1,z+1)))){
-                    SetBlock(x-1,y,z,chunkCoordinate,Id);
-                }
-            }
-            if(blockSide == BlockFace.Left){
-                if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x+1,y,z),new Vector3(x+2,y+1,z+1)))){
-                    SetBlock(x+1,y,z,chunkCoordinate,Id);
-                }
-            }
-            if(blockSide == BlockFace.Top){
-                if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y+1,z),new Vector3(x+1,y+2,z+1)))){
-                    SetBlock(x,y+1,z,chunkCoordinate,Id);
-                }
-            }
-            if(blockSide == BlockFace.Bottom){
-                if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y-1,z),new Vector3(x+1,y,z+1)))){
-                    SetBlock(x,y-1,z,chunkCoordinate,Id);
-                }
+            switch(blockSide){
+                case BlockFace.Front:
+                    if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y,z-1),new Vector3(x+1,y+1,z)))){
+                        SetBlock(x,y,z-1,chunkCoordinate,Id);
+                    }
+                    break;
+                case BlockFace.Back:
+                    if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y,z+1),new Vector3(x+1,y+1,z+2)))){
+                        SetBlock(x,y,z+1,chunkCoordinate,Id);
+                    }
+                    break;
+                case BlockFace.Right:
+                    if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x-1,y,z),new Vector3(x,y+1,z+1)))){
+                        SetBlock(x-1,y,z,chunkCoordinate,Id);
+                    }
+                    break;
+                case BlockFace.Left:
+                    if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x+1,y,z),new Vector3(x+2,y+1,z+1)))){
+                        SetBlock(x+1,y,z,chunkCoordinate,Id);
+                    }
+                    break;
+                case BlockFace.Top:
+                    if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y+1,z),new Vector3(x+1,y+2,z+1)))){
+                        SetBlock(x,y+1,z,chunkCoordinate,Id);
+                    }
+                    break;
+                case BlockFace.Bottom:
+                    if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y-1,z),new Vector3(x+1,y,z+1)))){
+                        SetBlock(x,y-1,z,chunkCoordinate,Id);
+                    }
+                    break;
             }
         }
         public void SetBlock(int x, int y, int z, (int x,int y,int z) chunkCoordinate,byte Id){
@@ -112,25 +114,23 @@ namespace VoxelTechDemo
             return (a%=b)<0 ? a+b : a;
         }
         public void GenerateChunkLine(int x,int z){
-            for(int y=0;y<8;y++){
+            for(int y=0;y<MaxHeight/ChunkSize;y++){
                 WorldMap.TryAdd((x,y,z),new((x,y,z),this));
             }
             GenerateTerrain(x,z);
         }
         public void GenerateTerrain(int chunkX,int chunkZ){
-            Chunk[] chunks = new Chunk[8];
-            for(int i=0;i<8;i++){
+            Chunk[] chunks = new Chunk[MaxHeight/ChunkSize];
+            for(int i=0;i<MaxHeight/ChunkSize;i++){
                 chunks[i]=WorldMap[(chunkX,i,chunkZ)];
             }
-            int yLevel;
-            int blockPossition;
             Chunk chunk = chunks[0];
             for(int x=0;x<ChunkSize;x++){
                 for(int z=0;z<ChunkSize;z++){
-                    yLevel = 50+(int)Math.Floor(MountainNoise(chunkX*ChunkSize+x,chunkZ*ChunkSize+z));
-                    blockPossition = x+z*square;
-                    for(int y=ChunkSize*8-1;y>=0;y--){
-                        if(y%64==63){
+                    int yLevel = 50+(int)Math.Floor(MountainNoise(chunkX*ChunkSize+x,chunkZ*ChunkSize+z));
+                    int blockPossition = x+z*square;
+                    for(int y=ChunkSize*(MaxHeight/ChunkSize)-1;y>=0;y--){
+                        if(y%ChunkSize==ChunkSize-1){
                             chunk = chunks[y/ChunkSize];
                             blockPossition+=square;
                         }
@@ -162,12 +162,12 @@ namespace VoxelTechDemo
                             }
                         }
                     }
-                    if(OpenSimplex2.Noise2(seed,chunkX*ChunkSize+x,chunkZ*ChunkSize+z) > 0.95 && yLevel>=65){
+                    if(OpenSimplex2.Noise2(seed,chunkX*ChunkSize+x,chunkZ*ChunkSize+z) > 0.95f && yLevel>=65){
                         CreateTree(x,Mod(yLevel,ChunkSize),z, chunks[yLevel/ChunkSize]);
                     }
                 }
             }
-            for(int i=0;i<8;i++){
+            for(int i=0;i<MaxHeight/ChunkSize;i++){
                 chunks[i].IsGenerated = true;
             }
         }
@@ -200,40 +200,40 @@ namespace VoxelTechDemo
             SetBlockWithoutUpdating(x,y,z,chunk.coordinates,2);
         }
         public double TerrainNoise(int x,int z){
-            return OpenSimplex2.Noise2(seed,((double)x)/2000,((double)z)/2000)*160
-                        + OpenSimplex2.Noise2(seed,((double)x)/400,((double)z)/400)*32
-                        + OpenSimplex2.Noise2(seed,((double)x)/100,((double)z)/100)*8;
+            return OpenSimplex2.Noise2(seed,(double)x/2000,(double)z/2000)*160
+                        + OpenSimplex2.Noise2(seed,(double)x/400,(double)z/400)*32
+                        + OpenSimplex2.Noise2(seed,(double)x/100,(double)z/100)*8;
         }
         //TOFIX: On big numbers terrain generation breaks and trees don't spawn
         public double MountainNoise(int x,int z){
-            return Math.Pow(OpenSimplex2.Noise2(seed,((double)x)/2000,((double)z)/2000)*15
-                        + OpenSimplex2.Noise2(seed,((double)x)/400,((double)z)/400)*4
-                        + OpenSimplex2.Noise2(seed,((double)x)/100,((double)z)/100),2);
+            return Math.Pow(OpenSimplex2.Noise2(seed,(double)x/2000,(double)z/2000)*15
+                        + OpenSimplex2.Noise2(seed,(double)x/400,(double)z/400)*4
+                        + OpenSimplex2.Noise2(seed,(double)x/100,(double)z/100),2);
         }
         static void NormalizeChunkCoordinates(ref int x,ref int y,ref int z,ref (int x,int y,int z) chunkCoordinate){
-            if(x>63){
+            while(x>ChunkSize-1){
                 chunkCoordinate.x+=1;
-                x-=64;
+                x-=ChunkSize;
             }
-            if(x<0){
+            while(x<0){
                 chunkCoordinate.x-=1;
-                x+=64;
+                x+=ChunkSize;
             }
-            if(y>63){
+            while(y>ChunkSize-1){
                 chunkCoordinate.y+=1;
-                y-=64;
+                y-=ChunkSize;
             }
-            if(y<0){
+            while(y<0){
                 chunkCoordinate.y-=1;
-                y+=64;
+                y+=ChunkSize;
             }
-            if(z>63){
+            while(z>ChunkSize-1){
                 chunkCoordinate.z+=1;
-                z-=64;
+                z-=ChunkSize;
             }
-            if(z<0){
+            while(z<0){
                 chunkCoordinate.z-=1;
-                z+=64;
+                z+=ChunkSize;
             }
         }
     }

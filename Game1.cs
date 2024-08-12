@@ -6,10 +6,8 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using static VoxelTechDemo.VoxelRenderer;
 
-namespace VoxelTechDemo
-{
-    public class Game1 : Game
-    {   
+namespace VoxelTechDemo{
+    public class Game1 : Game{
         private readonly GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
         private SpriteFont _spriteFont;
@@ -62,8 +60,7 @@ namespace VoxelTechDemo
             _spriteFont = Content.Load<SpriteFont>("PublicPixel");
             UserInterface.Initialize(this, _graphics);
         }
-        protected override void Update(GameTime gameTime)
-        {
+        protected override void Update(GameTime gameTime){
             KeyboardState keyboardState = Keyboard.GetState();
             if (keyboardState.IsKeyDown(Keys.Escape) && !IsEscPressed){
                 IsPaused = !IsPaused;
@@ -144,7 +141,7 @@ namespace VoxelTechDemo
             player.ChunkChanged = false;
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
-                    if(x*x+z*z<=(RenderDistance+0.5)*(RenderDistance+0.5)){
+                    if(x*x+z*z<=(RenderDistance+0.5f)*(RenderDistance+0.5f)){
                         if(!CurrentlyLoadedChunkLines.Contains((player.CurrentChunk.x+x,player.CurrentChunk.z+z))){
                             LoadChunkLine(player.CurrentChunk.x+x,player.CurrentChunk.z+z);
                         }
@@ -152,13 +149,13 @@ namespace VoxelTechDemo
                 }
             }
             foreach((int x,int z) in CurrentlyLoadedChunkLines){
-                if((x-player.CurrentChunk.x)*(x-player.CurrentChunk.x)+(z-player.CurrentChunk.z)*(z-player.CurrentChunk.z)>(RenderDistance+1.5)*(RenderDistance+1.5)){
+                if((x-player.CurrentChunk.x)*(x-player.CurrentChunk.x)+(z-player.CurrentChunk.z)*(z-player.CurrentChunk.z)>(RenderDistance+1.5f)*(RenderDistance+1.5f)){
                     UnloadChunkLine(x,z);
                 }
             }
         }
         Task LoadChunkLine(int x,int z){
-            for(int y=0;y<8;y++){
+            for(int y=0;y<World.MaxHeight/ChunkSize;y++){
                 world.WorldMap.TryAdd((x,y,z),new((x,y,z),world));
             }
             CurrentlyLoadedChunkLines.Add((x,z));
@@ -179,7 +176,7 @@ namespace VoxelTechDemo
                 if(!world.WorldMap.ContainsKey((x,0,z-1)) || (world.WorldMap.ContainsKey((x,0,z-1)) && !world.WorldMap[(x,0,z-1)].IsGenerated)){
                     world.GenerateChunkLine(x,z-1);
                 }
-                for(int y=0;y<8;y++){
+                for(int y=0;y<World.MaxHeight/ChunkSize;y++){
                     GenerateVertexVertices(world.WorldMap[(x,y,z)]);
                 }
             });
@@ -191,8 +188,7 @@ namespace VoxelTechDemo
                 world.WorldMap[(x,y,z)].vertexBufferTransparent?.Dispose();
             }
         }
-        protected override void Draw(GameTime gameTime)
-        {           
+        protected override void Draw(GameTime gameTime){
             basicEffect.Projection = projectionMatrix;
             basicEffect.View = viewMatrix;
             basicEffect.CurrentTechnique.Passes[0].Apply();
@@ -205,10 +201,10 @@ namespace VoxelTechDemo
             //TODO: Make it so it doesn't recalculate world matrixes every frame
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
-                    basicEffect.World = Matrix.CreateWorld(new Vector3(x*64,-player.CurrentChunk.y*64,z*64),Vector3.Forward,Vector3.Up);
+                    basicEffect.World = Matrix.CreateWorld(new Vector3(x*ChunkSize,-player.CurrentChunk.y*ChunkSize,z*ChunkSize),Vector3.Forward,Vector3.Up);
                     basicEffect.CurrentTechnique.Passes[0].Apply();
                     if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
-                        for(int y=0;y<8;y++){
+                        for(int y=0;y<World.MaxHeight/ChunkSize;y++){
                             DrawChunkOpaque(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
                         }
                     }
@@ -218,10 +214,10 @@ namespace VoxelTechDemo
             //Opengl on windows doesn't like when transparent meshes are mixed with opaque ones
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
-                    basicEffect.World = Matrix.CreateWorld(new Vector3(x*64,-player.CurrentChunk.y*64,z*64),Vector3.Forward,Vector3.Up);
+                    basicEffect.World = Matrix.CreateWorld(new Vector3(x*ChunkSize,-player.CurrentChunk.y*ChunkSize,z*ChunkSize),Vector3.Forward,Vector3.Up);
                     basicEffect.CurrentTechnique.Passes[0].Apply();
                     if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
-                        for(int y=0;y<8;y++){
+                        for(int y=0;y<World.MaxHeight/ChunkSize;y++){
                             DrawChunkTransparent(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
                         }
                     }
@@ -241,9 +237,9 @@ namespace VoxelTechDemo
                 _spriteBatch.Draw(basicEffect.Texture,new Rectangle(0,0,GraphicsDevice.Viewport.Width,GraphicsDevice.Viewport.Height),new Rectangle(33,49,14,14),Color.White);
             }
             _spriteBatch.DrawString(_spriteFont,$"FPS:{_frameCounter.AverageFramesPerSecond}", new(1,3), Color.Black);
-            _spriteBatch.DrawString(_spriteFont,$"X:{Math.Round((double)player.camPosition.X+(long)player.CurrentChunk.x*64,2)}",new(1,23),Color.Black);
-            _spriteBatch.DrawString(_spriteFont,$"Y:{Math.Round(player.camPosition.Y+player.CurrentChunk.y*64-1.7f,2)}",new(1,43),Color.Black);
-            _spriteBatch.DrawString(_spriteFont,$"Z:{Math.Round((double)player.camPosition.Z+(long)player.CurrentChunk.z*64,2)}",new(1,63),Color.Black);
+            _spriteBatch.DrawString(_spriteFont,$"X:{Math.Round((double)player.camPosition.X+(long)player.CurrentChunk.x*ChunkSize,2)}",new(1,23),Color.Black);
+            _spriteBatch.DrawString(_spriteFont,$"Y:{Math.Round(player.camPosition.Y+player.CurrentChunk.y*ChunkSize-1.7f,2)}",new(1,43),Color.Black);
+            _spriteBatch.DrawString(_spriteFont,$"Z:{Math.Round((double)player.camPosition.Z+(long)player.CurrentChunk.z*ChunkSize,2)}",new(1,63),Color.Black);
             if(!IsPaused){
                 _spriteBatch.DrawString(_spriteFont,"+",new Vector2(WindowCenter.X,WindowCenter.Y) - (_spriteFont.MeasureString("+")/2),Color.Black);
             }

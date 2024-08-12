@@ -8,7 +8,9 @@ namespace VoxelTechDemo{
         const int offsetX = 0b101001011010101000001111;
         const int offsetY = 0b110011000000111111001100;
         const int offsetZ = 0b000011110011110001011010;
-        public const int ChunkSize = 64;
+        const int exponent = 5;
+        //ChunkSize needs to be an power of 2. Works up to 64 (exponent = 5)
+        public const int ChunkSize = 1<<exponent;
         public const int square = ChunkSize*ChunkSize;
         public const int cubed = ChunkSize*ChunkSize*ChunkSize;
         public static IndexBuffer indexBuffer;
@@ -46,8 +48,8 @@ namespace VoxelTechDemo{
                                 if(Block.IsTransparent(chunk.blocks[currentBlock])){
                                     for(int k=face*4;k<face*4+4;k++){
                                         voxelPosition.X = (currentBlock&(ChunkSize-1))+((offsetX&(1<<k))>>k);
-                                        voxelPosition.Y = CurrentChunkY+((currentBlock&((ChunkSize-1)<<6))>>6)+((offsetY&(1<<k))>>k);
-                                        voxelPosition.Z = ((currentBlock&((ChunkSize-1)<<12))>>12)+((offsetZ&(1<<k))>>k);
+                                        voxelPosition.Y = CurrentChunkY+((currentBlock&((ChunkSize-1)<<exponent))>>exponent)+((offsetY&(1<<k))>>k);
+                                        voxelPosition.Z = ((currentBlock&((ChunkSize-1)<<(2*exponent)))>>(2*exponent))+((offsetZ&(1<<k))>>k);
                                         vertices[transparentIndex] = new VertexPositionTexture(voxelPosition, textureCoordinates[k]);
                                         transparentIndex--;
                                     }
@@ -55,8 +57,8 @@ namespace VoxelTechDemo{
                                 else{
                                     for(int k=face*4;k<face*4+4;k++){
                                         voxelPosition.X = (currentBlock&(ChunkSize-1))+((offsetX&(1<<k))>>k);
-                                        voxelPosition.Y = CurrentChunkY+((currentBlock&((ChunkSize-1)<<6))>>6)+((offsetY&(1<<k))>>k);
-                                        voxelPosition.Z = ((currentBlock&((ChunkSize-1)<<12))>>12)+((offsetZ&(1<<k))>>k);
+                                        voxelPosition.Y = CurrentChunkY+((currentBlock&((ChunkSize-1)<<exponent))>>exponent)+((offsetY&(1<<k))>>k);
+                                        voxelPosition.Z = ((currentBlock&((ChunkSize-1)<<(2*exponent)))>>(2*exponent))+((offsetZ&(1<<k))>>k);
                                         vertices[possition] = new VertexPositionTexture(voxelPosition, textureCoordinates[k]);
                                         possition++;
                                     }
@@ -66,7 +68,7 @@ namespace VoxelTechDemo{
                             currentBlock++;
                         }
                         facePossition++;
-                        currentBlock = currentBlock - j + 64;
+                        currentBlock = currentBlock - j + ChunkSize;
                     }
                 }
             }

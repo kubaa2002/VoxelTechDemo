@@ -264,8 +264,8 @@ namespace VoxelTechDemo{
             verticalSpeed = 0;
         }
         void ResetCamera(){
-            if(camPosition.X>64f){
-                camPosition.X-=64f;
+            if(camPosition.X>ChunkSize){
+                camPosition.X-=ChunkSize;
                 CurrentChunk.x+=1;
                 playerHitBox.Min.X = camPosition.X-0.2499f;
                 playerHitBox.Max.X = camPosition.X+0.2499f;
@@ -273,14 +273,14 @@ namespace VoxelTechDemo{
                 
             }
             if(camPosition.X<0f){
-                camPosition.X+=64f;
+                camPosition.X+=ChunkSize;
                 CurrentChunk.x-=1;
                 playerHitBox.Min.X = camPosition.X-0.2499f;
                 playerHitBox.Max.X = camPosition.X+0.2499f;
                 ChunkChanged = true;
             }
-            if(camPosition.Z>64f){
-                camPosition.Z-=64f;
+            if(camPosition.Z>ChunkSize){
+                camPosition.Z-=ChunkSize;
                 CurrentChunk.z+=1;
                 playerHitBox.Min.Z = camPosition.Z-0.2499f;
                 playerHitBox.Max.Z = camPosition.Z+0.2499f;
@@ -288,18 +288,18 @@ namespace VoxelTechDemo{
 
             }
             if(camPosition.Z<0f){
-                camPosition.Z+=64f;
+                camPosition.Z+=ChunkSize;
                 CurrentChunk.z-=1;
                 playerHitBox.Min.Z = camPosition.Z-0.2499f;
                 playerHitBox.Max.Z = camPosition.Z+0.2499f;
                 ChunkChanged = true;
             }
-            if(camPosition.Y>64f){
-                camPosition.Y-=64f;
+            if(camPosition.Y>ChunkSize){
+                camPosition.Y-=ChunkSize;
                 CurrentChunk.y+=1;
             }
             if(camPosition.Y<0f){
-                camPosition.Y+=64f;
+                camPosition.Y+=ChunkSize;
                 CurrentChunk.y-=1;
             }
         }
