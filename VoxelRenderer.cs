@@ -8,8 +8,8 @@ namespace VoxelTechDemo{
         const int offsetX = 0b101001011010101000001111;
         const int offsetY = 0b110011000000111111001100;
         const int offsetZ = 0b000011110011110001011010;
-        const int exponent = 5;
-        //ChunkSize needs to be an power of 2. Works up to 64 (exponent = 5)
+        const int exponent = 6;
+        //ChunkSize needs to be an power of 2. Works up to 64 (exponent = 6)
         public const int ChunkSize = 1<<exponent;
         public const int square = ChunkSize*ChunkSize;
         public const int cubed = ChunkSize*ChunkSize*ChunkSize;
