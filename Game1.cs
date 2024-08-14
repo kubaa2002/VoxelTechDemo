@@ -94,7 +94,7 @@ namespace VoxelTechDemo{
                     IsNoClipOn = !IsNoClipOn;
                     IsNPressed = true;
                     player.ResetPlayerSpeed();
-                    player.playerHitBox = new(new Vector3(player.camPosition.X-0.2499f,player.camPosition.Y-1.6999f,player.camPosition.Z-0.2499f),new Vector3(player.camPosition.X+0.2499f,player.camPosition.Y+0.0999f,player.camPosition.Z+0.2499f));
+                    player.ResetHitBox();
                 }
                 if(IsNoClipOn){
                     player.NoClipMovement(keyboardState,gameTime);
@@ -183,7 +183,7 @@ namespace VoxelTechDemo{
         }
         void UnloadChunkLine(int x,int z){
             CurrentlyLoadedChunkLines.Remove((x,z));
-            for(int y=0;y<8;y++){
+            for(int y=0;y<World.MaxHeight/ChunkSize;y++){
                 world.WorldMap[(x,y,z)].vertexBufferOpaque?.Dispose();
                 world.WorldMap[(x,y,z)].vertexBufferTransparent?.Dispose();
             }
@@ -201,9 +201,9 @@ namespace VoxelTechDemo{
             //TODO: Make it so it doesn't recalculate world matrixes every frame
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
-                    basicEffect.World = Matrix.CreateWorld(new Vector3(x*ChunkSize,-player.CurrentChunk.y*ChunkSize,z*ChunkSize),Vector3.Forward,Vector3.Up);
-                    basicEffect.CurrentTechnique.Passes[0].Apply();
                     if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
+                        basicEffect.World = Matrix.CreateWorld(new Vector3(x*ChunkSize,-player.CurrentChunk.y*ChunkSize,z*ChunkSize),Vector3.Forward,Vector3.Up);
+                        basicEffect.CurrentTechnique.Passes[0].Apply();
                         for(int y=0;y<World.MaxHeight/ChunkSize;y++){
                             DrawChunkOpaque(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
                         }
@@ -214,9 +214,9 @@ namespace VoxelTechDemo{
             //Opengl on windows doesn't like when transparent meshes are mixed with opaque ones
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
-                    basicEffect.World = Matrix.CreateWorld(new Vector3(x*ChunkSize,-player.CurrentChunk.y*ChunkSize,z*ChunkSize),Vector3.Forward,Vector3.Up);
-                    basicEffect.CurrentTechnique.Passes[0].Apply();
                     if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
+                        basicEffect.World = Matrix.CreateWorld(new Vector3(x*ChunkSize,-player.CurrentChunk.y*ChunkSize,z*ChunkSize),Vector3.Forward,Vector3.Up);
+                        basicEffect.CurrentTechnique.Passes[0].Apply();
                         for(int y=0;y<World.MaxHeight/ChunkSize;y++){
                             DrawChunkTransparent(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
                         }

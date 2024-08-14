@@ -110,9 +110,6 @@ namespace VoxelTechDemo{
                 return 0;
             }
         }
-        public static int Mod(int a, int b){
-            return (a%=b)<0 ? a+b : a;
-        }
         public void GenerateChunkLine(int x,int z){
             for(int y=0;y<MaxHeight/ChunkSize;y++){
                 WorldMap.TryAdd((x,y,z),new((x,y,z),this));
@@ -163,7 +160,7 @@ namespace VoxelTechDemo{
                         }
                     }
                     if(OpenSimplex2.Noise2(seed,chunkX*ChunkSize+x,chunkZ*ChunkSize+z) > 0.95f && yLevel>=65){
-                        CreateTree(x,Mod(yLevel,ChunkSize),z, chunks[yLevel/ChunkSize]);
+                        CreateTree(x,yLevel%ChunkSize,z, chunks[yLevel/ChunkSize]);
                     }
                 }
             }
