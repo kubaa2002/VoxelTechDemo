@@ -1,13 +1,10 @@
 ﻿using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 
-namespace VoxelTechDemo
-{
-    internal class BlockIds
-    {
-        private Dictionary<int, Vector2[]> TextureDictionary;
-        public BlockIds()
-        {
+namespace VoxelTechDemo{
+    internal class BlockIds{
+        public Dictionary<int, Vector2[]> TextureDictionary;
+        public BlockIds(){
             TextureDictionary = new Dictionary<int, Vector2[]>();
             byte[] TextureCoordinates= new byte[]{
                 1,1,0,2,1,1,//Grass
@@ -27,11 +24,9 @@ namespace VoxelTechDemo
 
                 255,255,255,255,255,255,//CubeFrame
             };
-            for(int i=0;i<(TextureCoordinates.Length/6);i++)
-            {
+            for(int i=0;i<(TextureCoordinates.Length/6);i++){
                 Vector2[] result= new Vector2[24];
-                for(int j=0;j<6;j++)
-                {
+                for(int j=0;j<6;j++){
                     int x=TextureCoordinates[i*6+j]%16;
                     int y=TextureCoordinates[i*6+j]/16;
                     result[j*4]=new Vector2(0.0625f*(x+1),0.0625f*(y+1));
@@ -41,10 +36,6 @@ namespace VoxelTechDemo
                 }
                 TextureDictionary[i+1]=result;
             }
-        }
-        public Vector2[] GiveTextureVectorArrayById(int Id)
-        {
-            return TextureDictionary[Id];
         }
     }
 }

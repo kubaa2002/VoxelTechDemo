@@ -88,12 +88,10 @@ namespace VoxelTechDemo{
                 }
             }
             foreach(KeyValuePair<Chunk,VertexBuffer[]> pair in buffers){
-                VertexBuffer oldBuffer = pair.Key.vertexBufferOpaque;
+                pair.Key.vertexBufferOpaque?.Dispose();
                 pair.Key.vertexBufferOpaque = pair.Value[0];
-                oldBuffer?.Dispose();
-                oldBuffer = pair.Key.vertexBufferTransparent;
+                pair.Key.vertexBufferTransparent?.Dispose();
                 pair.Key.vertexBufferTransparent = pair.Value[1];
-                oldBuffer?.Dispose();
             }
         }
         public void SetBlockWithoutUpdating(int x,int y,int z,(int x,int y,int z) chunkCoordinate,byte Id){

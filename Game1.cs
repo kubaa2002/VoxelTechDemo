@@ -38,6 +38,7 @@ namespace VoxelTechDemo{
             InitializeVoxelRenderer(GraphicsDevice);
 
             player = new Player(world);
+            world.GenerateChunkLine(0,0);
             CheckChunks();
             ChangeCubePreview(chosenBlock);
 

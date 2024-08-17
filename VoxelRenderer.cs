@@ -5,9 +5,10 @@ namespace VoxelTechDemo{
     public static class VoxelRenderer{
         static private GraphicsDevice graphicsDevice;
         static private readonly BlockIds blockIds = new();
-        const int offsetX = 0b101001011010101000001111;
-        const int offsetY = 0b110011000000111111001100;
-        const int offsetZ = 0b000011110011110001011010;
+        //z- z+ y- y+ x- x+
+        const int offsetX = 0b1010_0101_1010_1010_0000_1111;
+        const int offsetY = 0b1100_1100_0000_1111_1100_1100;
+        const int offsetZ = 0b0000_1111_0011_1100_0101_1010;
         const int exponent = 6;
         //ChunkSize needs to be an power of 2. Works up to 64 (exponent = 6)
         public const int ChunkSize = 1<<exponent;
@@ -21,12 +22,10 @@ namespace VoxelTechDemo{
         }
         static public void GenerateVertexVertices(Chunk chunk){
             VertexBuffer[] vertexBuffers = GenerateVertices(chunk);
-            VertexBuffer oldVertexBuffer = chunk.vertexBufferOpaque;
+            chunk.vertexBufferOpaque?.Dispose();
             chunk.vertexBufferOpaque = vertexBuffers[0];
-            oldVertexBuffer?.Dispose();
-            oldVertexBuffer = chunk.vertexBufferTransparent;
+            chunk.vertexBufferTransparent?.Dispose();
             chunk.vertexBufferTransparent = vertexBuffers[1];
-            oldVertexBuffer?.Dispose();
         }
         public static VertexBuffer[] GenerateVertices(Chunk chunk){
             //TODO: Try to combine multiple chunks into single region to reduce number of world matrixes needed
@@ -39,12 +38,12 @@ namespace VoxelTechDemo{
             Vector2[] textureCoordinates;
             for(int face=0;face<6;face++){
                 int currentBlock = 0;
-                for(int depth=0;depth<ChunkSize;depth++){
-                    for(int i=0;i<ChunkSize;i++){
+                for(int i=0;i<square;i++){
+                    if(result[facePossition] != 0){
                         int j=0;
-                        while(result[facePossition] != 0 && j<ChunkSize){
+                        while(j<ChunkSize){
                             if((result[facePossition]&(1uL<<j))!=0){
-                                textureCoordinates = blockIds.GiveTextureVectorArrayById(chunk.blocks[currentBlock]);
+                                textureCoordinates = blockIds.TextureDictionary[chunk.blocks[currentBlock]];
                                 if(Block.IsTransparent(chunk.blocks[currentBlock])){
                                     for(int k=face*4;k<face*4+4;k++){
                                         voxelPosition.X = (currentBlock&(ChunkSize-1))+((offsetX&(1<<k))>>k);
@@ -67,9 +66,10 @@ namespace VoxelTechDemo{
                             j++;
                             currentBlock++;
                         }
-                        facePossition++;
-                        currentBlock = currentBlock - j + ChunkSize;
+                        currentBlock-=j;
                     }
+                    facePossition++;
+                    currentBlock += ChunkSize;
                 }
             }
             VertexBuffer[] buffers = new VertexBuffer[2];
@@ -113,7 +113,7 @@ namespace VoxelTechDemo{
         static public void SetupCubeFrame(){
             cubeFrameVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionTexture), 24, BufferUsage.None);
             cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionTexture), 12, BufferUsage.None);
-            Vector2[] cubeFrameTextureCoordinates = blockIds.GiveTextureVectorArrayById(15);
+            Vector2[] cubeFrameTextureCoordinates = blockIds.TextureDictionary[15];
             VertexPositionTexture[] cubeVertices = new VertexPositionTexture[24];
             for(int i=0;i<24;i++){
                 cubeVertices[i] = new VertexPositionTexture(new Vector3(1.0025f*((offsetX&(1<<i))>>i)-0.00125f,1.0025f*((offsetY&(1<<i))>>i)-0.00125f,1.0025f*((offsetZ&(1<<i))>>i)-0.00125f),cubeFrameTextureCoordinates[i]);
@@ -126,7 +126,7 @@ namespace VoxelTechDemo{
         }
         static public void ChangeCubePreview(byte Id){
             VertexPositionTexture[] cubeVerticesPreview = new VertexPositionTexture[12];
-            Vector2[] TextureCoordinates = blockIds.GiveTextureVectorArrayById(Id);
+            Vector2[] TextureCoordinates = blockIds.TextureDictionary[Id];
             for(int i=0;i<4;i++){
                 cubeVerticesPreview[i] = new VertexPositionTexture(new Vector3((offsetX&(1<<i))>>i,(offsetY&(1<<i))>>i,(offsetZ&(1<<i))>>i),TextureCoordinates[i]);
             }

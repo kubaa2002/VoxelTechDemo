@@ -13,7 +13,6 @@ namespace VoxelTechDemo{
             this.coordinates = coordinates;
             this.world = world;
         }
-        //this only works for 64 blocks wide chunks
         public ulong[] CheckAllChunkFacesIfNeeded(){
             //face x+ x- y+ y- z+ z- depth 0-63
             ulong[] result = new ulong[square*6];
