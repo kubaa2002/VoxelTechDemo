@@ -33,36 +33,31 @@ namespace VoxelTechDemo{
             int CurrentChunkY = chunk.coordinates.y*ChunkSize;
             List<VertexPositionTexture> opaqueVertices = new();
             List<VertexPositionTexture> transparentVertices = new();
-            Vector3 voxelPosition;
             ulong[] result = chunk.CheckAllChunkFacesIfNeeded();
-            Vector2[] textureCoordinates;
             for(int face=0;face<6;face++){
                 int currentBlock = 0;
                 for(int i=face*square;i<(face+1)*square;i++){
                     if(result[i] != 0){
                         for(ulong j=1;j!=0;j<<=1){
                             if((result[i]&j)!=0){
-                                textureCoordinates = blockIds.TextureDictionary[chunk.blocks[currentBlock]];
+                                Vector2[] textureCoordinates = blockIds.TextureDictionary[chunk.blocks[currentBlock]];
                                 if(Block.IsTransparent(chunk.blocks[currentBlock])){
                                     for(int k=face*4;k<face*4+4;k++){
-                                        voxelPosition.X = (currentBlock&(ChunkSize-1))+((offsetX&(1<<k))>>k);
-                                        voxelPosition.Y = CurrentChunkY+((currentBlock&((ChunkSize-1)<<exponent))>>exponent)+((offsetY&(1<<k))>>k);
-                                        voxelPosition.Z = ((currentBlock&((ChunkSize-1)<<(2*exponent)))>>(2*exponent))+((offsetZ&(1<<k))>>k);
-                                        transparentVertices.Add(new VertexPositionTexture(voxelPosition, textureCoordinates[k]));
+                                        transparentVertices.Add(new VertexPositionTexture(new(
+                                            (currentBlock&(ChunkSize-1))+((offsetX&(1<<k))>>k),
+                                            CurrentChunkY+((currentBlock&((ChunkSize-1)<<exponent))>>exponent)+((offsetY&(1<<k))>>k),
+                                            ((currentBlock&((ChunkSize-1)<<(2*exponent)))>>(2*exponent))+((offsetZ&(1<<k))>>k)
+                                            ), textureCoordinates[k]));
                                     }
                                 }
                                 else{
                                     for(int k=face*4;k<face*4+4;k++){
-                                        voxelPosition.X = (currentBlock&(ChunkSize-1))+((offsetX&(1<<k))>>k);
-                                        voxelPosition.Y = CurrentChunkY+((currentBlock&((ChunkSize-1)<<exponent))>>exponent)+((offsetY&(1<<k))>>k);
-                                        voxelPosition.Z = ((currentBlock&((ChunkSize-1)<<(2*exponent)))>>(2*exponent))+((offsetZ&(1<<k))>>k);
-                                        opaqueVertices.Add(new VertexPositionTexture(voxelPosition, textureCoordinates[k]));
+                                        opaqueVertices.Add(new VertexPositionTexture(new(
+                                            (currentBlock&(ChunkSize-1))+((offsetX&(1<<k))>>k),
+                                            CurrentChunkY+((currentBlock&((ChunkSize-1)<<exponent))>>exponent)+((offsetY&(1<<k))>>k),
+                                            ((currentBlock&((ChunkSize-1)<<(2*exponent)))>>(2*exponent))+((offsetZ&(1<<k))>>k)
+                                            ), textureCoordinates[k]));
                                     }
-                                }
-                                result[i]&=(~j);
-                                if(result[i] == 0){
-                                    currentBlock+=ChunkSize-(currentBlock%ChunkSize);
-                                    break;
                                 }
                             }
                             currentBlock++;

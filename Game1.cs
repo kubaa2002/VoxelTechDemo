@@ -11,12 +11,13 @@ namespace VoxelTechDemo{
         private readonly GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
         private SpriteFont _spriteFont;
-        Matrix projectionMatrix, viewMatrix, blockIconProjection, blockIconView = Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f,0.5f,0.5f), Vector3.Up);
-        AlphaTestEffect basicEffect;
+        public Matrix projectionMatrix, viewMatrix, worldMatrix;
+        Matrix blockIconProjection, blockIconView = Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f,0.5f,0.5f), Vector3.Up);
+        public CustomEffect effect;
         readonly FrameCounter _frameCounter = new();
         readonly World world = new(12345);//DateTime.UtcNow.ToBinary());
         Point WindowCenter;
-        float yaw=MathHelper.PiOver2, pitch, rotationSpeed = 0.005f;
+        public float yaw=MathHelper.PiOver2, pitch, MouseSensitivity = 0.005f;
         MouseState currentMouseState;
         bool LeftButtonPressed = false, RightButtonPressed = false, IsPaused = false, IsEscPressed = false, IsNoClipOn = false, IsNPressed = false;
         byte chosenBlock = 1;
@@ -24,6 +25,7 @@ namespace VoxelTechDemo{
         Player player;
         public byte RenderDistance = 3;
         readonly HashSet<(int x,int z)> CurrentlyLoadedChunkLines = new(); 
+        public float FieldOfView = 45f;
         public Game1(){
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
@@ -43,23 +45,29 @@ namespace VoxelTechDemo{
             ChangeCubePreview(chosenBlock);
 
             //Camera setup
-            projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45f),GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f);
+            projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView),GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f);
             viewMatrix = Matrix.CreateLookAt(player.camPosition, Vector3.Zero, Vector3.Up);
             WindowCenter = new Point(GraphicsDevice.Viewport.Width/2,GraphicsDevice.Viewport.Height/2);
             blockIconProjection = BlockIcon((int)(GraphicsDevice.Viewport.Width*0.93f),(int)(GraphicsDevice.Viewport.Height*0.9f),5);
 
             //Basic shader setup
-            basicEffect = new AlphaTestEffect(GraphicsDevice){
-                Alpha = 1f,
-                Texture = Content.Load<Texture2D>("Textures")
-            };
+            effect = new(Content.Load<Effect>("AlphaTestEffectTest"));
+            effect.Texture.SetValue(Content.Load<Texture2D>("Textures"));
+            effect.DiffuseColor.SetValue(new Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+            effect.AlphaTest.SetValue(new Vector4(1.5f/255f, 0, -1f, 1f));
+            effect.FogColor.SetValue(new Vector3(
+                //Cornflower Blue
+                100f / 255f,  // Red
+                149f / 255f,  // Green
+                237f / 255f   // Blue
+            ));
 
             base.Initialize();
         }
         protected override void LoadContent(){
             _spriteBatch = new SpriteBatch(GraphicsDevice);
             _spriteFont = Content.Load<SpriteFont>("PublicPixel");
-            UserInterface.Initialize(this, _graphics);
+            UserInterface.Initialize(this, _graphics, effect);
         }
         protected override void Update(GameTime gameTime){
             KeyboardState keyboardState = Keyboard.GetState();
@@ -75,8 +83,8 @@ namespace VoxelTechDemo{
             if(!IsPaused){
                 //Camera look
                 currentMouseState = Mouse.GetState();
-                yaw -= (currentMouseState.X - WindowCenter.X)*rotationSpeed;
-                pitch -= (currentMouseState.Y - WindowCenter.Y)*rotationSpeed;
+                yaw -= (currentMouseState.X - WindowCenter.X)*MouseSensitivity;
+                pitch -= (currentMouseState.Y - WindowCenter.Y)*MouseSensitivity;
                 pitch = MathHelper.Clamp(pitch, -1.57f,1.57f);//-MathHelper.PiOver2, MathHelper.PiOver2
                 player.right = Vector3.Transform(Vector3.Right, Matrix.CreateFromYawPitchRoll(yaw, pitch, 0f));
 
@@ -190,21 +198,21 @@ namespace VoxelTechDemo{
             }
         }
         protected override void Draw(GameTime gameTime){
-            basicEffect.Projection = projectionMatrix;
-            basicEffect.View = viewMatrix;
-            basicEffect.CurrentTechnique.Passes[0].Apply();
-
             GraphicsDevice.Clear(Color.CornflowerBlue);
             GraphicsDevice.DepthStencilState = DepthStencilState.Default;
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
             GraphicsDevice.Indices = indexBuffer;
 
+            // TOFIX: frustum intersects method doesn't work properly on certain angles
+            BoundingFrustum frustum = new(viewMatrix*projectionMatrix);
+
             //TODO: Make it so it doesn't recalculate world matrixes every frame
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
-                    if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
-                        basicEffect.World = Matrix.CreateWorld(new Vector3(x*ChunkSize,-player.CurrentChunk.y*ChunkSize,z*ChunkSize),Vector3.Forward,Vector3.Up);
-                        basicEffect.CurrentTechnique.Passes[0].Apply();
+                    if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z)) && frustum.Contains(new BoundingBox(new Vector3(x*ChunkSize,0,z*ChunkSize),new Vector3(x*ChunkSize+ChunkSize,512,z*ChunkSize+ChunkSize))) != 0){
+                        worldMatrix = Matrix.CreateWorld(new Vector3(x*ChunkSize,-player.CurrentChunk.y*ChunkSize,z*ChunkSize),Vector3.Forward,Vector3.Up);
+                        effect.WorldViewProj.SetValue(worldMatrix*viewMatrix*projectionMatrix);
+                        effect.Apply(worldMatrix,viewMatrix);
                         for(int y=0;y<World.MaxHeight/ChunkSize;y++){
                             DrawChunkOpaque(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
                         }
@@ -215,9 +223,10 @@ namespace VoxelTechDemo{
             //Opengl on windows doesn't like when transparent meshes are mixed with opaque ones
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
-                    if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z))){
-                        basicEffect.World = Matrix.CreateWorld(new Vector3(x*ChunkSize,-player.CurrentChunk.y*ChunkSize,z*ChunkSize),Vector3.Forward,Vector3.Up);
-                        basicEffect.CurrentTechnique.Passes[0].Apply();
+                    if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z)) && frustum.Contains(new BoundingBox(new Vector3(x*ChunkSize,0,z*ChunkSize),new Vector3(x*ChunkSize+ChunkSize,512,z*ChunkSize+ChunkSize))) != 0){
+                        worldMatrix = Matrix.CreateWorld(new Vector3(x*ChunkSize,-player.CurrentChunk.y*ChunkSize,z*ChunkSize),Vector3.Forward,Vector3.Up);
+                        effect.WorldViewProj.SetValue(worldMatrix*viewMatrix*projectionMatrix);
+                        effect.Apply(worldMatrix,viewMatrix);
                         for(int y=0;y<World.MaxHeight/ChunkSize;y++){
                             DrawChunkTransparent(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
                         }
@@ -225,8 +234,9 @@ namespace VoxelTechDemo{
                 }
             }
 
-            basicEffect.World = Matrix.CreateWorld(new Vector3(player.LookedAtBlock.x,player.LookedAtBlock.y,player.LookedAtBlock.z),Vector3.Forward,Vector3.Up);
-            basicEffect.CurrentTechnique.Passes[0].Apply();
+            worldMatrix = Matrix.CreateWorld(new Vector3(player.LookedAtBlock.x,player.LookedAtBlock.y,player.LookedAtBlock.z),Vector3.Forward,Vector3.Up);
+            effect.WorldViewProj.SetValue(worldMatrix*viewMatrix*projectionMatrix);
+            effect.Apply(worldMatrix,viewMatrix);
             if(player.blockFound){
                 DrawCubeFrame();
             }
@@ -235,7 +245,7 @@ namespace VoxelTechDemo{
             _frameCounter.Update(gameTime.ElapsedGameTime.TotalSeconds);
             _spriteBatch.Begin();
             if(player.IsUnderWater){
-                _spriteBatch.Draw(basicEffect.Texture,new Rectangle(0,0,GraphicsDevice.Viewport.Width,GraphicsDevice.Viewport.Height),new Rectangle(33,49,14,14),Color.White);
+                _spriteBatch.Draw(effect.Texture.GetValueTexture2D(),new Rectangle(0,0,GraphicsDevice.Viewport.Width,GraphicsDevice.Viewport.Height),new Rectangle(33,49,14,14),Color.White);
             }
             _spriteBatch.DrawString(_spriteFont,$"FPS:{_frameCounter.AverageFramesPerSecond}", new(1,3), Color.Black);
             _spriteBatch.DrawString(_spriteFont,$"X:{Math.Round((double)player.camPosition.X+(long)player.CurrentChunk.x*ChunkSize,2)}",new(1,23),Color.Black);
@@ -244,16 +254,14 @@ namespace VoxelTechDemo{
             if(!IsPaused){
                 _spriteBatch.DrawString(_spriteFont,"+",new Vector2(WindowCenter.X,WindowCenter.Y) - (_spriteFont.MeasureString("+")/2),Color.Black);
             }
-            _spriteBatch.Draw(basicEffect.Texture,new Rectangle((int)(GraphicsDevice.Viewport.Width*0.885f),(int)(GraphicsDevice.Viewport.Height*0.82f),(int)(GraphicsDevice.Viewport.Width*0.09f),(int)(GraphicsDevice.Viewport.Height*0.16f)),new Rectangle(225,241,15,15),Color.White);
+            _spriteBatch.Draw(effect.Texture.GetValueTexture2D(),new Rectangle((int)(GraphicsDevice.Viewport.Width*0.885f),(int)(GraphicsDevice.Viewport.Height*0.82f),(int)(GraphicsDevice.Viewport.Width*0.09f),(int)(GraphicsDevice.Viewport.Height*0.16f)),new Rectangle(225,241,15,15),Color.White);
             _spriteBatch.End();
 
-            basicEffect.Projection = blockIconProjection;
-            basicEffect.View = blockIconView;
-            basicEffect.CurrentTechnique.Passes[0].Apply();
             GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
 
-            basicEffect.World = Matrix.CreateWorld(Vector3.Zero,Vector3.Forward,Vector3.Up);
-            basicEffect.CurrentTechnique.Passes[0].Apply();
+            worldMatrix = Matrix.CreateWorld(Vector3.Zero,Vector3.Forward,Vector3.Up);
+            effect.WorldViewProj.SetValue(worldMatrix*blockIconView*blockIconProjection);
+            effect.Apply();
             DrawCubePreview();
 
             if(IsPaused){

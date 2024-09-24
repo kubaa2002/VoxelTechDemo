@@ -116,48 +116,49 @@ namespace VoxelTechDemo{
         }
         public void GenerateTerrain(int chunkX,int chunkZ){
             Chunk[] chunks = new Chunk[MaxHeight/ChunkSize];
-            for(int i=0;i<MaxHeight/ChunkSize;i++){
-                chunks[i]=WorldMap[(chunkX,i,chunkZ)];
+            for(int y=0;y<MaxHeight/ChunkSize;y++){
+                chunks[y]=WorldMap[(chunkX,y,chunkZ)];
             }
-            Chunk chunk = chunks[0];
+            byte[] chunkBlocks = chunks[0].blocks;
             for(int x=0;x<ChunkSize;x++){
                 for(int z=0;z<ChunkSize;z++){
-                    int yLevel = 50+(int)Math.Floor(MountainNoise(chunkX*ChunkSize+x,chunkZ*ChunkSize+z));
+                    // If yLevel below 0 needs to be generated, MountainNoise needs to floored before casting to int
+                    int yLevel = 50+(int)MountainNoise((double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z);
                     int blockPossition = x+z*square;
                     for(int y=ChunkSize*(MaxHeight/ChunkSize)-1;y>=0;y--){
                         if(y%ChunkSize==ChunkSize-1){
-                            chunk = chunks[y/ChunkSize];
+                            chunkBlocks = chunks[y/ChunkSize].blocks;
                             blockPossition+=square;
                         }
                         blockPossition-=ChunkSize;
                         if(y<=yLevel){
                             if(y>=yLevel-2){
                                 if(y == yLevel){
-                                    chunk.blocks[blockPossition]=1;
+                                    chunkBlocks[blockPossition]=1;
                                 }
                                 else{
-                                    chunk.blocks[blockPossition]=2;
+                                    chunkBlocks[blockPossition]=2;
                                 }
                             }
                             else{
-                                chunk.blocks[blockPossition]=3;
+                                chunkBlocks[blockPossition]=3;
                             } 
                             if(y==yLevel){
                                 if(yLevel<65){
-                                    chunk.blocks[blockPossition]=12;
+                                    chunkBlocks[blockPossition]=12;
                                 }
                                 if(yLevel<62){
-                                    chunk.blocks[blockPossition]=11;
+                                    chunkBlocks[blockPossition]=11;
                                 }
                             }
                         }
                         else{
                             if(y<64){
-                                chunk.blocks[blockPossition]=14;
+                                chunkBlocks[blockPossition]=14;
                             }
                         }
                     }
-                    if(OpenSimplex2.Noise2(seed,chunkX*ChunkSize+x,chunkZ*ChunkSize+z) > 0.95f && yLevel>=65){
+                    if(OpenSimplex2.Noise2(seed,(double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z) > 0.95f && yLevel>=65){
                         CreateTree(x,yLevel%ChunkSize,z, chunks[yLevel/ChunkSize]);
                     }
                 }
@@ -194,16 +195,11 @@ namespace VoxelTechDemo{
             }
             SetBlockWithoutUpdating(x,y,z,chunk.coordinates,2);
         }
-        public double TerrainNoise(int x,int z){
-            return OpenSimplex2.Noise2(seed,(double)x/2000,(double)z/2000)*160
-                        + OpenSimplex2.Noise2(seed,(double)x/400,(double)z/400)*32
-                        + OpenSimplex2.Noise2(seed,(double)x/100,(double)z/100)*8;
-        }
-        //TOFIX: On big numbers terrain generation breaks and trees don't spawn
-        public double MountainNoise(int x,int z){
-            return Math.Pow(OpenSimplex2.Noise2(seed,(double)x/2000,(double)z/2000)*15
-                        + OpenSimplex2.Noise2(seed,(double)x/400,(double)z/400)*4
-                        + OpenSimplex2.Noise2(seed,(double)x/100,(double)z/100),2);
+        // TOFIX: On big x and z coordinates (int.MaxValue/64) trees don't spawn
+        public double MountainNoise(double x,double z){
+            return Math.Pow(OpenSimplex2.Noise2(seed,x/2000,z/2000)*15
+                        + OpenSimplex2.Noise2(seed,x/400,z/400)*4
+                        + OpenSimplex2.Noise2(seed,x/100,z/100),2);
         }
         static void NormalizeChunkCoordinates(ref int x,ref int y,ref int z,ref (int x,int y,int z) chunkCoordinate){
             while(x>ChunkSize-1){

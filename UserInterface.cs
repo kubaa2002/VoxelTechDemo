@@ -3,18 +3,24 @@ using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Myra;
 using Myra.Graphics2D.UI;
+using static VoxelTechDemo.VoxelRenderer;
 
 namespace VoxelTechDemo{
     static class UserInterface{
         static public Desktop _desktop;
-        static public void Initialize(Game1 game, GraphicsDeviceManager _graphics){
-            FontSystem ordinaryFontSystem = new FontSystem();
+        static public void Initialize(Game1 game, GraphicsDeviceManager _graphics,CustomEffect effect){
+            FontSystem ordinaryFontSystem = new();
             ordinaryFontSystem.AddFont(File.ReadAllBytes("Content/PublicPixel.ttf"));
             MyraEnvironment.Game = game;
 
+            VerticalStackPanel mainPanel = new(){
+                VerticalAlignment = VerticalAlignment.Stretch,
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
             Grid grid = new(){
                 RowSpacing = 8,
-                ColumnSpacing = 8
+                ColumnSpacing = 8,
+                VerticalAlignment = VerticalAlignment.Stretch,
             };
 
             grid.ColumnsProportions.Add(new Proportion(ProportionType.Fill));
@@ -40,15 +46,17 @@ namespace VoxelTechDemo{
                 Maximum = 32,
                 HorizontalAlignment = HorizontalAlignment.Center
             };
-            Grid.SetColumn(spinButton, 0);
-            Grid.SetRow(spinButton, 1);
             spinButton.ValueChanged += (s, a) =>{
                 game.RenderDistance = (byte)spinButton.Value;
                 game.CheckChunks();
+                effect.fogStart = game.RenderDistance*0.6f*ChunkSize;
+                effect.fogEnd = game.RenderDistance*0.8f*ChunkSize;
             };
+            Grid.SetColumn(spinButton, 1);
+            Grid.SetRow(spinButton, 1);
             grid.Widgets.Add(spinButton);
 
-            // Unlock framerate option
+            // Unlock framerate button
             Label framerate = new(){
                 Text = "Unlock framerate:",
                 Width = 320,
@@ -62,15 +70,85 @@ namespace VoxelTechDemo{
             CheckButton checkBox = new(){
                 HorizontalAlignment = HorizontalAlignment.Center
             };
-            Grid.SetColumn(checkBox, 0);
-            Grid.SetRow(checkBox, 2);
             checkBox.Click += (s, a) =>{
                 //Unlockin Frame rate
                 _graphics.SynchronizeWithVerticalRetrace = !_graphics.SynchronizeWithVerticalRetrace;
                 game.IsFixedTimeStep = !game.IsFixedTimeStep;
                 _graphics.ApplyChanges();
             };
+            Grid.SetColumn(checkBox, 1);
+            Grid.SetRow(checkBox, 2);
             grid.Widgets.Add(checkBox);
+
+            // Fog button
+            Label fog = new(){
+                Text = "Fog enabled:",
+                Width = 320,
+                Height = 60,
+                Font = ordinaryFontSystem.GetFont(32)
+            };
+            Grid.SetColumn(fog, 0);
+            Grid.SetRow(fog, 3);
+            grid.Widgets.Add(fog);
+
+            CheckButton fogCheck = new(){
+                HorizontalAlignment = HorizontalAlignment.Center,
+                IsChecked = effect.fogEnabled
+            };
+            fogCheck.Click += (s, a) =>{
+                effect.fogEnabled = !effect.fogEnabled;
+            };
+            Grid.SetColumn(fogCheck, 1);
+            Grid.SetRow(fogCheck, 3);
+            grid.Widgets.Add(fogCheck);
+
+            // Field of view slider
+            Label FOV = new(){
+                Text = "Field of view:",
+                Width = 320,
+                Height = 60,
+                Font = ordinaryFontSystem.GetFont(32)
+            };
+            Grid.SetColumn(FOV,0);
+            Grid.SetRow(FOV,4);
+            grid.Widgets.Add(FOV);
+
+            HorizontalSlider FOVslider = new(){
+                Minimum = 30,
+                Maximum = 120,
+                Value = game.FieldOfView
+            };
+            FOVslider.ValueChanged += (s, a) =>{
+                game.FieldOfView = FOVslider.Value;
+                game.projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(game.FieldOfView),game.GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f);
+            };
+            Grid.SetColumn(FOVslider,1);
+            Grid.SetRow(FOVslider,4);
+            grid.Widgets.Add(FOVslider);
+
+            // Mouse sensitivity slider
+            Label Mouse = new(){
+                Text = "Mouse sensitivity:",
+                Width = 320,
+                Height = 60,
+                Font = ordinaryFontSystem.GetFont(32)
+            };
+            Grid.SetColumn(Mouse,0);
+            Grid.SetRow(Mouse,5);
+            grid.Widgets.Add(Mouse);
+
+            HorizontalSlider MouseSlider = new(){
+                Minimum = 0.001f,
+                Maximum = 0.01f,
+                Value = game.MouseSensitivity
+            };
+            MouseSlider.ValueChanged += (s, a) =>{
+                game.MouseSensitivity = MouseSlider.Value;
+            };
+            Grid.SetColumn(MouseSlider,1);
+            Grid.SetRow(MouseSlider,5);
+            grid.Widgets.Add(MouseSlider);
+            mainPanel.Widgets.Add(grid);
 
             // Exit Button
             Button button = new(){
@@ -84,16 +162,14 @@ namespace VoxelTechDemo{
                 Width = 270,
                 Height = 80
             };
-            Grid.SetColumn(button, 0);
-            Grid.SetRow(button, 3);
             button.Click += (s, a) =>{
                 game.Exit();
             };
-            grid.Widgets.Add(button);
+            mainPanel.Widgets.Add(button);
 
             // Add it to the desktop
             _desktop = new Desktop{
-                Root = grid
+                Root = mainPanel
             };
         }
     }

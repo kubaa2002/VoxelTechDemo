@@ -26,83 +26,83 @@ namespace VoxelTechDemo{
             int blockPossition = 0, resultPossition = 0;
             for(int z=0;z<ChunkSize;z++){
                 for(int y=0;y<ChunkSize;y++){
-                    for(int x=0;x<ChunkSize;x++){
+                    for(ulong x=1;x!=0;x<<=1){
                         if(blocks[blockPossition]!=0){
                             byte currentBlockId = blocks[blockPossition];
                             //face x+
-                            if (x != ChunkSize - 1){
+                            if (x != 1uL<<(ChunkSize-1)){
                                 if(currentBlockId != blocks[blockPossition+1] && Block.IsTransparent(blocks[blockPossition+1])){
-                                    result[resultPossition] |= 1uL << x;
+                                    result[resultPossition] |= x;
                                 }
                             }
                             else{
                                 if(currentBlockId != adjacentChunks[0].blocks[-ChunkSize+1+blockPossition]
                                 && Block.IsTransparent(adjacentChunks[0].blocks[-ChunkSize+1+blockPossition])){
-                                    result[resultPossition] |= 1uL << x;
+                                    result[resultPossition] |= x;
                                 }
                             }
                             // Face x-
-                            if (x != 0){
+                            if (x != 1){
                                 if(currentBlockId != blocks[blockPossition-1] && Block.IsTransparent(blocks[blockPossition-1])){
-                                    result[square + resultPossition] |= 1uL << x;
+                                    result[square + resultPossition] |= x;
                                 }
                             }
                             else{
                                 if(currentBlockId != adjacentChunks[1].blocks[ChunkSize-1+blockPossition]
                                 && Block.IsTransparent(adjacentChunks[1].blocks[ChunkSize-1+blockPossition])){
-                                    result[square + resultPossition] |= 1uL << x;
+                                    result[square + resultPossition] |= x;
                                 }
                             }
                             // Face y+
                             if (y != ChunkSize - 1){
                                 if(currentBlockId != blocks[blockPossition+ChunkSize] && Block.IsTransparent(blocks[blockPossition+ChunkSize])){
-                                    result[2*square + resultPossition] |= 1uL << x;
+                                    result[2*square + resultPossition] |= x;
                                 }
                             }
                             else{
                                 if(adjacentChunks[2] is not null){
                                     if(currentBlockId != adjacentChunks[2].blocks[ChunkSize-square+blockPossition]
                                     && Block.IsTransparent(adjacentChunks[2].blocks[ChunkSize-square+blockPossition])){
-                                        result[2*square + resultPossition] |= 1uL << x;
+                                        result[2*square + resultPossition] |= x;
                                     }
                                 }
                             }
                             // Face y-
                             if (y != 0){
                                 if(currentBlockId != blocks[blockPossition-ChunkSize] && Block.IsTransparent(blocks[blockPossition-ChunkSize])){
-                                    result[3*square + resultPossition] |= 1uL << x;
+                                    result[3*square + resultPossition] |= x;
                                 }
                             }
                             else{
                                 if(adjacentChunks[3] is not null){
                                     if(currentBlockId != adjacentChunks[3].blocks[square-ChunkSize+blockPossition]
                                     && Block.IsTransparent(adjacentChunks[3].blocks[square-ChunkSize+blockPossition])){
-                                        result[3*square + resultPossition] |= 1uL << x;
+                                        result[3*square + resultPossition] |= x;
                                     }
                                 }
                             }
                             // Face z+
                             if (z != ChunkSize - 1){
                                 if(currentBlockId != blocks[blockPossition+square] && Block.IsTransparent(blocks[blockPossition+square])){
-                                    result[4*square + resultPossition] |= 1uL << x;
+                                    result[4*square + resultPossition] |= x;
                                 }
                             }
                             else{
                                 if(currentBlockId != adjacentChunks[4].blocks[square-cubed+blockPossition]
                                 && Block.IsTransparent(adjacentChunks[4].blocks[square-cubed+blockPossition])){
-                                    result[4*square + resultPossition] |= 1uL << x;
+                                    result[4*square + resultPossition] |= x;
                                 }
                             }
                             // Face z-
                             if (z != 0 ){
                                 if(currentBlockId != blocks[blockPossition-square] && Block.IsTransparent(blocks[blockPossition-square])){
-                                    result[5*square + resultPossition] |= 1uL << x;
+                                    result[5*square + resultPossition] |= x;
                                 }  
                             }
                             else{
                                 if(currentBlockId != adjacentChunks[5].blocks[cubed-square+blockPossition]
                                 && Block.IsTransparent(adjacentChunks[5].blocks[cubed-square+blockPossition])){
-                                    result[5*square + resultPossition] |= 1uL << x;
+                                    result[5*square + resultPossition] |= x;
                                 }
                             }
                         }
