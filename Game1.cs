@@ -203,13 +203,12 @@ namespace VoxelTechDemo{
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
             GraphicsDevice.Indices = indexBuffer;
 
-            // TOFIX: frustum intersects method doesn't work properly on certain angles
             BoundingFrustum frustum = new(viewMatrix*projectionMatrix);
 
             //TODO: Make it so it doesn't recalculate world matrixes every frame
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
-                    if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z)) && frustum.Contains(new BoundingBox(new Vector3(x*ChunkSize,0,z*ChunkSize),new Vector3(x*ChunkSize+ChunkSize,512,z*ChunkSize+ChunkSize))) != 0){
+                    if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z)) && frustum.Intersects(new BoundingBox(new Vector3(x*ChunkSize,-player.CurrentChunk.y*ChunkSize,z*ChunkSize),new Vector3(x*ChunkSize+ChunkSize,-player.CurrentChunk.y*ChunkSize+World.MaxHeight,z*ChunkSize+ChunkSize)))){
                         worldMatrix = Matrix.CreateWorld(new Vector3(x*ChunkSize,-player.CurrentChunk.y*ChunkSize,z*ChunkSize),Vector3.Forward,Vector3.Up);
                         effect.WorldViewProj.SetValue(worldMatrix*viewMatrix*projectionMatrix);
                         effect.Apply(worldMatrix,viewMatrix);
@@ -223,7 +222,7 @@ namespace VoxelTechDemo{
             //Opengl on windows doesn't like when transparent meshes are mixed with opaque ones
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
-                    if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z)) && frustum.Contains(new BoundingBox(new Vector3(x*ChunkSize,0,z*ChunkSize),new Vector3(x*ChunkSize+ChunkSize,512,z*ChunkSize+ChunkSize))) != 0){
+                    if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z)) && frustum.Intersects(new BoundingBox(new Vector3(x*ChunkSize,-player.CurrentChunk.y*ChunkSize,z*ChunkSize),new Vector3(x*ChunkSize+ChunkSize,-player.CurrentChunk.y*ChunkSize+World.MaxHeight,z*ChunkSize+ChunkSize)))){
                         worldMatrix = Matrix.CreateWorld(new Vector3(x*ChunkSize,-player.CurrentChunk.y*ChunkSize,z*ChunkSize),Vector3.Forward,Vector3.Up);
                         effect.WorldViewProj.SetValue(worldMatrix*viewMatrix*projectionMatrix);
                         effect.Apply(worldMatrix,viewMatrix);
