@@ -2,3 +2,5 @@ bin/
 obj/
 Content/obj
 .vscode/
+Settings.txt
+benchmark.cs

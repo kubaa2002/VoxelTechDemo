@@ -27,7 +27,7 @@ namespace VoxelTechDemo{
                 Vector3 currentRayPossition = camPosition+(forward*i);
                 currentRayPossition.Floor();
                 BoundingBox currentBlock = new(currentRayPossition,currentRayPossition+Vector3.One);
-                if(!Block.IsNotSolid(currentWorld.GetBlock((int)currentBlock.Min.X,(int)currentBlock.Min.Y,(int)currentBlock.Min.Z,CurrentChunk))){
+                if(!Blocks.IsNotSolid(currentWorld.GetBlock((int)currentBlock.Min.X,(int)currentBlock.Min.Y,(int)currentBlock.Min.Z,CurrentChunk))){
                     LookedAtBlock = ((int)currentBlock.Min.X,(int)currentBlock.Min.Y,(int)currentBlock.Min.Z);
                     blockFound = true;
                 }
@@ -58,7 +58,7 @@ namespace VoxelTechDemo{
                             currentBlock.Max.Y--;
                             break;
                     }
-                    if(!Block.IsNotSolid(currentWorld.GetBlock((int)currentBlock.Min.X,(int)currentBlock.Min.Y,(int)currentBlock.Min.Z,CurrentChunk))){
+                    if(!Blocks.IsNotSolid(currentWorld.GetBlock((int)currentBlock.Min.X,(int)currentBlock.Min.Y,(int)currentBlock.Min.Z,CurrentChunk))){
                         LookedAtBlock = ((int)currentBlock.Min.X,(int)currentBlock.Min.Y,(int)currentBlock.Min.Z);
                         blockFound = true;
                     }
@@ -136,12 +136,12 @@ namespace VoxelTechDemo{
                 forward.Normalize();
                 forward *= movementSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
                 if(forward.X>0){
-                    if(Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X+forward.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X+forward.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X+forward.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X+forward.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X+forward.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X+forward.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))){
+                    if(Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X+forward.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X+forward.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X+forward.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X+forward.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X+forward.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X+forward.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))){
                         camPosition.X += forward.X;
                     }
                     else{
@@ -149,12 +149,12 @@ namespace VoxelTechDemo{
                     }
                 }
                 else{
-                    if(Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X+forward.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X+forward.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X+forward.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X+forward.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X+forward.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X+forward.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))){
+                    if(Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X+forward.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X+forward.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X+forward.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X+forward.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X+forward.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X+forward.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))){
                         camPosition.X += forward.X;
                     }
                     else{
@@ -164,12 +164,12 @@ namespace VoxelTechDemo{
                 playerHitBox.Min.X = camPosition.X-0.2499f;
                 playerHitBox.Max.X = camPosition.X+0.2499f;
                 if(forward.Z>0){
-                    if(Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Max.Z+forward.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Max.Z+forward.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Max.Z+forward.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Max.Z+forward.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Max.Z+forward.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Max.Z+forward.Z),CurrentChunk))){
+                    if(Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Max.Z+forward.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Max.Z+forward.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Max.Z+forward.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Max.Z+forward.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Max.Z+forward.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Max.Z+forward.Z),CurrentChunk))){
                         camPosition.Z += forward.Z;
                     }
                     else{
@@ -177,12 +177,12 @@ namespace VoxelTechDemo{
                     }
                 }
                 else{
-                    if(Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Min.Z+forward.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Min.Z+forward.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Min.Z+forward.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Min.Z+forward.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Min.Z+forward.Z),CurrentChunk))
-                    && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Min.Z+forward.Z),CurrentChunk))){
+                    if(Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Min.Z+forward.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Min.Z+forward.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Min.Z+forward.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor((playerHitBox.Max.Y+playerHitBox.Min.Y)/2),(int)Math.Floor(playerHitBox.Min.Z+forward.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Min.Z+forward.Z),CurrentChunk))
+                    && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Min.Z+forward.Z),CurrentChunk))){
                         camPosition.Z += forward.Z;
                     }
                     else{
@@ -213,10 +213,10 @@ namespace VoxelTechDemo{
                 }
             }
             if(verticalSpeed<=0){
-                if(Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor(playerHitBox.Min.Y+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
-                && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Min.Y+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
-                && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor(playerHitBox.Min.Y+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))
-                && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Min.Y+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))){
+                if(Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor(playerHitBox.Min.Y+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
+                && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Min.Y+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
+                && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor(playerHitBox.Min.Y+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))
+                && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Min.Y+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))){
                     camPosition.Y += verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
                     CanJump = false;
                     if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z),CurrentChunk)==14){
@@ -233,10 +233,10 @@ namespace VoxelTechDemo{
                 }
             }
             else{
-                if(Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)(Math.Floor(playerHitBox.Max.Y+0.13f)+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
-                && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)(Math.Floor(playerHitBox.Max.Y+0.13f)+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
-                && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)(Math.Floor(playerHitBox.Max.Y+0.13f)+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))
-                && Block.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)(Math.Floor(playerHitBox.Max.Y+0.13f)+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))){
+                if(Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)(Math.Floor(playerHitBox.Max.Y+0.13f)+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
+                && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)(Math.Floor(playerHitBox.Max.Y+0.13f)+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Min.Z),CurrentChunk))
+                && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Min.X),(int)(Math.Floor(playerHitBox.Max.Y+0.13f)+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))
+                && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)(Math.Floor(playerHitBox.Max.Y+0.13f)+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))){
                     camPosition.Y += verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
                     CanJump = false;
                     if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z),CurrentChunk)==14){

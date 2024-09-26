@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Myra;
 using Myra.Graphics2D.UI;
 using static VoxelTechDemo.VoxelRenderer;
+using static VoxelTechDemo.UserSettings;
 
 namespace VoxelTechDemo{
     static class UserInterface{
@@ -40,17 +41,17 @@ namespace VoxelTechDemo{
             SpinButton spinButton = new(){
                 Width = 100,
                 Nullable = false,
-                Value = game.RenderDistance,
+                Value = RenderDistance,
                 Integer = true,
                 Minimum = 1,
                 Maximum = 32,
                 HorizontalAlignment = HorizontalAlignment.Center
             };
             spinButton.ValueChanged += (s, a) =>{
-                game.RenderDistance = (byte)spinButton.Value;
+                RenderDistance = (byte)spinButton.Value;
                 game.CheckChunks();
-                effect.fogStart = game.RenderDistance*0.6f*ChunkSize;
-                effect.fogEnd = game.RenderDistance*0.8f*ChunkSize;
+                effect.fogStart = RenderDistance*0.6f*ChunkSize;
+                effect.fogValue = 1.0f / (effect.fogStart - RenderDistance*0.8f*ChunkSize);
             };
             Grid.SetColumn(spinButton, 1);
             Grid.SetRow(spinButton, 1);
@@ -116,11 +117,11 @@ namespace VoxelTechDemo{
             HorizontalSlider FOVslider = new(){
                 Minimum = 30,
                 Maximum = 120,
-                Value = game.FieldOfView
+                Value = FieldOfView
             };
             FOVslider.ValueChanged += (s, a) =>{
-                game.FieldOfView = FOVslider.Value;
-                game.projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(game.FieldOfView),game.GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f);
+                FieldOfView = FOVslider.Value;
+                game.projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView),game.GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f);
             };
             Grid.SetColumn(FOVslider,1);
             Grid.SetRow(FOVslider,4);
@@ -140,10 +141,10 @@ namespace VoxelTechDemo{
             HorizontalSlider MouseSlider = new(){
                 Minimum = 0.001f,
                 Maximum = 0.01f,
-                Value = game.MouseSensitivity
+                Value = MouseSensitivity
             };
             MouseSlider.ValueChanged += (s, a) =>{
-                game.MouseSensitivity = MouseSlider.Value;
+                MouseSensitivity = MouseSlider.Value;
             };
             Grid.SetColumn(MouseSlider,1);
             Grid.SetRow(MouseSlider,5);
@@ -163,6 +164,7 @@ namespace VoxelTechDemo{
                 Height = 80
             };
             button.Click += (s, a) =>{
+                CheckSettingsFile();
                 game.Exit();
             };
             mainPanel.Widgets.Add(button);

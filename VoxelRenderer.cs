@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace VoxelTechDemo{
     public static class VoxelRenderer{
         static private GraphicsDevice graphicsDevice;
-        static private readonly BlockIds blockIds = new();
+        static private readonly Blocks blockIds = new();
         //z- z+ y- y+ x- x+
         const int offsetX = 0b1010_0101_1010_1010_0000_1111;
         const int offsetY = 0b1100_1100_0000_1111_1100_1100;
@@ -38,10 +39,10 @@ namespace VoxelTechDemo{
                 int currentBlock = 0;
                 for(int i=face*square;i<(face+1)*square;i++){
                     if(result[i] != 0){
-                        for(ulong j=1;j!=0;j<<=1){
+                        for(ulong j=1;j!=(ChunkSize == 64 ? 0 : 1uL << ChunkSize);j<<=1){
                             if((result[i]&j)!=0){
                                 Vector2[] textureCoordinates = blockIds.TextureDictionary[chunk.blocks[currentBlock]];
-                                if(Block.IsTransparent(chunk.blocks[currentBlock])){
+                                if(Blocks.IsTransparent(chunk.blocks[currentBlock])){
                                     for(int k=face*4;k<face*4+4;k++){
                                         transparentVertices.Add(new VertexPositionTexture(new(
                                             (currentBlock&(ChunkSize-1))+((offsetX&(1<<k))>>k),
@@ -140,7 +141,7 @@ namespace VoxelTechDemo{
             graphicsDevice.Indices = indexBuffer;
             graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, 6);
         }
-        public static Matrix BlockIcon(int x,int y,float scale){
+        public static Matrix CreateBlockPreviewProj(int x,int y,float scale){
             float aspectRatio = graphicsDevice.Viewport.AspectRatio * scale;
             float translateX = aspectRatio-(float)x / graphicsDevice.Viewport.Width * (aspectRatio + aspectRatio);
             float translateY = (float)y / graphicsDevice.Viewport.Height * (scale + scale) - scale;

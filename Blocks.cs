@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 
 namespace VoxelTechDemo{
-    internal class BlockIds{
-        public Dictionary<int, Vector2[]> TextureDictionary;
-        public BlockIds(){
-            TextureDictionary = new Dictionary<int, Vector2[]>();
-            byte[] TextureCoordinates= new byte[]{
+    internal class Blocks{
+        public Dictionary<int, Vector2[]> TextureDictionary = [];
+        public Blocks(){
+            byte[] TextureCoordinates = [
                 1,1,0,2,1,1,//Grass
                 2,2,2,2,2,2, //Dirt
                 3,3,3,3,3,3, //Stone
@@ -23,7 +22,7 @@ namespace VoxelTechDemo{
                 50,50,50,50,50,50, //water
 
                 255,255,255,255,255,255,//CubeFrame
-            };
+            ];
             for(int i=0;i<(TextureCoordinates.Length/6);i++){
                 Vector2[] result= new Vector2[24];
                 for(int j=0;j<6;j++){
@@ -35,6 +34,30 @@ namespace VoxelTechDemo{
                     result[j*4+3]=new Vector2(0.0625f*x,0.0625f*y);
                 }
                 TextureDictionary[i+1]=result;
+            }
+        }
+        public static bool IsNotSolid(byte Id){
+            switch(Id){
+                case 0:
+                    return true;
+                case 14:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        public static bool IsTransparent(byte Id){
+            switch(Id){
+                case 0:
+                    return true;
+                case 7:
+                    return true;
+                case 8:
+                    return true;
+                case 14:
+                    return true;
+                default:
+                    return false;
             }
         }
     }

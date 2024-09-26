@@ -10,14 +10,12 @@ namespace VoxelTechDemo{
         public EffectParameter FogVector;
         public EffectParameter WorldViewProj;
 
-        public float fogStart = 115f;
-        public float fogEnd = 153f;
-
+        public float fogStart;
+        // fogValue = 1.0f/(fogStart-fogEnd)
+        public float fogValue;
+        
         public bool fogEnabled = true;
         
-        public CustomEffect(GraphicsDevice device, byte[] code):base(device, code){
-            Initialize();
-        }
         public CustomEffect(Effect clone):base(clone){
             Initialize();
         }
@@ -29,18 +27,13 @@ namespace VoxelTechDemo{
             FogVector = Parameters["FogVector"];
             WorldViewProj = Parameters["WorldViewProj"];
         }
-        public void Apply(Matrix world, Matrix view){
-            float scale = 1.0f/(fogStart-fogEnd);
+        public void Apply(Matrix worldView){
             if(fogEnabled){
-                FogVector.SetValue(new Vector4((world*view).M13*scale,(world*view).M23*scale,(world*view).M33*scale,((world*view).M43+fogStart)*scale));
+                FogVector.SetValue(new Vector4(worldView.M13,worldView.M23,worldView.M33,worldView.M43+fogStart)*fogValue);
             }
             else{
-                FogVector.SetValue(new Vector4(0,0,0,0));
+                FogVector.SetValue(Vector4.Zero);
             }
-            CurrentTechnique.Passes[0].Apply();
-        }
-        public void Apply(){
-            FogVector.SetValue(new Vector4(0,0,0,0));
             CurrentTechnique.Passes[0].Apply();
         }
     }
