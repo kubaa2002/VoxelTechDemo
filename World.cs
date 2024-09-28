@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using static VoxelTechDemo.VoxelRenderer;
 
 namespace VoxelTechDemo{
@@ -50,59 +48,59 @@ namespace VoxelTechDemo{
         }
         public void SetBlock(int x, int y, int z, (int x,int y,int z) chunkCoordinate,byte Id){
             NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
-            if(!WorldMap.ContainsKey(chunkCoordinate)){
+            if(!WorldMap.TryGetValue(chunkCoordinate, out Chunk chunk)){
                 return;
             }
-            Chunk chunk = WorldMap[chunkCoordinate];
             chunk.blocks[x+(y*ChunkSize)+(z*square)]=Id;
-            Dictionary<Chunk,VertexBuffer[]> buffers = new();
-            buffers[chunk]=GenerateVertices(chunk);
+            chunk.CheckMaxY(y);
+            GenerateVertexVertices(chunk);
             if(x==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x-1,chunkCoordinate.y,chunkCoordinate.z),out chunk)){
-                    buffers[chunk] = GenerateVertices(chunk);
+                    GenerateVertexVertices(chunk);
                 }
             }
             if(x==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x+1,chunkCoordinate.y,chunkCoordinate.z),out chunk)){
-                    buffers[chunk] = GenerateVertices(chunk);
+                    GenerateVertexVertices(chunk);
                 }
             }
             if(y==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y-1,chunkCoordinate.z),out chunk)){
-                    buffers[chunk] = GenerateVertices(chunk);
+                    GenerateVertexVertices(chunk);
                 }
             }
             if(y==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y+1,chunkCoordinate.z),out chunk)){
-                    buffers[chunk] = GenerateVertices(chunk);
+                    GenerateVertexVertices(chunk);
                 }
             }
             if(z==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z-1),out chunk)){
-                    buffers[chunk] = GenerateVertices(chunk);
+                    GenerateVertexVertices(chunk);
                 }
             }
             if(z==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z+1),out chunk)){
-                    buffers[chunk] = GenerateVertices(chunk);
+                    GenerateVertexVertices(chunk);
                 }
-            }
-            foreach(KeyValuePair<Chunk,VertexBuffer[]> pair in buffers){
-                pair.Key.vertexBufferOpaque?.Dispose();
-                pair.Key.vertexBufferOpaque = pair.Value[0];
-                pair.Key.vertexBufferTransparent?.Dispose();
-                pair.Key.vertexBufferTransparent = pair.Value[1];
             }
         }
         public void SetBlockWithoutUpdating(int x,int y,int z,(int x,int y,int z) chunkCoordinate,byte Id){
             NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
-            WorldMap.TryAdd(chunkCoordinate,new(chunkCoordinate,this));
-            WorldMap[chunkCoordinate].blocks[x+y*ChunkSize+z*square]=Id;
+            if(WorldMap.TryGetValue(chunkCoordinate,out Chunk chunk)){
+                chunk.blocks[x+y*ChunkSize+z*square]=Id;
+            }
+            else{
+                WorldMap.TryAdd(chunkCoordinate,new(chunkCoordinate,this));
+                chunk = WorldMap[chunkCoordinate];
+                chunk.blocks[x+y*ChunkSize+z*square]=Id;
+            }
+            chunk.CheckMaxY(y);
         }
         public byte GetBlock(int x,int y,int z, (int x,int y,int z) chunkCoordinate){
             NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
-            if(WorldMap.ContainsKey(chunkCoordinate)){
-                return WorldMap[chunkCoordinate].blocks[x+(y*ChunkSize)+(z*square)];
+            if(WorldMap.TryGetValue(chunkCoordinate, out Chunk chunk)){
+                return chunk.blocks[x+(y*ChunkSize)+(z*square)];
             }
             else{
                 return 0;
@@ -119,46 +117,85 @@ namespace VoxelTechDemo{
             for(int y=0;y<MaxHeight/ChunkSize;y++){
                 chunks[y]=WorldMap[(chunkX,y,chunkZ)];
             }
-            byte[] chunkBlocks = chunks[0].blocks;
             for(int x=0;x<ChunkSize;x++){
                 for(int z=0;z<ChunkSize;z++){
                     // If yLevel below 0 needs to be generated, MountainNoise needs to floored before casting to int
                     int yLevel = 50+(int)MountainNoise((double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z);
-                    int blockPossition = x+z*square;
-                    for(int y=ChunkSize*(MaxHeight/ChunkSize)-1;y>=0;y--){
+                    int blockPossition = x+yLevel%ChunkSize*ChunkSize+z*square;
+                    byte[] chunkBlocks = chunks[yLevel/ChunkSize].blocks;
+                    chunks[yLevel/ChunkSize].CheckMaxY(yLevel%ChunkSize);
+                    // Water level
+                    if(yLevel < 63){
+                        for(int y=63;y>yLevel;y--){
+                            if(y%ChunkSize==ChunkSize-1){
+                                chunkBlocks = chunks[y/ChunkSize].blocks;
+                                chunks[y/ChunkSize].maxY=ChunkSize;
+                                blockPossition = x+square-ChunkSize+z*square;
+                            }
+                            chunkBlocks[blockPossition]=14;
+                            blockPossition-=ChunkSize;
+                        }
+                    }
+                    // Dirt level
+                    int stoneNoise = (int)(OpenSimplex2.Noise2(seed,(double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z)*5f);
+                    stoneNoise += (int)(OpenSimplex2.Noise2(seed,((double)chunkX*ChunkSize+x)/100,((double)chunkZ*ChunkSize+z)/100)*20f);
+                    for(int y=yLevel;y>=yLevel-2;y--){
                         if(y%ChunkSize==ChunkSize-1){
                             chunkBlocks = chunks[y/ChunkSize].blocks;
-                            blockPossition+=square;
+                            chunks[y/ChunkSize].maxY=ChunkSize;
+                            blockPossition = x+square-ChunkSize+z*square;
                         }
-                        blockPossition-=ChunkSize;
-                        if(y<=yLevel){
-                            if(y>=yLevel-2){
-                                if(y == yLevel){
-                                    chunkBlocks[blockPossition]=1;
+                        if(y == yLevel){
+                            if(y>=65){
+                                if(y>=238+stoneNoise){
+                                    if(y>=258+stoneNoise){
+                                        // Snow
+                                        chunkBlocks[blockPossition]=13;
+                                    }
+                                    else{
+                                        // Stone
+                                        chunkBlocks[blockPossition]=3;
+                                    }
                                 }
                                 else{
-                                    chunkBlocks[blockPossition]=2;
+                                    // Grass
+                                    chunkBlocks[blockPossition]=1;
                                 }
                             }
                             else{
-                                chunkBlocks[blockPossition]=3;
-                            } 
-                            if(y==yLevel){
-                                if(yLevel<65){
-                                    chunkBlocks[blockPossition]=12;
-                                }
                                 if(yLevel<62){
+                                    // Gravel
                                     chunkBlocks[blockPossition]=11;
+                                }
+                                else{
+                                    // Sand
+                                    chunkBlocks[blockPossition]=12;
                                 }
                             }
                         }
                         else{
-                            if(y<64){
-                                chunkBlocks[blockPossition]=14;
+                            if(y>=238+stoneNoise){
+                                // Stone
+                                chunkBlocks[blockPossition]=3;
+                            }
+                            else{
+                                // Dirt
+                                chunkBlocks[blockPossition]=2;
                             }
                         }
+                        blockPossition-=ChunkSize;
                     }
-                    if(OpenSimplex2.Noise2(seed,(double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z) > 0.95f && yLevel>=65){
+                    // Stone level
+                    for(int y=yLevel-3;y>=0;y--){
+                        if(y%ChunkSize==ChunkSize-1){
+                            chunkBlocks = chunks[y/ChunkSize].blocks;
+                            chunks[y/ChunkSize].maxY=ChunkSize;
+                            blockPossition = x+square-ChunkSize+z*square;
+                        }
+                        chunkBlocks[blockPossition]=3;
+                        blockPossition-=ChunkSize;
+                    }
+                    if(OpenSimplex2.Noise2(seed,(double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z) > 0.9f + 0.0004f*yLevel && yLevel>=65){
                         CreateTree(x,yLevel%ChunkSize,z, chunks[yLevel/ChunkSize]);
                     }
                 }
@@ -167,6 +204,8 @@ namespace VoxelTechDemo{
                 chunks[i].IsGenerated = true;
             }
         }
+        // TOFIX: On big x and z coordinates (int.MaxValue/64) trees don't spawn
+        // TOFIX: When tree spawns on chunks corner some leaves will not be in the mesh
         private void CreateTree(int x,int y, int z, Chunk chunk){
             for(int tempy=4;tempy<=5;tempy++){
                 for(int tempx=-2;tempx<=2;tempx++){
@@ -195,7 +234,6 @@ namespace VoxelTechDemo{
             }
             SetBlockWithoutUpdating(x,y,z,chunk.coordinates,2);
         }
-        // TOFIX: On big x and z coordinates (int.MaxValue/64) trees don't spawn
         public double MountainNoise(double x,double z){
             return Math.Pow(OpenSimplex2.Noise2(seed,x/2000,z/2000)*15
                         + OpenSimplex2.Noise2(seed,x/400,z/400)*4

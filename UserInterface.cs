@@ -69,13 +69,15 @@ namespace VoxelTechDemo{
             grid.Widgets.Add(framerate);
 
             CheckButton checkBox = new(){
-                HorizontalAlignment = HorizontalAlignment.Center
+                HorizontalAlignment = HorizontalAlignment.Center,
+                IsChecked = FrameRateUnlocked
             };
             checkBox.Click += (s, a) =>{
                 //Unlockin Frame rate
                 _graphics.SynchronizeWithVerticalRetrace = !_graphics.SynchronizeWithVerticalRetrace;
                 game.IsFixedTimeStep = !game.IsFixedTimeStep;
                 _graphics.ApplyChanges();
+                FrameRateUnlocked = !FrameRateUnlocked;
             };
             Grid.SetColumn(checkBox, 1);
             Grid.SetRow(checkBox, 2);
@@ -94,10 +96,10 @@ namespace VoxelTechDemo{
 
             CheckButton fogCheck = new(){
                 HorizontalAlignment = HorizontalAlignment.Center,
-                IsChecked = effect.fogEnabled
+                IsChecked = FogEnabled
             };
             fogCheck.Click += (s, a) =>{
-                effect.fogEnabled = !effect.fogEnabled;
+                FogEnabled = !FogEnabled;
             };
             Grid.SetColumn(fogCheck, 1);
             Grid.SetRow(fogCheck, 3);

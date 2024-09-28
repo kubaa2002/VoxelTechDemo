@@ -9,6 +9,7 @@ namespace VoxelTechDemo{
         public VertexBuffer vertexBufferOpaque;
         public VertexBuffer vertexBufferTransparent;
         public bool IsGenerated = false;
+        public byte maxY = 0;
         public Chunk((int x,int y,int z) coordinates, World world){
             this.coordinates = coordinates;
             this.world = world;
@@ -23,9 +24,10 @@ namespace VoxelTechDemo{
             world.WorldMap.TryGetValue((coordinates.x,coordinates.y-1,coordinates.z),out adjacentChunks[3]);
             world.WorldMap.TryGetValue((coordinates.x,coordinates.y,coordinates.z+1),out adjacentChunks[4]);
             world.WorldMap.TryGetValue((coordinates.x,coordinates.y,coordinates.z-1),out adjacentChunks[5]);
-            int blockPossition = 0, resultPossition = 0;
             for(int z=0;z<ChunkSize;z++){
-                for(int y=0;y<ChunkSize;y++){
+                int blockPossition = z*square;
+                int resultPossition = z*ChunkSize;
+                for(int y=0;y<maxY;y++){
                     for(ulong x=1;x!=(ChunkSize == 64 ? 0 : 1uL << ChunkSize);x<<=1){
                         if(blocks[blockPossition]!=0){
                             byte currentBlockId = blocks[blockPossition];
@@ -112,6 +114,12 @@ namespace VoxelTechDemo{
                 }
             }
             return result; 
+        }
+        public void CheckMaxY(int y){
+            y++;
+            if(y>maxY){
+                maxY = (byte)y;
+            }
         }
     }
 }

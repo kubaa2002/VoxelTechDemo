@@ -26,7 +26,7 @@ namespace VoxelTechDemo{
         byte chosenBlock = 1;
         int ScrollWheelValue;
         Player player;
-        readonly HashSet<(int x,int z)> CurrentlyLoadedChunkLines = new(); 
+        readonly HashSet<(int x,int z)> CurrentlyLoadedChunkLines = []; 
         public Game1(){
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
@@ -41,6 +41,11 @@ namespace VoxelTechDemo{
             InitializeVoxelRenderer(GraphicsDevice);
 
             LoadSettings();
+            if(FrameRateUnlocked){
+                _graphics.SynchronizeWithVerticalRetrace = !_graphics.SynchronizeWithVerticalRetrace;
+                IsFixedTimeStep = !IsFixedTimeStep;
+                _graphics.ApplyChanges();
+            }
 
             //Basic shader setup
             effect = new(Content.Load<Effect>("AlphaTestEffectTest"));
@@ -69,9 +74,9 @@ namespace VoxelTechDemo{
             WindowCenter = new Point(GraphicsDevice.Viewport.Width/2,GraphicsDevice.Viewport.Height/2);
 
             // Calculating block preview matrix
-            blockPreviewWorldViewProj = Matrix.CreateWorld(Vector3.Zero,Vector3.Forward,Vector3.Up)
-            *Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f,0.5f,0.5f), Vector3.Up)
-            *CreateBlockPreviewProj((int)(GraphicsDevice.Viewport.Width*0.93f),(int)(GraphicsDevice.Viewport.Height*0.9f),5);
+            blockPreviewWorldViewProj = Matrix.CreateWorld(Vector3.Zero,Vector3.Forward,Vector3.Up);
+            blockPreviewWorldViewProj *= Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f,0.5f,0.5f), Vector3.Up);
+            blockPreviewWorldViewProj *= CreateBlockPreviewProj((int)(GraphicsDevice.Viewport.Width*0.93f),(int)(GraphicsDevice.Viewport.Height*0.9f),5);
 
             base.Initialize();
         }
@@ -110,7 +115,6 @@ namespace VoxelTechDemo{
                 if(keyboardState.IsKeyDown(Keys.N) && IsNPressed == false){
                     IsNoClipOn = !IsNoClipOn;
                     IsNPressed = true;
-                    player.ResetPlayerSpeed();
                     player.ResetHitBox();
                 }
                 if(IsNoClipOn){

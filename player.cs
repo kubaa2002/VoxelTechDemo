@@ -260,9 +260,6 @@ namespace VoxelTechDemo{
                 IsUnderWater = false;
             }
         }
-        public void ResetPlayerSpeed(){
-            verticalSpeed = 0;
-        }
         public void ResetHitBox(){
             playerHitBox.Min.X = camPosition.X-0.2499f;
             playerHitBox.Min.Y = camPosition.Y-1.6999f;
@@ -270,6 +267,8 @@ namespace VoxelTechDemo{
             playerHitBox.Max.X = camPosition.X+0.2499f;
             playerHitBox.Max.Y = camPosition.Y+0.0999f;
             playerHitBox.Max.Z = camPosition.Z+0.2499f;
+
+            verticalSpeed = 0;
         }
         void ResetCamera(){
             if(camPosition.X>ChunkSize){

@@ -14,8 +14,6 @@ namespace VoxelTechDemo{
         // fogValue = 1.0f/(fogStart-fogEnd)
         public float fogValue;
         
-        public bool fogEnabled = true;
-        
         public CustomEffect(Effect clone):base(clone){
             Initialize();
         }
@@ -28,7 +26,7 @@ namespace VoxelTechDemo{
             WorldViewProj = Parameters["WorldViewProj"];
         }
         public void Apply(Matrix worldView){
-            if(fogEnabled){
+            if(UserSettings.FogEnabled){
                 FogVector.SetValue(new Vector4(worldView.M13,worldView.M23,worldView.M33,worldView.M43+fogStart)*fogValue);
             }
             else{

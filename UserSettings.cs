@@ -4,8 +4,10 @@ using System.IO;
 namespace VoxelTechDemo{
     static class UserSettings{
         static byte renderDistance = 3;
-        public static float mouseSensitivity = 0.005f;
-        public static float fieldOfView = 45f;
+        static float mouseSensitivity = 0.005f;
+        static float fieldOfView = 45f;
+        static bool fogEnabled = true;
+        static bool frameRateUnlocked = false;
 
         static bool needUpdate = false;
 
@@ -42,10 +44,32 @@ namespace VoxelTechDemo{
                     }
                 }
         }
+        public static bool FogEnabled{
+                get{
+                    return fogEnabled;
+                }
+                set{
+                    if(value != fogEnabled){
+                        fogEnabled = value;
+                        needUpdate = true;
+                    }
+                }
+        }
+        public static bool FrameRateUnlocked{
+                get{
+                    return frameRateUnlocked;
+                }
+                set{
+                    if(value != frameRateUnlocked){
+                        frameRateUnlocked = value;
+                        needUpdate = true;
+                    }
+                }
+        }
         public static void LoadSettings(){
             if(File.Exists("Settings.txt")){
                 string[] lines = File.ReadAllLines("Settings.txt");
-                Dictionary<string,string> variables = new();
+                Dictionary<string,string> variables = [];
                 foreach(string a in lines){
                     string[] split = a.Split("=");
                     if(split.Length == 2){
@@ -74,6 +98,16 @@ namespace VoxelTechDemo{
                         }
                     }
                 }
+                if(variables.TryGetValue("FogEnabled", out value)){
+                    if(bool.TryParse(value, out bool result)){
+                        fogEnabled = result;
+                    }
+                }
+                if(variables.TryGetValue("FrameRateUnlocked", out value)){
+                    if(bool.TryParse(value, out bool result)){
+                        frameRateUnlocked = result;
+                    }
+                }
             }
             else{
                 UpdateSettingsFile();
@@ -90,6 +124,8 @@ namespace VoxelTechDemo{
             writer.WriteLine($"RenderDistance={renderDistance}");
             writer.WriteLine($"MouseSensitivity={mouseSensitivity}");
             writer.WriteLine($"FieldOfView={fieldOfView}");
+            writer.WriteLine($"FogEnabled={fogEnabled}");
+            writer.WriteLine($"FrameRateUnlocked={frameRateUnlocked}");
         }
     }
 }
