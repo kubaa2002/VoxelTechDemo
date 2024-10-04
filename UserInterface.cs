@@ -50,8 +50,8 @@ namespace VoxelTechDemo{
             spinButton.ValueChanged += (s, a) =>{
                 RenderDistance = (byte)spinButton.Value;
                 game.CheckChunks();
-                effect.fogStart = RenderDistance*0.6f*ChunkSize;
-                effect.fogValue = 1.0f / (effect.fogStart - RenderDistance*0.8f*ChunkSize);
+                effect.FogStart = RenderDistance*0.6f*ChunkSize;
+                effect.FogEnd = RenderDistance*0.8f*ChunkSize;
             };
             Grid.SetColumn(spinButton, 1);
             Grid.SetRow(spinButton, 1);

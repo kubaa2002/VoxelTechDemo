@@ -190,7 +190,7 @@ namespace VoxelTechDemo{
                         if(y%ChunkSize==ChunkSize-1){
                             chunkBlocks = chunks[y/ChunkSize].blocks;
                             chunks[y/ChunkSize].maxY=ChunkSize;
-                            blockPossition = x+square-ChunkSize+z*square;
+                            blockPossition += square;
                         }
                         chunkBlocks[blockPossition]=3;
                         blockPossition-=ChunkSize;

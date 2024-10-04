@@ -14,7 +14,6 @@ namespace VoxelTechDemo{
         private SpriteFont _spriteFont;
 
         public Matrix projectionMatrix, viewMatrix, worldMatrix;
-        Matrix blockPreviewWorldViewProj;
         
         public CustomEffect effect;
         readonly FrameCounter _frameCounter = new();
@@ -26,6 +25,7 @@ namespace VoxelTechDemo{
         byte chosenBlock = 1;
         int ScrollWheelValue;
         Player player;
+        BasicEffect blockPreviewEffect;
         readonly HashSet<(int x,int z)> CurrentlyLoadedChunkLines = []; 
         public Game1(){
             _graphics = new GraphicsDeviceManager(this);
@@ -47,19 +47,17 @@ namespace VoxelTechDemo{
                 _graphics.ApplyChanges();
             }
 
-            //Basic shader setup
-            effect = new(Content.Load<Effect>("AlphaTestEffectTest"));
-            effect.Texture.SetValue(Content.Load<Texture2D>("Textures"));
-            effect.DiffuseColor.SetValue(new Vector4(1.0f, 1.0f, 1.0f, 1.0f));
-            effect.AlphaTest.SetValue(new Vector4(1.5f/255f, 0, -1f, 1f));
-            effect.fogStart = RenderDistance*0.6f*ChunkSize;
-            effect.fogValue = 1.0f / (effect.fogStart - RenderDistance*0.8f*ChunkSize);
-            effect.FogColor.SetValue(new Vector3(
-                //Cornflower Blue
-                100f / 255f,  // Red
-                149f / 255f,  // Green
-                237f / 255f   // Blue
-            ));
+            // Custom shader setup
+            effect = new(Content.Load<Effect>("CustomEffect"), this);
+
+            // Setting up block preview effect
+            blockPreviewEffect = new BasicEffect(GraphicsDevice){
+                World = Matrix.CreateWorld(Vector3.Zero,Vector3.Forward,Vector3.Up),
+                View = Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f,0.5f,0.5f), Vector3.Up),
+                Projection = CreateBlockPreviewProj((int)(GraphicsDevice.Viewport.Width*0.93f),(int)(GraphicsDevice.Viewport.Height*0.9f),5),
+                Texture = Content.Load<Texture2D>("Textures"),
+                TextureEnabled = true
+            };
             
             UserInterface.Initialize(this, _graphics, effect);
 
@@ -72,11 +70,6 @@ namespace VoxelTechDemo{
             projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView),GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f);
             viewMatrix = Matrix.CreateLookAt(player.camPosition, Vector3.Zero, Vector3.Up);
             WindowCenter = new Point(GraphicsDevice.Viewport.Width/2,GraphicsDevice.Viewport.Height/2);
-
-            // Calculating block preview matrix
-            blockPreviewWorldViewProj = Matrix.CreateWorld(Vector3.Zero,Vector3.Forward,Vector3.Up);
-            blockPreviewWorldViewProj *= Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f,0.5f,0.5f), Vector3.Up);
-            blockPreviewWorldViewProj *= CreateBlockPreviewProj((int)(GraphicsDevice.Viewport.Width*0.93f),(int)(GraphicsDevice.Viewport.Height*0.9f),5);
 
             base.Initialize();
         }
@@ -144,7 +137,7 @@ namespace VoxelTechDemo{
                 }
                 if(currentMouseState.ScrollWheelValue>ScrollWheelValue){
                     chosenBlock++;
-                    if(chosenBlock==15){
+                    if(chosenBlock==16){
                         chosenBlock = 1;
                     }
                     ChangeCubePreview(chosenBlock);
@@ -152,7 +145,7 @@ namespace VoxelTechDemo{
                 if(currentMouseState.ScrollWheelValue<ScrollWheelValue){
                     chosenBlock--;
                     if(chosenBlock==0){
-                        chosenBlock=14;
+                        chosenBlock=15;
                     }
                     ChangeCubePreview(chosenBlock);
                 }
@@ -223,6 +216,7 @@ namespace VoxelTechDemo{
             BoundingFrustum frustum = new(viewProj);
 
             //TODO: Make it so it doesn't recalculate world matrixes every frame
+            // Render solid blocks
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
                     if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z)) && frustum.Intersects(new BoundingBox(
@@ -237,7 +231,8 @@ namespace VoxelTechDemo{
                 }
             }
 
-            //Opengl on windows doesn't like when transparent meshes are mixed with opaque ones
+            // Render fluids
+            GraphicsDevice.RasterizerState = RasterizerState.CullNone;
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
                     if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z)) && frustum.Intersects(new BoundingBox(
@@ -251,6 +246,7 @@ namespace VoxelTechDemo{
                     }
                 }
             }
+            GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
 
             worldMatrix = Matrix.CreateWorld(new Vector3(player.LookedAtBlock.x,player.LookedAtBlock.y,player.LookedAtBlock.z),Vector3.Forward,Vector3.Up);
             effect.WorldViewProj.SetValue(worldMatrix*viewProj);
@@ -279,14 +275,10 @@ namespace VoxelTechDemo{
             GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
 
             if(!IsPaused){
-                effect.WorldViewProj.SetValue(blockPreviewWorldViewProj);
-                // Disabling fog on block preview
-                effect.FogVector.SetValue(Vector4.Zero);
-                effect.CurrentTechnique.Passes[0].Apply();
+                blockPreviewEffect.CurrentTechnique.Passes[0].Apply();
                 DrawCubePreview();
             }
-
-            if(IsPaused){
+            else{
                 UserInterface._desktop.Render();
             }
 

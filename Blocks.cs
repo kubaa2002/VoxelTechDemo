@@ -20,6 +20,7 @@ namespace VoxelTechDemo{
                 6,6,6,6,6,6, //sand
                 7,7,7,7,7,7, //snow
                 50,50,50,50,50,50, //water
+                80,80,80,80,80,80, // Glowstone
 
                 255,255,255,255,255,255,//CubeFrame
             ];

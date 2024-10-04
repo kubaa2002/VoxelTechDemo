@@ -31,8 +31,8 @@ namespace VoxelTechDemo{
         public static VertexBuffer[] GenerateVertices(Chunk chunk){
             //TODO: Try to combine multiple chunks into single region to reduce number of world matrixes needed
             int CurrentChunkY = chunk.coordinates.y*ChunkSize;
-            List<VertexPositionTexture> opaqueVertices = new();
-            List<VertexPositionTexture> transparentVertices = new();
+            List<VertexPositionTexture> solidVertices = [];
+            List<VertexPositionTexture> fluidVertices = [];
             ulong[] result = chunk.CheckAllChunkFacesIfNeeded();
             for(int face=0;face<6;face++){
                 int currentBlock = 0;
@@ -41,9 +41,9 @@ namespace VoxelTechDemo{
                         for(ulong j=1;j!=(ChunkSize == 64 ? 0 : 1uL << ChunkSize);j<<=1){
                             if((result[i]&j)!=0){
                                 Vector2[] textureCoordinates = blockIds.TextureDictionary[chunk.blocks[currentBlock]];
-                                if(Blocks.IsTransparent(chunk.blocks[currentBlock])){
+                                if(Blocks.IsNotSolid(chunk.blocks[currentBlock])){
                                     for(int k=face*4;k<face*4+4;k++){
-                                        transparentVertices.Add(new VertexPositionTexture(new(
+                                        fluidVertices.Add(new VertexPositionTexture(new(
                                             (currentBlock&(ChunkSize-1))+((offsetX&(1<<k))>>k),
                                             CurrentChunkY+((currentBlock&((ChunkSize-1)<<exponent))>>exponent)+((offsetY&(1<<k))>>k),
                                             ((currentBlock&((ChunkSize-1)<<(2*exponent)))>>(2*exponent))+((offsetZ&(1<<k))>>k)
@@ -52,7 +52,7 @@ namespace VoxelTechDemo{
                                 }
                                 else{
                                     for(int k=face*4;k<face*4+4;k++){
-                                        opaqueVertices.Add(new VertexPositionTexture(new(
+                                        solidVertices.Add(new VertexPositionTexture(new(
                                             (currentBlock&(ChunkSize-1))+((offsetX&(1<<k))>>k),
                                             CurrentChunkY+((currentBlock&((ChunkSize-1)<<exponent))>>exponent)+((offsetY&(1<<k))>>k),
                                             ((currentBlock&((ChunkSize-1)<<(2*exponent)))>>(2*exponent))+((offsetZ&(1<<k))>>k)
@@ -69,20 +69,20 @@ namespace VoxelTechDemo{
                 }
             }
             VertexBuffer[] buffers = new VertexBuffer[2];
-            if(opaqueVertices.Count != 0){
-                VertexBuffer vertexBufferOpaque = new(graphicsDevice,typeof(VertexPositionTexture),opaqueVertices.Count,BufferUsage.None);
-                vertexBufferOpaque.SetData(opaqueVertices.ToArray());
+            if(solidVertices.Count != 0){
+                VertexBuffer vertexBufferOpaque = new(graphicsDevice,typeof(VertexPositionTexture),solidVertices.Count,BufferUsage.None);
+                vertexBufferOpaque.SetData(solidVertices.ToArray());
                 buffers[0]=vertexBufferOpaque;
             }
-            if(transparentVertices.Count != 0){
-                VertexBuffer vertexBufferTransparent = new(graphicsDevice,typeof(VertexPositionTexture),transparentVertices.Count,BufferUsage.None);
-                vertexBufferTransparent.SetData(transparentVertices.ToArray());
+            if(fluidVertices.Count != 0){
+                VertexBuffer vertexBufferTransparent = new(graphicsDevice,typeof(VertexPositionTexture),fluidVertices.Count,BufferUsage.None);
+                vertexBufferTransparent.SetData(fluidVertices.ToArray());
                 buffers[1]=vertexBufferTransparent;
             }
             return buffers;
         }
         public static void GenerateIndexBuffer(){
-            byte[] indicesOffset = new byte[]{0,1,2,1,3,2};
+            byte[] indicesOffset = [0,1,2,1,3,2];
             int[] indicesArray = new int[cubed*36]; 
             for (int currentBlock = 0;currentBlock<cubed*6;currentBlock++){
                 for(int i=0;i<6;i++){
@@ -109,7 +109,7 @@ namespace VoxelTechDemo{
         static public void SetupCubeFrame(){
             cubeFrameVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionTexture), 24, BufferUsage.None);
             cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionTexture), 12, BufferUsage.None);
-            Vector2[] cubeFrameTextureCoordinates = blockIds.TextureDictionary[15];
+            Vector2[] cubeFrameTextureCoordinates = blockIds.TextureDictionary[16];
             VertexPositionTexture[] cubeVertices = new VertexPositionTexture[24];
             for(int i=0;i<24;i++){
                 cubeVertices[i] = new VertexPositionTexture(new Vector3(1.0025f*((offsetX&(1<<i))>>i)-0.00125f,1.0025f*((offsetY&(1<<i))>>i)-0.00125f,1.0025f*((offsetZ&(1<<i))>>i)-0.00125f),cubeFrameTextureCoordinates[i]);
