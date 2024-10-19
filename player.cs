@@ -95,7 +95,7 @@ namespace VoxelTechDemo{
                 camPosition -= Vector3.Up*movementSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
             }
             ResetCamera();
-            if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(camPosition.Y),(int)Math.Floor(camPosition.Z),CurrentChunk)==14){
+            if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(camPosition.Y-0.1f),(int)Math.Floor(camPosition.Z),CurrentChunk)==14){
                 IsUnderWater = true;
             }
             else{
@@ -253,7 +253,7 @@ namespace VoxelTechDemo{
             ResetCamera();
             playerHitBox.Min.Y = camPosition.Y-1.6999f;
             playerHitBox.Max.Y = camPosition.Y+0.0999f;
-            if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(camPosition.Y),(int)Math.Floor(camPosition.Z),CurrentChunk)==14){
+            if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(camPosition.Y-0.1f),(int)Math.Floor(camPosition.Z),CurrentChunk)==14){
                 IsUnderWater = true;
             }
             else{

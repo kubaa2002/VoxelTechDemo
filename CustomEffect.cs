@@ -7,7 +7,7 @@ namespace VoxelTechDemo{
     public class CustomEffect : Effect{
         public readonly EffectParameter Texture;
         readonly EffectParameter DiffuseColor;
-        readonly EffectParameter FogColor;
+        public readonly EffectParameter FogColor;
         readonly EffectParameter FogVector;
         public readonly EffectParameter WorldViewProj;
 

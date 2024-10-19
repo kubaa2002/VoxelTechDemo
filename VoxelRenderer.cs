@@ -13,8 +13,8 @@ namespace VoxelTechDemo{
         const int exponent = 6;
         //ChunkSize needs to be an power of 2. Works up to 64 (exponent = 6)
         public const int ChunkSize = 1<<exponent;
-        public const int square = ChunkSize*ChunkSize;
-        public const int cubed = ChunkSize*ChunkSize*ChunkSize;
+        public const int ChunkSizeSquared = ChunkSize*ChunkSize;
+        public const int ChunkSizeCubed = ChunkSize*ChunkSize*ChunkSize;
         public static IndexBuffer indexBuffer;
         public static void InitializeVoxelRenderer(GraphicsDevice _graphicsDevice){
             graphicsDevice=_graphicsDevice;
@@ -36,7 +36,7 @@ namespace VoxelTechDemo{
             ulong[] result = chunk.CheckAllChunkFacesIfNeeded();
             for(int face=0;face<6;face++){
                 int currentBlock = 0;
-                for(int i=face*square;i<(face+1)*square;i++){
+                for(int i=face*ChunkSizeSquared;i<(face+1)*ChunkSizeSquared;i++){
                     if(result[i] != 0){
                         for(ulong j=1;j!=(ChunkSize == 64 ? 0 : 1uL << ChunkSize);j<<=1){
                             if((result[i]&j)!=0){
@@ -83,8 +83,8 @@ namespace VoxelTechDemo{
         }
         public static void GenerateIndexBuffer(){
             byte[] indicesOffset = [0,1,2,1,3,2];
-            int[] indicesArray = new int[cubed*36]; 
-            for (int currentBlock = 0;currentBlock<cubed*6;currentBlock++){
+            int[] indicesArray = new int[ChunkSizeCubed*36]; 
+            for (int currentBlock = 0;currentBlock<ChunkSizeCubed*6;currentBlock++){
                 for(int i=0;i<6;i++){
                     indicesArray[currentBlock*6+i]=currentBlock*4+indicesOffset[i%6];
                 }       

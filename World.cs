@@ -51,7 +51,7 @@ namespace VoxelTechDemo{
             if(!WorldMap.TryGetValue(chunkCoordinate, out Chunk chunk)){
                 return;
             }
-            chunk.blocks[x+(y*ChunkSize)+(z*square)]=Id;
+            chunk.blocks[x+(y*ChunkSize)+(z*ChunkSizeSquared)]=Id;
             chunk.CheckMaxY(y);
             GenerateVertexVertices(chunk);
             if(x==0){
@@ -88,19 +88,19 @@ namespace VoxelTechDemo{
         public void SetBlockWithoutUpdating(int x,int y,int z,(int x,int y,int z) chunkCoordinate,byte Id){
             NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
             if(WorldMap.TryGetValue(chunkCoordinate,out Chunk chunk)){
-                chunk.blocks[x+y*ChunkSize+z*square]=Id;
+                chunk.blocks[x+y*ChunkSize+z*ChunkSizeSquared]=Id;
             }
             else{
                 WorldMap.TryAdd(chunkCoordinate,new(chunkCoordinate,this));
                 chunk = WorldMap[chunkCoordinate];
-                chunk.blocks[x+y*ChunkSize+z*square]=Id;
+                chunk.blocks[x+y*ChunkSize+z*ChunkSizeSquared]=Id;
             }
             chunk.CheckMaxY(y);
         }
         public byte GetBlock(int x,int y,int z, (int x,int y,int z) chunkCoordinate){
             NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
             if(WorldMap.TryGetValue(chunkCoordinate, out Chunk chunk)){
-                return chunk.blocks[x+(y*ChunkSize)+(z*square)];
+                return chunk.blocks[x+(y*ChunkSize)+(z*ChunkSizeSquared)];
             }
             else{
                 return 0;
@@ -121,7 +121,7 @@ namespace VoxelTechDemo{
                 for(int z=0;z<ChunkSize;z++){
                     // If yLevel below 0 needs to be generated, MountainNoise needs to floored before casting to int
                     int yLevel = 50+(int)MountainNoise((double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z);
-                    int blockPossition = x+yLevel%ChunkSize*ChunkSize+z*square;
+                    int blockPossition = x+yLevel%ChunkSize*ChunkSize+z*ChunkSizeSquared;
                     byte[] chunkBlocks = chunks[yLevel/ChunkSize].blocks;
                     chunks[yLevel/ChunkSize].CheckMaxY(yLevel%ChunkSize);
                     // Water level
@@ -130,7 +130,7 @@ namespace VoxelTechDemo{
                             if(y%ChunkSize==ChunkSize-1){
                                 chunkBlocks = chunks[y/ChunkSize].blocks;
                                 chunks[y/ChunkSize].maxY=ChunkSize;
-                                blockPossition = x+square-ChunkSize+z*square;
+                                blockPossition = x+ChunkSizeSquared-ChunkSize+z*ChunkSizeSquared;
                             }
                             chunkBlocks[blockPossition]=14;
                             blockPossition-=ChunkSize;
@@ -143,7 +143,7 @@ namespace VoxelTechDemo{
                         if(y%ChunkSize==ChunkSize-1){
                             chunkBlocks = chunks[y/ChunkSize].blocks;
                             chunks[y/ChunkSize].maxY=ChunkSize;
-                            blockPossition = x+square-ChunkSize+z*square;
+                            blockPossition = x+ChunkSizeSquared-ChunkSize+z*ChunkSizeSquared;
                         }
                         if(y == yLevel){
                             if(y>=65){
@@ -190,7 +190,7 @@ namespace VoxelTechDemo{
                         if(y%ChunkSize==ChunkSize-1){
                             chunkBlocks = chunks[y/ChunkSize].blocks;
                             chunks[y/ChunkSize].maxY=ChunkSize;
-                            blockPossition += square;
+                            blockPossition += ChunkSizeSquared;
                         }
                         chunkBlocks[blockPossition]=3;
                         blockPossition-=ChunkSize;

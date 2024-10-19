@@ -207,7 +207,18 @@ namespace VoxelTechDemo{
             }
         }
         protected override void Draw(GameTime gameTime){
-            GraphicsDevice.Clear(Color.CornflowerBlue);
+            if(player.IsUnderWater){
+                GraphicsDevice.Clear(new Color(new Vector3(0.3f,0.3f,0.7f)));
+                effect.FogColor.SetValue(new Vector3(0.3f,0.3f,0.7f));
+                effect.FogStart = -RenderDistance*0.2f*ChunkSize;
+                effect.FogEnd = RenderDistance*0.2f*ChunkSize;
+            }
+            else{
+                GraphicsDevice.Clear(Color.CornflowerBlue);
+                effect.FogColor.SetValue(new Vector3(100f/255f,149f/255f,237f/255f));
+                effect.FogStart = RenderDistance*0.6f*ChunkSize;
+                effect.FogEnd = RenderDistance*0.8f*ChunkSize;
+            }
             GraphicsDevice.DepthStencilState = DepthStencilState.Default;
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
             GraphicsDevice.Indices = indexBuffer;
@@ -215,7 +226,7 @@ namespace VoxelTechDemo{
             Matrix viewProj = viewMatrix*projectionMatrix;
             BoundingFrustum frustum = new(viewProj);
 
-            //TODO: Make it so it doesn't recalculate world matrixes every frame
+            //TODO: Make it so it doesn't recalculate world matrices every frame
             // Render solid blocks
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
@@ -258,9 +269,6 @@ namespace VoxelTechDemo{
             //FPS counter and other UI
             _frameCounter.Update(gameTime.ElapsedGameTime.TotalSeconds);
             _spriteBatch.Begin();
-            if(player.IsUnderWater){
-                _spriteBatch.Draw(effect.Texture.GetValueTexture2D(),new Rectangle(0,0,GraphicsDevice.Viewport.Width,GraphicsDevice.Viewport.Height),new Rectangle(33,49,14,14),Color.White);
-            }
             if(!IsPaused){
                 _spriteBatch.DrawString(_spriteFont,$"FPS:{_frameCounter.AverageFramesPerSecond}", new(1,3), Color.Black);
                 _spriteBatch.DrawString(_spriteFont,$"X:{Math.Round((double)player.camPosition.X+(long)player.CurrentChunk.x*ChunkSize,2)}",new(1,23),Color.Black);
