@@ -132,7 +132,7 @@ namespace VoxelTechDemo{
                                 chunks[y/ChunkSize].maxY=ChunkSize;
                                 blockPossition = x+ChunkSizeSquared-ChunkSize+z*ChunkSizeSquared;
                             }
-                            chunkBlocks[blockPossition]=14;
+                            chunkBlocks[blockPossition]=255;
                             blockPossition-=ChunkSize;
                         }
                     }

@@ -15,18 +15,20 @@ namespace VoxelTechDemo{
 
         public Matrix projectionMatrix, viewMatrix, worldMatrix;
         
-        public CustomEffect effect;
+        CustomEffect solidEffect;
+        FluidEffect fluidEffect;
+
         readonly FrameCounter _frameCounter = new();
         readonly World world = new(12345);//DateTime.UtcNow.ToBinary());
         Point WindowCenter;
-        public float yaw=MathHelper.PiOver2, pitch;
+        float yaw=MathHelper.PiOver2, pitch;
         MouseState currentMouseState;
         bool LeftButtonPressed = false, RightButtonPressed = false, IsPaused = false, IsEscPressed = false, IsNoClipOn = false, IsNPressed = false;
         byte chosenBlock = 1;
         int ScrollWheelValue;
         Player player;
         BasicEffect blockPreviewEffect;
-        readonly HashSet<(int x,int z)> CurrentlyLoadedChunkLines = []; 
+        readonly HashSet<(int x,int z)> CurrentlyLoadedChunkLines = [];
         public Game1(){
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
@@ -48,7 +50,8 @@ namespace VoxelTechDemo{
             }
 
             // Custom shader setup
-            effect = new(Content.Load<Effect>("CustomEffect"), this);
+            solidEffect = new(Content.Load<Effect>("CustomEffect"), this);
+            fluidEffect = new(Content.Load<Effect>("FluidEffect"), this);
 
             // Setting up block preview effect
             blockPreviewEffect = new BasicEffect(GraphicsDevice){
@@ -59,11 +62,11 @@ namespace VoxelTechDemo{
                 TextureEnabled = true
             };
             
-            UserInterface.Initialize(this, _graphics, effect);
+            UserInterface.Initialize(this, _graphics);
 
             player = new Player(world);
             world.GenerateChunkLine(0,0);
-            CheckChunks();
+            UpdateLoadedChunks();
             ChangeCubePreview(chosenBlock);
 
             //Camera setup
@@ -98,7 +101,7 @@ namespace VoxelTechDemo{
                 player.right = Vector3.Transform(Vector3.Right, Matrix.CreateFromYawPitchRoll(yaw, pitch, 0f));
 
                 if(player.ChunkChanged){
-                    CheckChunks();
+                    UpdateLoadedChunks();
                 }
 
                 //Check pressed keys
@@ -137,15 +140,29 @@ namespace VoxelTechDemo{
                 }
                 if(currentMouseState.ScrollWheelValue>ScrollWheelValue){
                     chosenBlock++;
-                    if(chosenBlock==16){
-                        chosenBlock = 1;
+                    if(chosenBlock==15){
+                        chosenBlock = 255;
+                        blockPreviewEffect.Texture=Content.Load<Texture2D>("Water_Texture");
+                        blockPreviewEffect.DiffuseColor = new Vector3(0.7f,0.7f,1.4f);
+                    }
+                    if(chosenBlock==0){
+                        chosenBlock=1;
+                        blockPreviewEffect.Texture=Content.Load<Texture2D>("Textures");
+                        blockPreviewEffect.DiffuseColor = Vector3.One;
                     }
                     ChangeCubePreview(chosenBlock);
                 }
                 if(currentMouseState.ScrollWheelValue<ScrollWheelValue){
                     chosenBlock--;
                     if(chosenBlock==0){
-                        chosenBlock=15;
+                        chosenBlock=255;
+                        blockPreviewEffect.Texture=Content.Load<Texture2D>("Water_Texture");
+                        blockPreviewEffect.DiffuseColor = new Vector3(0.7f,0.7f,1.4f);
+                    }
+                    if(chosenBlock==254){
+                        chosenBlock=14;
+                        blockPreviewEffect.Texture=Content.Load<Texture2D>("Textures");
+                        blockPreviewEffect.DiffuseColor = Vector3.One;
                     }
                     ChangeCubePreview(chosenBlock);
                 }
@@ -155,7 +172,7 @@ namespace VoxelTechDemo{
             viewMatrix = Matrix.CreateLookAt(player.camPosition, player.camPosition+player.forward, Vector3.Up);
             base.Update(gameTime);
         }
-        public void CheckChunks(){
+        public void UpdateLoadedChunks(){
             player.ChunkChanged = false;
             for(int x=-RenderDistance;x<=RenderDistance;x++){
                 for(int z=-RenderDistance;z<=RenderDistance;z++){
@@ -205,19 +222,17 @@ namespace VoxelTechDemo{
                 world.WorldMap[(x,y,z)].vertexBufferOpaque?.Dispose();
                 world.WorldMap[(x,y,z)].vertexBufferTransparent?.Dispose();
             }
-        }
+        }   
         protected override void Draw(GameTime gameTime){
             if(player.IsUnderWater){
                 GraphicsDevice.Clear(new Color(new Vector3(0.3f,0.3f,0.7f)));
-                effect.FogColor.SetValue(new Vector3(0.3f,0.3f,0.7f));
-                effect.FogStart = -RenderDistance*0.2f*ChunkSize;
-                effect.FogEnd = RenderDistance*0.2f*ChunkSize;
+                solidEffect.ApplyUnderWaterSettings();
+                fluidEffect.ApplyUnderWaterSettings();
             }
             else{
                 GraphicsDevice.Clear(Color.CornflowerBlue);
-                effect.FogColor.SetValue(new Vector3(100f/255f,149f/255f,237f/255f));
-                effect.FogStart = RenderDistance*0.6f*ChunkSize;
-                effect.FogEnd = RenderDistance*0.8f*ChunkSize;
+                solidEffect.ApplyNormalSettings();
+                fluidEffect.ApplyNormalSettings();
             }
             GraphicsDevice.DepthStencilState = DepthStencilState.Default;
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
@@ -226,6 +241,8 @@ namespace VoxelTechDemo{
             Matrix viewProj = viewMatrix*projectionMatrix;
             BoundingFrustum frustum = new(viewProj);
 
+            fluidEffect.UpdateAnimationFrame(gameTime.ElapsedGameTime);
+
             //TODO: Make it so it doesn't recalculate world matrices every frame
             // Render solid blocks
             for(int x=-RenderDistance;x<=RenderDistance;x++){
@@ -233,10 +250,10 @@ namespace VoxelTechDemo{
                     if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z)) && frustum.Intersects(new BoundingBox(
                     new Vector3(x,-player.CurrentChunk.y,z)*ChunkSize, new Vector3(x+1,-player.CurrentChunk.y+World.MaxHeight/ChunkSize,z+1)*ChunkSize))){
                         worldMatrix = Matrix.CreateWorld(new Vector3(x,-player.CurrentChunk.y,z)*ChunkSize,Vector3.Forward,Vector3.Up);
-                        effect.WorldViewProj.SetValue(worldMatrix*viewProj);
-                        effect.Apply(worldMatrix*viewMatrix);
+                        solidEffect.WorldViewProj.SetValue(worldMatrix*viewProj);
+                        solidEffect.Apply(worldMatrix*viewMatrix);
                         for(int y=0;y<World.MaxHeight/ChunkSize;y++){
-                            DrawChunkOpaque(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
+                            DrawChunkSolid(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
                         }
                     }
                 }
@@ -249,10 +266,10 @@ namespace VoxelTechDemo{
                     if(CurrentlyLoadedChunkLines.Contains((x+player.CurrentChunk.x,z+player.CurrentChunk.z)) && frustum.Intersects(new BoundingBox(
                     new Vector3(x,-player.CurrentChunk.y,z)*ChunkSize, new Vector3(x+1,-player.CurrentChunk.y+World.MaxHeight/ChunkSize,z+1)*ChunkSize))){
                         worldMatrix = Matrix.CreateWorld(new Vector3(x,-player.CurrentChunk.y,z)*ChunkSize,Vector3.Forward,Vector3.Up);
-                        effect.WorldViewProj.SetValue(worldMatrix*viewProj);
-                        effect.Apply(worldMatrix*viewMatrix);
+                        fluidEffect.WorldViewProj.SetValue(worldMatrix*viewProj);
+                        fluidEffect.Apply(worldMatrix*viewMatrix);
                         for(int y=0;y<World.MaxHeight/ChunkSize;y++){
-                            DrawChunkTransparent(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
+                            DrawChunkFluid(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
                         }
                     }
                 }
@@ -260,8 +277,8 @@ namespace VoxelTechDemo{
             GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
 
             worldMatrix = Matrix.CreateWorld(new Vector3(player.LookedAtBlock.x,player.LookedAtBlock.y,player.LookedAtBlock.z),Vector3.Forward,Vector3.Up);
-            effect.WorldViewProj.SetValue(worldMatrix*viewProj);
-            effect.Apply(worldMatrix*viewMatrix);
+            solidEffect.WorldViewProj.SetValue(worldMatrix*viewProj);
+            solidEffect.Apply(worldMatrix*viewMatrix);
             if(player.blockFound){
                 DrawCubeFrame();
             }
@@ -275,7 +292,7 @@ namespace VoxelTechDemo{
                 _spriteBatch.DrawString(_spriteFont,$"Y:{Math.Round(player.camPosition.Y+player.CurrentChunk.y*ChunkSize-1.7f,2)}",new(1,43),Color.Black);
                 _spriteBatch.DrawString(_spriteFont,$"Z:{Math.Round((double)player.camPosition.Z+(long)player.CurrentChunk.z*ChunkSize,2)}",new(1,63),Color.Black);
                 _spriteBatch.DrawString(_spriteFont,"+",new Vector2(WindowCenter.X,WindowCenter.Y) - (_spriteFont.MeasureString("+")/2),Color.Black);
-                _spriteBatch.Draw(effect.Texture.GetValueTexture2D(),new Rectangle((int)(GraphicsDevice.Viewport.Width*0.885f),(int)(GraphicsDevice.Viewport.Height*0.82f),(int)(GraphicsDevice.Viewport.Width*0.09f),(int)(GraphicsDevice.Viewport.Height*0.16f)),new Rectangle(225,241,15,15),Color.White);
+                _spriteBatch.Draw(solidEffect.Texture.GetValueTexture2D(),new Rectangle((int)(GraphicsDevice.Viewport.Width*0.885f),(int)(GraphicsDevice.Viewport.Height*0.82f),(int)(GraphicsDevice.Viewport.Width*0.09f),(int)(GraphicsDevice.Viewport.Height*0.16f)),new Rectangle(225,241,15,15),Color.White);
             }
             _spriteBatch.End();
 

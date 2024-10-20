@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using static VoxelTechDemo.UserSettings;
@@ -6,8 +7,8 @@ using static VoxelTechDemo.VoxelRenderer;
 namespace VoxelTechDemo{
     public class CustomEffect : Effect{
         public readonly EffectParameter Texture;
-        readonly EffectParameter DiffuseColor;
-        public readonly EffectParameter FogColor;
+        protected readonly EffectParameter DiffuseColor;
+        readonly EffectParameter FogColor;
         readonly EffectParameter FogVector;
         public readonly EffectParameter WorldViewProj;
 
@@ -48,6 +49,41 @@ namespace VoxelTechDemo{
                 FogVector.SetValue(Vector4.Zero);
             }
             CurrentTechnique.Passes[0].Apply();
+        }
+        public void ApplyUnderWaterSettings(){
+            FogColor.SetValue(new Vector3(0.3f,0.3f,0.7f));
+            FogStart = -RenderDistance*0.2f*ChunkSize;
+            FogEnd = RenderDistance*0.2f*ChunkSize;
+        }
+        public void ApplyNormalSettings(){
+            FogColor.SetValue(new Vector3(100f/255f,149f/255f,237f/255f));
+            FogStart = RenderDistance*0.6f*ChunkSize;
+            FogEnd = RenderDistance*0.8f*ChunkSize;
+        }
+    }
+    public class FluidEffect : CustomEffect{
+        readonly EffectParameter AnimationFrame;
+
+        int counter = 0;
+        TimeSpan timer = new();
+
+        public FluidEffect(Effect clone, Game game):base(clone, game){
+            // Animation Frame can be from 0 to 15
+            AnimationFrame = Parameters["AnimationFrame"];
+
+            Texture.SetValue(game.Content.Load<Texture2D>("Water_Texture"));
+            DiffuseColor.SetValue(new Vector3(0.7f,0.7f,1.4f));
+        }
+        public void UpdateAnimationFrame(TimeSpan elapsedTime){
+            timer += elapsedTime;
+            if(timer.Ticks>TimeSpan.TicksPerSecond/10){
+                counter++;
+                timer = new TimeSpan(timer.Ticks-TimeSpan.TicksPerSecond/10);
+                if(counter>15){
+                    counter = 0;
+                }
+                AnimationFrame.SetValue(counter);
+            }
         }
     }
 }

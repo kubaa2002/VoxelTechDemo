@@ -6,6 +6,8 @@ namespace VoxelTechDemo{
         public Dictionary<int, Vector2[]> TextureDictionary = [];
         public Blocks(){
             byte[] TextureCoordinates = [
+                255,255,255,255,255,255,//CubeFrame
+
                 1,1,0,2,1,1,//Grass
                 2,2,2,2,2,2, //Dirt
                 3,3,3,3,3,3, //Stone
@@ -19,10 +21,7 @@ namespace VoxelTechDemo{
                 5,5,5,5,5,5, //gravel
                 6,6,6,6,6,6, //sand
                 7,7,7,7,7,7, //snow
-                50,50,50,50,50,50, //water
                 80,80,80,80,80,80, // Glowstone
-
-                255,255,255,255,255,255,//CubeFrame
             ];
             for(int i=0;i<(TextureCoordinates.Length/6);i++){
                 Vector2[] result= new Vector2[24];
@@ -34,14 +33,22 @@ namespace VoxelTechDemo{
                     result[j*4+2]=new Vector2(0.0625f*(x+1),0.0625f*y);
                     result[j*4+3]=new Vector2(0.0625f*x,0.0625f*y);
                 }
-                TextureDictionary[i+1]=result;
+                TextureDictionary[i]=result;
             }
+            Vector2[] result2 = new Vector2[24];
+            for(int i=0;i<6;i++){
+                result2[i*4]=new Vector2(0,0);
+                result2[i*4+1]=new Vector2(1,0);
+                result2[i*4+2]=new Vector2(0,1.0f/16f);
+                result2[i*4+3]=new Vector2(1,1.0f/16.0f);
+            }
+            TextureDictionary[255] = result2;
         }
         public static bool IsNotSolid(byte Id){
             switch(Id){
                 case 0:
                     return true;
-                case 14:
+                case 255:
                     return true;
                 default:
                     return false;
@@ -55,7 +62,15 @@ namespace VoxelTechDemo{
                     return true;
                 case 8:
                     return true;
-                case 14:
+                case 255:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        public static bool IsFluid(byte Id){
+            switch(Id){
+                case 255:
                     return true;
                 default:
                     return false;

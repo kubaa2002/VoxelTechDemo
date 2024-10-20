@@ -4,6 +4,7 @@ float4 DiffuseColor;
 float4 FogVector;
 float3 FogColor;
 float4x4 WorldViewProj;
+float AnimationFrame;
 
 // Vertex shader input
 struct VSInput
@@ -29,7 +30,8 @@ VSOutput VSCustomEffect(VSInput vin)
     vout.PositionPS = mul(vin.Position, WorldViewProj);
     vout.Diffuse = DiffuseColor;
     vout.FogFactor = saturate(dot(vin.Position, FogVector));
-    vout.TexCoord = vin.TexCoord;
+    vout.TexCoord.x = vin.TexCoord.x;
+    vout.TexCoord.y = vin.TexCoord.y+AnimationFrame*(1.0/16.0);
 
     return vout;
 }

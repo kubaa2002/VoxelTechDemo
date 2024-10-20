@@ -8,7 +8,7 @@ using static VoxelTechDemo.UserSettings;
 namespace VoxelTechDemo{
     static class UserInterface{
         static public Desktop _desktop;
-        static public void Initialize(Game1 game, GraphicsDeviceManager _graphics,CustomEffect effect){
+        static public void Initialize(Game1 game, GraphicsDeviceManager _graphics){
             FontSystem ordinaryFontSystem = new();
             ordinaryFontSystem.AddFont(File.ReadAllBytes("Content/PublicPixel.ttf"));
             MyraEnvironment.Game = game;
@@ -48,7 +48,7 @@ namespace VoxelTechDemo{
             };
             spinButton.ValueChanged += (s, a) =>{
                 RenderDistance = (byte)spinButton.Value;
-                game.CheckChunks();
+                game.UpdateLoadedChunks();
             };
             Grid.SetColumn(spinButton, 1);
             Grid.SetRow(spinButton, 1);

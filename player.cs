@@ -18,7 +18,8 @@ namespace VoxelTechDemo{
         public Player(World world){
             currentWorld = world;
             camPosition = new Vector3(35.5f, 53+(int)Math.Floor(currentWorld.MountainNoise(35,35)), 35.5f);
-            playerHitBox = new(new Vector3(camPosition.X-0.2499f,camPosition.Y-1.6999f,camPosition.Z-0.2499f),new Vector3(camPosition.X+0.2499f,camPosition.Y+0.0999f,camPosition.Z+0.2499f));
+            playerHitBox = new(Vector3.Zero,Vector3.Zero);
+            ResetHitBox();
         }
         public void GetLookedAtBlock(){
             blockFound = false;
@@ -95,7 +96,7 @@ namespace VoxelTechDemo{
                 camPosition -= Vector3.Up*movementSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
             }
             ResetCamera();
-            if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(camPosition.Y-0.1f),(int)Math.Floor(camPosition.Z),CurrentChunk)==14){
+            if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(camPosition.Y-0.1f),(int)Math.Floor(camPosition.Z),CurrentChunk))){
                 IsUnderWater = true;
             }
             else{
@@ -104,7 +105,7 @@ namespace VoxelTechDemo{
         }
         public void NormalMovement(KeyboardState keyboardState, GameTime gameTime, float yaw){
             forward = Vector3.Zero;
-            if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z),CurrentChunk)==14){
+            if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z),CurrentChunk))){
                 if(keyboardState.IsKeyDown(Keys.LeftShift)){
                     movementSpeed = 0.005f;
                 }
@@ -192,8 +193,8 @@ namespace VoxelTechDemo{
                 playerHitBox.Min.Z = camPosition.Z-0.2499f;
                 playerHitBox.Max.Z = camPosition.Z+0.2499f;
             }
-            if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z),CurrentChunk)==14){
-                if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y+0.8f),(int)Math.Floor(camPosition.Z),CurrentChunk)==14){
+            if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z),CurrentChunk))){
+                if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y+0.8f),(int)Math.Floor(camPosition.Z),CurrentChunk))){
                     if(keyboardState.IsKeyDown(Keys.Space)){
                         verticalSpeed = 0.003f;
                     }
@@ -219,7 +220,7 @@ namespace VoxelTechDemo{
                 && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Min.Y+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))){
                     camPosition.Y += verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
                     CanJump = false;
-                    if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z),CurrentChunk)==14){
+                    if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z),CurrentChunk))){
                         verticalSpeed -= 0.0000015f*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
                     }
                     else{
@@ -239,7 +240,7 @@ namespace VoxelTechDemo{
                 && Blocks.IsNotSolid(currentWorld.GetBlock((int)Math.Floor(playerHitBox.Max.X),(int)(Math.Floor(playerHitBox.Max.Y+0.13f)+verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds),(int)Math.Floor(playerHitBox.Max.Z),CurrentChunk))){
                     camPosition.Y += verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
                     CanJump = false;
-                    if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z),CurrentChunk)==14){
+                    if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z),CurrentChunk))){
                         verticalSpeed -= 0.0000015f*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
                     }
                     else{
@@ -253,7 +254,7 @@ namespace VoxelTechDemo{
             ResetCamera();
             playerHitBox.Min.Y = camPosition.Y-1.6999f;
             playerHitBox.Max.Y = camPosition.Y+0.0999f;
-            if(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(camPosition.Y-0.1f),(int)Math.Floor(camPosition.Z),CurrentChunk)==14){
+            if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(camPosition.Y-0.1f),(int)Math.Floor(camPosition.Z),CurrentChunk))){
                 IsUnderWater = true;
             }
             else{
