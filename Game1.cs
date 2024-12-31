@@ -71,7 +71,6 @@ namespace VoxelTechDemo{
 
             //Camera setup
             projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView),GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f);
-            viewMatrix = Matrix.CreateLookAt(player.camPosition, Vector3.Zero, Vector3.Up);
             WindowCenter = new Point(GraphicsDevice.Viewport.Width/2,GraphicsDevice.Viewport.Height/2);
 
             base.Initialize();
@@ -212,7 +211,7 @@ namespace VoxelTechDemo{
                     world.GenerateChunkLine(x,z-1);
                 }
                 for(int y=0;y<World.MaxHeight/ChunkSize;y++){
-                    GenerateVertexVertices(world.WorldMap[(x,y,z)]);
+                    GenerateChunkMesh(world.WorldMap[(x,y,z)]);
                 }
             });
         }
@@ -253,7 +252,7 @@ namespace VoxelTechDemo{
                         solidEffect.WorldViewProj.SetValue(worldMatrix*viewProj);
                         solidEffect.Apply(worldMatrix*viewMatrix);
                         for(int y=0;y<World.MaxHeight/ChunkSize;y++){
-                            DrawChunkSolid(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
+                            DrawChunk(world.WorldMap[(x+player.CurrentChunk.x, y, z+player.CurrentChunk.z)].vertexBufferOpaque);
                         }
                     }
                 }
@@ -269,7 +268,7 @@ namespace VoxelTechDemo{
                         fluidEffect.WorldViewProj.SetValue(worldMatrix*viewProj);
                         fluidEffect.Apply(worldMatrix*viewMatrix);
                         for(int y=0;y<World.MaxHeight/ChunkSize;y++){
-                            DrawChunkFluid(world.WorldMap[(x+player.CurrentChunk.x,y,z+player.CurrentChunk.z)]);
+                            DrawChunk(world.WorldMap[(x+player.CurrentChunk.x, y, z+player.CurrentChunk.z)].vertexBufferTransparent);
                         }
                     }
                 }

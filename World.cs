@@ -53,35 +53,35 @@ namespace VoxelTechDemo{
             }
             chunk.blocks[x+(y*ChunkSize)+(z*ChunkSizeSquared)]=Id;
             chunk.CheckMaxY(y);
-            GenerateVertexVertices(chunk);
+            GenerateChunkMesh(chunk);
             if(x==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x-1,chunkCoordinate.y,chunkCoordinate.z),out chunk)){
-                    GenerateVertexVertices(chunk);
+                    GenerateChunkMesh(chunk);
                 }
             }
             if(x==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x+1,chunkCoordinate.y,chunkCoordinate.z),out chunk)){
-                    GenerateVertexVertices(chunk);
+                    GenerateChunkMesh(chunk);
                 }
             }
             if(y==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y-1,chunkCoordinate.z),out chunk)){
-                    GenerateVertexVertices(chunk);
+                    GenerateChunkMesh(chunk);
                 }
             }
             if(y==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y+1,chunkCoordinate.z),out chunk)){
-                    GenerateVertexVertices(chunk);
+                    GenerateChunkMesh(chunk);
                 }
             }
             if(z==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z-1),out chunk)){
-                    GenerateVertexVertices(chunk);
+                    GenerateChunkMesh(chunk);
                 }
             }
             if(z==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z+1),out chunk)){
-                    GenerateVertexVertices(chunk);
+                    GenerateChunkMesh(chunk);
                 }
             }
         }

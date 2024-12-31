@@ -5,7 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 namespace VoxelTechDemo{
     public static class VoxelRenderer{
         static private GraphicsDevice graphicsDevice;
-        static private readonly Blocks blockIds = new();
+        static private readonly Dictionary<int,Vector2[]> TextureDictionary = new Blocks().TextureDictionary;
         //z- z+ y- y+ x- x+
         const int offsetX = 0b1010_0101_1010_1010_0000_1111;
         const int offsetY = 0b1100_1100_0000_1111_1100_1100;
@@ -21,87 +21,124 @@ namespace VoxelTechDemo{
             SetupCubeFrame();
             GenerateIndexBuffer();
         }
-        static public void GenerateVertexVertices(Chunk chunk){
-            VertexBuffer[] vertexBuffers = GenerateVertices(chunk);
-            chunk.vertexBufferOpaque?.Dispose();
-            chunk.vertexBufferOpaque = vertexBuffers[0];
-            chunk.vertexBufferTransparent?.Dispose();
-            chunk.vertexBufferTransparent = vertexBuffers[1];
-        }
-        public static VertexBuffer[] GenerateVertices(Chunk chunk){
+        public static void GenerateChunkMesh(Chunk chunk){
             //TODO: Try to combine multiple chunks into single region to reduce number of world matrixes needed
             int CurrentChunkY = chunk.coordinates.y*ChunkSize;
             List<VertexPositionTexture> solidVertices = [];
             List<VertexPositionTexture> fluidVertices = [];
-            ulong[] result = chunk.CheckAllChunkFacesIfNeeded();
-            for(int face=0;face<6;face++){
-                int currentBlock = 0;
-                for(int i=face*ChunkSizeSquared;i<(face+1)*ChunkSizeSquared;i++){
-                    if(result[i] != 0){
-                        for(ulong j=1;j!=(ChunkSize == 64 ? 0 : 1uL << ChunkSize);j<<=1){
-                            if((result[i]&j)!=0){
-                                Vector2[] textureCoordinates = blockIds.TextureDictionary[chunk.blocks[currentBlock]];
-                                if(Blocks.IsNotSolid(chunk.blocks[currentBlock])){
-                                    for(int k=face*4;k<face*4+4;k++){
-                                        fluidVertices.Add(new VertexPositionTexture(new(
-                                            (currentBlock&(ChunkSize-1))+((offsetX&(1<<k))>>k),
-                                            CurrentChunkY+((currentBlock&((ChunkSize-1)<<exponent))>>exponent)+((offsetY&(1<<k))>>k),
-                                            ((currentBlock&((ChunkSize-1)<<(2*exponent)))>>(2*exponent))+((offsetZ&(1<<k))>>k)
-                                            ), textureCoordinates[k]));
+            
+            byte[] blocks = chunk.blocks;
+
+            // Check and assign adjacent chunks blocks
+            byte[] blocksNorth = chunk.world.WorldMap[(chunk.coordinates.x+1,chunk.coordinates.y,chunk.coordinates.z)].blocks;
+            byte[] blocksSouth = chunk.world.WorldMap[(chunk.coordinates.x-1,chunk.coordinates.y,chunk.coordinates.z)].blocks;
+            byte[] blocksWest = chunk.world.WorldMap[(chunk.coordinates.x,chunk.coordinates.y,chunk.coordinates.z+1)].blocks;
+            byte[] blocksEast = chunk.world.WorldMap[(chunk.coordinates.x,chunk.coordinates.y,chunk.coordinates.z-1)].blocks;
+            byte[] blocksUp;
+            if(chunk.world.WorldMap.TryGetValue((chunk.coordinates.x,chunk.coordinates.y+1,chunk.coordinates.z), out Chunk chunkUp)){
+                blocksUp = chunkUp.blocks;
+            }
+            else{
+                blocksUp = null;
+            }
+            byte[] blocksDown;
+            if(chunk.world.WorldMap.TryGetValue((chunk.coordinates.x,chunk.coordinates.y-1,chunk.coordinates.z), out Chunk chunkDown)){
+                blocksDown = chunkDown.blocks;
+            }
+            else{
+                blocksDown = null;
+            }
+
+            // Check every block within a chunk if it needs to be meshed
+            for(int z=0;z<ChunkSize;z++){
+                int currentBlock = z*ChunkSizeSquared;
+                for(int y=0;y<chunk.maxY;y++){
+                    for(int x=0;x<ChunkSize;x++){
+                        if(blocks[currentBlock]!=0){
+                            uint faces = 0;
+                            byte blockId = blocks[currentBlock];
+
+                            //face x+
+                            if(x != (ChunkSize-1) ? (blockId != blocks[currentBlock+1] && Blocks.IsTransparent(blocks[currentBlock+1])) 
+                            : (blockId != blocksNorth[currentBlock-(ChunkSize-1)] && Blocks.IsTransparent(blocksNorth[currentBlock-(ChunkSize-1)]))){
+                                faces |= 1;
+                            }
+                            // Face x-
+                            if(x != 0 ? (blockId != blocks[currentBlock-1] && Blocks.IsTransparent(blocks[currentBlock-1])) 
+                            : (blockId != blocksSouth[currentBlock+(ChunkSize-1)] && Blocks.IsTransparent(blocksSouth[currentBlock+(ChunkSize-1)]))){
+                                faces |= 2;
+                            }
+                            // Face y+
+                            if (y != ChunkSize-1 ? (blockId!=blocks[currentBlock+ChunkSize] && Blocks.IsTransparent(blocks[currentBlock+ChunkSize]))
+                            : (blocksUp != null && blockId!=blocksUp[currentBlock+(ChunkSize-ChunkSizeSquared)] && Blocks.IsTransparent(blocksUp[currentBlock+(ChunkSize-ChunkSizeSquared)]))){
+                                faces |= 4;
+                            }
+                            // Face y-
+                            if (y != 0 ? (blockId!=blocks[currentBlock-ChunkSize] && Blocks.IsTransparent(blocks[currentBlock-ChunkSize]))
+                            : (blocksDown != null && blockId!=blocksDown[currentBlock-(ChunkSize-ChunkSizeSquared)] && Blocks.IsTransparent(blocksUp[currentBlock-(ChunkSize-ChunkSizeSquared)]))){
+                                faces |= 8;
+                            }
+                            // Face z+
+                            if(z != (ChunkSize-1) ? (blockId != blocks[currentBlock+ChunkSizeSquared] && Blocks.IsTransparent(blocks[currentBlock+ChunkSizeSquared])) 
+                            : (blockId != blocksWest[currentBlock-(ChunkSizeCubed-ChunkSizeSquared)] && Blocks.IsTransparent(blocksWest[currentBlock-(ChunkSizeCubed-ChunkSizeSquared)]))){
+                                faces |= 16;
+                            }
+                            // Face z-
+                            if(z != 0 ? (blockId != blocks[currentBlock-ChunkSizeSquared] && Blocks.IsTransparent(blocks[currentBlock-ChunkSizeSquared])) 
+                            : (blockId != blocksEast[currentBlock+(ChunkSizeCubed-ChunkSizeSquared)] && Blocks.IsTransparent(blocksEast[currentBlock+(ChunkSizeCubed-ChunkSizeSquared)]))){
+                                faces |= 32;
+                            }
+                            
+                            if(faces != 0){
+                                Vector2[] textureCoordinates = TextureDictionary[blockId];
+                                List<VertexPositionTexture> listRef = Blocks.IsNotSolid(blockId) ? fluidVertices : solidVertices;
+                                for(int face=0;faces!=0;face++){
+                                    if((faces&1u)!=0){
+                                        for(int i=face*4;i<face*4+4;i++){
+                                            listRef.Add(new VertexPositionTexture(new Vector3(
+                                                x+((offsetX>>i)&1),
+                                                y+((offsetY>>i)&1)+CurrentChunkY,
+                                                z+((offsetZ>>i)&1)),
+                                                textureCoordinates[i]));
+                                        }
                                     }
-                                }
-                                else{
-                                    for(int k=face*4;k<face*4+4;k++){
-                                        solidVertices.Add(new VertexPositionTexture(new(
-                                            (currentBlock&(ChunkSize-1))+((offsetX&(1<<k))>>k),
-                                            CurrentChunkY+((currentBlock&((ChunkSize-1)<<exponent))>>exponent)+((offsetY&(1<<k))>>k),
-                                            ((currentBlock&((ChunkSize-1)<<(2*exponent)))>>(2*exponent))+((offsetZ&(1<<k))>>k)
-                                            ), textureCoordinates[k]));
-                                    }
+                                    faces>>=1;
                                 }
                             }
-                            currentBlock++;
                         }
-                    }
-                    else{
-                        currentBlock+=ChunkSize;
+                        currentBlock++;
                     }
                 }
             }
-            VertexBuffer[] buffers = new VertexBuffer[2];
+
+            chunk.vertexBufferOpaque?.Dispose();
             if(solidVertices.Count != 0){
                 VertexBuffer vertexBufferOpaque = new(graphicsDevice,typeof(VertexPositionTexture),solidVertices.Count,BufferUsage.None);
                 vertexBufferOpaque.SetData(solidVertices.ToArray());
-                buffers[0]=vertexBufferOpaque;
+                chunk.vertexBufferOpaque = vertexBufferOpaque;
             }
+            chunk.vertexBufferTransparent?.Dispose();
             if(fluidVertices.Count != 0){
                 VertexBuffer vertexBufferTransparent = new(graphicsDevice,typeof(VertexPositionTexture),fluidVertices.Count,BufferUsage.None);
                 vertexBufferTransparent.SetData(fluidVertices.ToArray());
-                buffers[1]=vertexBufferTransparent;
+                chunk.vertexBufferTransparent = vertexBufferTransparent;
             }
-            return buffers;
         }
         public static void GenerateIndexBuffer(){
             byte[] indicesOffset = [0,1,2,1,3,2];
             int[] indicesArray = new int[ChunkSizeCubed*36]; 
             for (int currentBlock = 0;currentBlock<ChunkSizeCubed*6;currentBlock++){
                 for(int i=0;i<6;i++){
-                    indicesArray[currentBlock*6+i]=currentBlock*4+indicesOffset[i%6];
+                    indicesArray[currentBlock*6+i]=currentBlock*4+indicesOffset[i];
                 }       
             }
             indexBuffer = new IndexBuffer(graphicsDevice, IndexElementSize.ThirtyTwoBits, indicesArray.Length, BufferUsage.None);
             indexBuffer.SetData(indicesArray);
         }
-        public static void DrawChunkSolid(Chunk chunk){
-            if(chunk.vertexBufferOpaque is not null){
-                graphicsDevice.SetVertexBuffer(chunk.vertexBufferOpaque);
-                graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, chunk.vertexBufferOpaque.VertexCount/2);
-            }
-        }
-        public static void DrawChunkFluid(Chunk chunk){
-            if(chunk.vertexBufferTransparent is not null){
-                graphicsDevice.SetVertexBuffer(chunk.vertexBufferTransparent);
-                graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, chunk.vertexBufferTransparent.VertexCount/2);
+        public static void DrawChunk(VertexBuffer buffer){
+            if(buffer is not null){
+                graphicsDevice.SetVertexBuffer(buffer);
+                graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, buffer.VertexCount/2);
             }
         }
         static VertexBuffer cubeFrameVertex;
@@ -109,7 +146,7 @@ namespace VoxelTechDemo{
         static public void SetupCubeFrame(){
             cubeFrameVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionTexture), 24, BufferUsage.None);
             cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionTexture), 12, BufferUsage.None);
-            Vector2[] cubeFrameTextureCoordinates = blockIds.TextureDictionary[0];
+            Vector2[] cubeFrameTextureCoordinates = TextureDictionary[0];
             VertexPositionTexture[] cubeVertices = new VertexPositionTexture[24];
             for(int i=0;i<24;i++){
                 cubeVertices[i] = new VertexPositionTexture(new Vector3(1.0025f*((offsetX&(1<<i))>>i)-0.00125f,1.0025f*((offsetY&(1<<i))>>i)-0.00125f,1.0025f*((offsetZ&(1<<i))>>i)-0.00125f),cubeFrameTextureCoordinates[i]);
@@ -122,7 +159,7 @@ namespace VoxelTechDemo{
         }
         static public void ChangeCubePreview(byte Id){
             VertexPositionTexture[] cubeVerticesPreview = new VertexPositionTexture[12];
-            Vector2[] TextureCoordinates = blockIds.TextureDictionary[Id];
+            Vector2[] TextureCoordinates = TextureDictionary[Id];
             for(int i=0;i<4;i++){
                 cubeVerticesPreview[i] = new VertexPositionTexture(new Vector3((offsetX&(1<<i))>>i,(offsetY&(1<<i))>>i,(offsetZ&(1<<i))>>i),TextureCoordinates[i]);
             }
