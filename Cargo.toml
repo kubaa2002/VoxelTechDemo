@@ -1,0 +1,23 @@
+[package]
+name = "voxel_tech_demo"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+bytemuck = { version = "1.21", features = [ "derive" ] }
+cgmath = "0.18"
+env_logger = "0.11"
+pollster = "0.4"
+log = "0.4"
+wgpu = { version = "24"}
+winit = { version = "0.29", features = ["rwh_05"] }
+anyhow = "1.0"
+
+[dependencies.image]
+version = "0.25"
+default-features = false
+features = ["png"]
+
+[build-dependencies]
+anyhow = "1.0"
+fs_extra = "1.2" 
