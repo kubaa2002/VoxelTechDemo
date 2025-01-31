@@ -2,11 +2,13 @@ use std::iter;
 
 use cgmath::prelude::*;
 use wgpu::util::DeviceExt;
+use std::sync::Arc;
 use winit::{
     event::*,
-    event_loop::EventLoop,
+    event_loop::{EventLoop,ActiveEventLoop},
     keyboard::{KeyCode, PhysicalKey},
-    window::Window,
+    window::{Window,WindowId},
+    application::ApplicationHandler,
 };
 
 mod camera;
@@ -98,9 +100,9 @@ impl model::Vertex for InstanceRaw {
     }
 }
 
-struct State<'a> {
-    window: &'a Window,
-    surface: wgpu::Surface<'a>,
+struct State {
+    surface: wgpu::Surface<'static>,
+    window: Arc<Window>,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
@@ -114,7 +116,8 @@ struct State<'a> {
     depth_texture: texture::Texture,
     size: winit::dpi::PhysicalSize<u32>,
     mouse_pressed: bool,
-    chunk_mesh: model::ChunkMesh
+    chunk_mesh: model::ChunkMesh,
+    last_render_time: std::time::Instant,
 }
 
 fn create_render_pipeline(
@@ -180,9 +183,10 @@ fn create_render_pipeline(
     })
 }
 
-impl<'a> State<'a> {
-    async fn new(window: &'a Window) -> State<'a> {
-        let size = window.inner_size();
+impl State {
+    async fn new(window: Window) -> State {
+        let window_arc = std::sync::Arc::new(window);
+        let size = window_arc.inner_size();
 
         // The instance is a handle to our GPU
         // BackendBit::PRIMARY => Vulkan + Metal + DX12 + Browser WebGPU
@@ -191,7 +195,7 @@ impl<'a> State<'a> {
             ..Default::default()
         });
 
-        let surface = instance.create_surface(window).unwrap();
+        let surface = instance.create_surface(window_arc.clone()).unwrap();
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -326,8 +330,10 @@ impl<'a> State<'a> {
 
         let chunk_mesh = resources::create_chunk_mesh(&device, "name", &queue, &texture_bind_group_layout,0.0,0.0,0.0).await;
 
+        let last_render_time = std::time::Instant::now();
+
         Self {
-            window,
+            window: window_arc,
             surface,
             device,
             queue,
@@ -342,12 +348,9 @@ impl<'a> State<'a> {
             depth_texture,
             size,
             mouse_pressed: false,
-            chunk_mesh
+            chunk_mesh,
+            last_render_time,
         }
-    }
-
-    pub fn window(&self) -> &Window {
-        &self.window
     }
 
     fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
@@ -451,68 +454,79 @@ impl<'a> State<'a> {
     }
 }
 
+#[derive(Default)]
+struct App {
+    state: Option<State>
+}
+
+
+impl ApplicationHandler for App {
+    // This is a common indicator that you can create a window.
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        let window = event_loop.create_window(Window::default_attributes()).unwrap();
+        let state = pollster::block_on(State::new(window));
+        
+        state.window.set_cursor_visible(false);
+        state.window.set_cursor_grab(winit::window::CursorGrabMode::Confined).unwrap();
+        
+        self.state = Some(state);
+    }
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
+        let state = self.state.as_mut().unwrap();
+
+        if window_id == state.window.id() && !state.input(&event){
+            match event{
+                WindowEvent::CloseRequested | WindowEvent::KeyboardInput {
+                    event: KeyEvent {
+                        state: ElementState::Pressed,
+                        physical_key: PhysicalKey::Code(KeyCode::Escape),
+                        ..
+                    },
+                    ..  } => event_loop.exit(),
+                WindowEvent::Resized(physical_size) => {
+                    state.resize(physical_size);
+                }
+                WindowEvent::RedrawRequested => {
+                    state.window.request_redraw();
+                    let now = std::time::Instant::now();
+                    let dt = now - state.last_render_time;
+                    state.last_render_time = now;
+                    state.update(dt);
+                    match state.render() {
+                        Ok(_) => {}
+                        // Reconfigure the surface if it's lost or outdated
+                        Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                            let size = state.size;
+                            state.resize(size)
+                        },
+                        // The system is out of memory, we should probably quit
+                        Err(wgpu::SurfaceError::OutOfMemory) => event_loop.exit(),
+                        // We're ignoring timeouts
+                        Err(wgpu::SurfaceError::Timeout) => log::warn!("Surface timeout"),
+                        Err(_) => log::warn!("??????")
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    fn device_event(&mut self, _event_loop: &ActiveEventLoop, _device_id: DeviceId, event: DeviceEvent) {
+        match event{
+            DeviceEvent::MouseMotion { delta } => {
+                self.state.as_mut().unwrap().camera_controller.process_mouse(delta.0, delta.1)
+            }
+            _ => {}
+        }
+    }
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+
+    }
+}
+
 pub async fn run() {
     env_logger::init();
 
     let event_loop = EventLoop::new().unwrap();
-    let title = "Voxel tech demo";
-    let window = winit::window::WindowBuilder::new()
-        .with_title(title)
-        .build(&event_loop)
-        .unwrap();
-
-    window.set_cursor_visible(false);
-    window.set_cursor_grab(winit::window::CursorGrabMode::Confined).unwrap();
-
-    let mut state = State::new(&window).await;
-    let mut last_render_time = std::time::Instant::now();
-    event_loop.run(move |event, control_flow| {
-        match event {
-            Event::DeviceEvent {
-                event: DeviceEvent::MouseMotion{ delta, },
-                .. // We're not using device_id currently
-            } => {
-                state.camera_controller.process_mouse(delta.0, delta.1)
-            }
-            Event::WindowEvent {
-                ref event,
-                window_id,
-            } if window_id == state.window().id() && !state.input(event) => {
-                match event {
-                    WindowEvent::CloseRequested
-                    | WindowEvent::KeyboardInput {
-                        event:
-                            KeyEvent {
-                                state: ElementState::Pressed,
-                                physical_key: PhysicalKey::Code(KeyCode::Escape),
-                                ..
-                            },
-                        ..
-                    } => control_flow.exit(),
-                    WindowEvent::Resized(physical_size) => {
-                        state.resize(*physical_size);
-                    }
-                    WindowEvent::RedrawRequested => {
-                        state.window().request_redraw();
-                        let now = std::time::Instant::now();
-                        let dt = now - last_render_time;
-                        last_render_time = now;
-                        state.update(dt);
-                        match state.render() {
-                            Ok(_) => {}
-                            // Reconfigure the surface if it's lost or outdated
-                            Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => state.resize(state.size),
-                            // The system is out of memory, we should probably quit
-                            Err(wgpu::SurfaceError::OutOfMemory) => control_flow.exit(),
-                            // We're ignoring timeouts
-                            Err(wgpu::SurfaceError::Timeout) => log::warn!("Surface timeout"),
-                            Err(_) => log::warn!("??????")
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            _ => {}
-        }
-    }).unwrap();
+    let mut app = App::default();
+    let _ = event_loop.run_app(&mut app);
 }
