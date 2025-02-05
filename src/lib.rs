@@ -1,20 +1,17 @@
-use std::iter;
+use std::{collections::HashMap, iter};
 
 use cgmath::prelude::*;
 use wgpu::util::DeviceExt;
 use std::sync::Arc;
 use winit::{
-    event::*,
-    event_loop::{EventLoop,ActiveEventLoop},
-    keyboard::{KeyCode, PhysicalKey},
-    window::{Window,WindowId},
-    application::ApplicationHandler,
+    application::ApplicationHandler, event::*, event_loop::{ActiveEventLoop, EventLoop}, keyboard::{KeyCode, PhysicalKey}, window::{Fullscreen, Window, WindowId}
 };
 
 mod camera;
 mod model;
 mod resources;
 mod texture;
+mod open_simplex;
 
 use model::{DrawModel, Vertex};
 
@@ -116,8 +113,10 @@ struct State {
     depth_texture: texture::Texture,
     size: winit::dpi::PhysicalSize<u32>,
     mouse_pressed: bool,
-    chunk_mesh: model::ChunkMesh,
+    world_map: HashMap<(i32,i32,i32),model::Chunk>,
     last_render_time: std::time::Instant,
+    index_buffer: wgpu::Buffer,
+    material: model::Material
 }
 
 fn create_render_pipeline(
@@ -155,7 +154,7 @@ fn create_render_pipeline(
         primitive: wgpu::PrimitiveState {
             topology: wgpu::PrimitiveTopology::TriangleList,
             strip_index_format: None,
-            front_face: wgpu::FrontFace::Ccw,
+            front_face: wgpu::FrontFace::Cw,
             cull_mode: Some(wgpu::Face::Back),
             // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
             polygon_mode: wgpu::PolygonMode::Fill,
@@ -328,9 +327,23 @@ impl State {
             )
         };
 
-        let chunk_mesh = resources::create_chunk_mesh(&device, "name", &queue, &texture_bind_group_layout,0.0,0.0,0.0).await;
+        let mut world_map: HashMap<(i32,i32,i32), model::Chunk> = HashMap::new();
+        for x in -4..4 {
+            for z in -4..4 {
+                for y in 0..8 {
+                    world_map.insert((x,y,z), model::Chunk::new());
+                    world_map.get_mut(&(x,y,z)).unwrap().generate_terrain(x, y, z);
+                    world_map.get_mut(&(x,y,z)).unwrap().create_chunk_mesh(&device, x as f32, y as f32, z as f32);
+                }
+            }
+        }
 
         let last_render_time = std::time::Instant::now();
+
+        let index_buffer = resources::create_index_buffer(&device);
+
+        let texture = resources::load_texture("Cobblestone.png", &device, &queue).await.unwrap();
+        let material = model::Material::new(&device, "cube texture", texture, &texture_bind_group_layout);
 
         Self {
             window: window_arc,
@@ -348,8 +361,10 @@ impl State {
             depth_texture,
             size,
             mouse_pressed: false,
-            chunk_mesh,
+            world_map,
             last_render_time,
+            index_buffer,
+            material,
         }
     }
 
@@ -444,8 +459,12 @@ impl State {
             });
             
             render_pass.set_pipeline(&self.render_pipeline);
-
-            render_pass.draw_mesh_instanced(&self.chunk_mesh, &self.camera_bind_group);
+            render_pass.set_bind_group(0, &self.material.bind_group, &[]);
+            render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
+            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+            for chunk in &self.world_map {
+                render_pass.draw_mesh_instanced(chunk.1);
+            }
         }
         self.queue.submit(iter::once(encoder.finish()));
         output.present();
@@ -463,11 +482,13 @@ struct App {
 impl ApplicationHandler for App {
     // This is a common indicator that you can create a window.
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let window = event_loop.create_window(Window::default_attributes()).unwrap();
+        let window = event_loop.create_window(
+            Window::default_attributes().with_title("voxel tech demo")).unwrap();
         let state = pollster::block_on(State::new(window));
         
         state.window.set_cursor_visible(false);
         state.window.set_cursor_grab(winit::window::CursorGrabMode::Confined).unwrap();
+        state.window.set_fullscreen(Some(Fullscreen::Borderless(None)));
         
         self.state = Some(state);
     }

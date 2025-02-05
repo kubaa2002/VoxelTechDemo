@@ -1,6 +1,6 @@
-use wgpu::util::DeviceExt;
+use wgpu::{util::DeviceExt, Buffer};
 
-use crate::{model, texture};
+use crate::texture;
 
 pub async fn load_binary(file_name: &str) -> anyhow::Result<Vec<u8>> {
     let path = std::path::Path::new(env!("OUT_DIR"))
@@ -19,85 +19,20 @@ pub async fn load_texture(
     let data = load_binary(file_name).await?;
     texture::Texture::from_bytes(device, queue, &data, file_name)
 }
+pub const CHUNK_SIZE: i32 = 64;
 
-pub async fn create_chunk_mesh(
-    device: &wgpu::Device,
-    name: &str,
-    queue: &wgpu::Queue,
-    layout: &wgpu::BindGroupLayout,
-    x: f32,
-    y: f32,
-    z: f32,
-) -> model::ChunkMesh {
-    let vertices: [model::ModelVertex; 24] = [
-        // North face vertices
-        model::ModelVertex { position: [x, y, z+1.0], tex_coords: [0.0, 0.0] },
-        model::ModelVertex { position: [x+1.0, y, z+1.0], tex_coords: [1.0, 0.0] },
-        model::ModelVertex { position: [x+1.0, y+1.0, z+1.0], tex_coords: [1.0, 1.0] },
-        model::ModelVertex { position: [x, y+1.0, z+1.0], tex_coords: [0.0, 1.0] },
-    
-        // South face vertices
-        model::ModelVertex { position: [x+1.0, y, z], tex_coords: [0.0, 0.0] },
-        model::ModelVertex { position: [x, y, z], tex_coords: [1.0, 0.0] },
-        model::ModelVertex { position: [x, y+1.0, z], tex_coords: [1.0, 1.0] },
-        model::ModelVertex { position: [x+1.0, y+1.0, z], tex_coords: [0.0, 1.0] },
+pub fn create_index_buffer(device: &wgpu::Device) -> Buffer {
+    let mut indices: Vec<i32> = Vec::with_capacity((CHUNK_SIZE.pow(3)*36) as usize);
+    let indices_offset: [i32; 6] = [0,1,2,1,3,2];
+    for i in 0..CHUNK_SIZE.pow(3)*6 {
+        for j in 0..6 {
+            indices.push(i*4+indices_offset[j]);
+        }
+    }
 
-        // West face vertices
-        model::ModelVertex { position: [x+1.0, y, z+1.0], tex_coords: [1.0, 0.0] },
-        model::ModelVertex { position: [x+1.0, y, z], tex_coords: [0.0, 0.0] },
-        model::ModelVertex { position: [x+1.0, y+1.0, z], tex_coords: [0.0, 1.0] },
-        model::ModelVertex { position: [x+1.0, y+1.0, z+1.0], tex_coords: [1.0, 1.0] },
-    
-        // East face vertices
-        model::ModelVertex { position: [x, y, z], tex_coords: [1.0, 0.0] },
-        model::ModelVertex { position: [x, y, z+1.0], tex_coords: [0.0, 0.0] },
-        model::ModelVertex { position: [x, y+1.0, z+1.0], tex_coords: [0.0, 1.0] },
-        model::ModelVertex { position: [x, y+1.0, z], tex_coords: [1.0, 1.0] },
-
-        // Top face vertices
-        model::ModelVertex { position: [x+1.0, y+1.0, z], tex_coords: [1.0, 0.0] },
-        model::ModelVertex { position: [x, y+1.0, z], tex_coords: [0.0, 0.0] },
-        model::ModelVertex { position: [x, y+1.0, z+1.0], tex_coords: [0.0, 1.0] },
-        model::ModelVertex { position: [x+1.0, y+1.0, z+1.0], tex_coords: [1.0, 1.0] },
-    
-        // Bottom face vertices
-        model::ModelVertex { position: [x, y, z], tex_coords: [1.0, 0.0] },
-        model::ModelVertex { position: [x+1.0, y, z], tex_coords: [0.0, 0.0] },
-        model::ModelVertex { position: [x+1.0, y, z+1.0], tex_coords: [0.0, 1.0] },
-        model::ModelVertex { position: [x, y, z+1.0], tex_coords: [1.0, 1.0] },
-    ];
-
-    let indices: [u32; 36] = [
-        // North face
-        0, 1, 2, 2, 3, 0,
-
-        // South face
-        4, 5, 6, 6, 7, 4,
-        
-        // West face
-        8, 9, 10, 10, 11, 8,
-
-        // East face
-        12, 13, 14, 14, 15, 12,
-
-        // Top face
-        16, 17, 18, 18, 19, 16,
-
-        // Bottom face
-        20, 21, 22, 22, 23, 20,
-    ];
-    let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("cube vertices"),
-        contents: bytemuck::cast_slice(&vertices),
-        usage: wgpu::BufferUsages::VERTEX,
-    });
-    let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("cube indices"),
         contents: bytemuck::cast_slice(&indices),
         usage: wgpu::BufferUsages::INDEX,
-    });
-
-    let texture = load_texture("Cobblestone.png", device, queue).await.unwrap();
-
-    model::ChunkMesh::new(device, name, texture, layout, vertex_buffer, index_buffer, indices)
+    })
 }
