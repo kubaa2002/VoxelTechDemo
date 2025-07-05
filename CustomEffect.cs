@@ -71,7 +71,7 @@ namespace VoxelTechDemo{
             // Animation Frame can be from 0 to 15
             AnimationFrame = Parameters["AnimationFrame"];
 
-            Texture.SetValue(game.Content.Load<Texture2D>("Water_Texture"));
+            Texture.SetValue(game.Content.Load<Texture2D>("WaterTexture"));
             DiffuseColor.SetValue(new Vector3(0.7f,0.7f,1.4f));
         }
         public void UpdateAnimationFrame(TimeSpan elapsedTime){

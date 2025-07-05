@@ -44,5 +44,4 @@ float4 PSCustomEffect(VSOutput pin) : SV_Target0
     return color;
 }
 
-// Using shader model 3.0 (DX9c)
-technique CustomEffect { pass { VertexShader = compile vs_3_0 VSCustomEffect(); PixelShader = compile ps_3_0 PSCustomEffect(); } }
+technique CustomEffect { pass { VertexShader = compile vs_4_0_level_9_3 VSCustomEffect(); PixelShader = compile ps_4_0_level_9_3 PSCustomEffect(); } }

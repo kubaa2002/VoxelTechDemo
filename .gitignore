@@ -1,6 +1,6 @@
 bin/
 obj/
-Content/obj
+.vs/
 .vscode/
 Settings.txt
 benchmark.cs
