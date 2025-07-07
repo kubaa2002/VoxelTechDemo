@@ -136,7 +136,7 @@ namespace VoxelTechDemo{
             indexBuffer.SetData(indicesArray);
         }
         public static void DrawChunk(VertexBuffer buffer){
-            if(buffer is not null){
+            if(buffer is not null && !buffer.IsDisposed){
                 graphicsDevice.SetVertexBuffer(buffer);
                 graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, buffer.VertexCount/2);
             }

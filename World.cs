@@ -12,41 +12,35 @@ namespace VoxelTechDemo{
         public World(long seed){
             this.seed = seed;
         }
-        public void SetBlock(int x,int y,int z,(int, int, int) chunkCoordinate, byte Id, BlockFace blockSide, BoundingBox PlayerHitBox){
+        public void SetBlock(Vector3 coords,(int, int, int) chunkCoordinate, byte Id, BlockFace blockSide, BoundingBox PlayerHitBox){
             switch(blockSide){
-                case BlockFace.Front:
-                    if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y,z-1),new Vector3(x+1,y+1,z)))){
-                        SetBlock(x,y,z-1,chunkCoordinate,Id);
-                    }
-                    break;
-                case BlockFace.Back:
-                    if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y,z+1),new Vector3(x+1,y+1,z+2)))){
-                        SetBlock(x,y,z+1,chunkCoordinate,Id);
-                    }
-                    break;
                 case BlockFace.Right:
-                    if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x-1,y,z),new Vector3(x,y+1,z+1)))){
-                        SetBlock(x-1,y,z,chunkCoordinate,Id);
-                    }
+                    coords.X -= 1;
                     break;
                 case BlockFace.Left:
-                    if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x+1,y,z),new Vector3(x+2,y+1,z+1)))){
-                        SetBlock(x+1,y,z,chunkCoordinate,Id);
-                    }
-                    break;
-                case BlockFace.Top:
-                    if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y+1,z),new Vector3(x+1,y+2,z+1)))){
-                        SetBlock(x,y+1,z,chunkCoordinate,Id);
-                    }
+                    coords.X += 1;
                     break;
                 case BlockFace.Bottom:
-                    if(!PlayerHitBox.Intersects(new BoundingBox(new Vector3(x,y-1,z),new Vector3(x+1,y,z+1)))){
-                        SetBlock(x,y-1,z,chunkCoordinate,Id);
-                    }
+                    coords.Y -= 1;
+                    break;
+                case BlockFace.Top:
+                    coords.Y += 1;
+                    break;
+                case BlockFace.Front:
+                    coords.Z -= 1;
+                    break;
+                case BlockFace.Back:
+                    coords.Z += 1;
                     break;
             }
+            if (!PlayerHitBox.Intersects(new BoundingBox(coords, coords+Vector3.One))) {
+                SetBlock(coords, chunkCoordinate, Id);
+            }
         }
-        public void SetBlock(int x, int y, int z, (int x,int y,int z) chunkCoordinate,byte Id){
+        public void SetBlock(Vector3 coords, (int x,int y,int z) chunkCoordinate,byte Id){
+            int x = (int)coords.X;
+            int y = (int)coords.Y;
+            int z = (int)coords.Z;
             NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
             if(!WorldMap.TryGetValue(chunkCoordinate, out Chunk chunk)){
                 return;

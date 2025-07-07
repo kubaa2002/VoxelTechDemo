@@ -124,14 +124,14 @@ namespace VoxelTechDemo{
                 player.GetLookedAtBlock();
 
                 if(currentMouseState.LeftButton == ButtonState.Pressed && LeftButtonPressed == false && player.blockFound == true){
-                    world.SetBlock(player.LookedAtBlock.x,player.LookedAtBlock.y,player.LookedAtBlock.z,player.CurrentChunk,0);
+                    world.SetBlock(player.LookedAtBlock,player.CurrentChunk,0);
                     LeftButtonPressed = true;
                 }
                 if(currentMouseState.LeftButton == ButtonState.Released){
                     LeftButtonPressed = false;
                 }
                 if(currentMouseState.RightButton == ButtonState.Pressed && RightButtonPressed == false && player.blockFound == true){
-                    world.SetBlock(player.LookedAtBlock.x,player.LookedAtBlock.y,player.LookedAtBlock.z,player.CurrentChunk,chosenBlock,player.currentSide, player.playerHitBox);
+                    world.SetBlock(player.LookedAtBlock,player.CurrentChunk,chosenBlock,player.currentSide, player.playerHitBox);
                     RightButtonPressed = true;
                 }
                 if(currentMouseState.RightButton == ButtonState.Released){
@@ -275,7 +275,7 @@ namespace VoxelTechDemo{
             }
             GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
 
-            worldMatrix = Matrix.CreateWorld(new Vector3(player.LookedAtBlock.x,player.LookedAtBlock.y,player.LookedAtBlock.z),Vector3.Forward,Vector3.Up);
+            worldMatrix = Matrix.CreateWorld(player.LookedAtBlock,Vector3.Forward,Vector3.Up);
             solidEffect.WorldViewProj.SetValue(worldMatrix*viewProj);
             solidEffect.Apply(worldMatrix*viewMatrix);
             if(player.blockFound){

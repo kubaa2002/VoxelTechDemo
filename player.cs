@@ -6,7 +6,7 @@ using static VoxelTechDemo.VoxelRenderer;
 namespace VoxelTechDemo{
     class Player{
         World currentWorld;
-        public (int x, int y, int z) LookedAtBlock;
+        public Vector3 LookedAtBlock;
         public bool IsUnderWater = false, blockFound = false;
         bool CanJump = false;
         float movementSpeed, verticalSpeed;
@@ -29,7 +29,7 @@ namespace VoxelTechDemo{
                 currentRayPossition.Floor();
                 BoundingBox currentBlock = new(currentRayPossition,currentRayPossition+Vector3.One);
                 if(!Blocks.IsNotSolid(currentWorld.GetBlock((int)currentBlock.Min.X,(int)currentBlock.Min.Y,(int)currentBlock.Min.Z,CurrentChunk))){
-                    LookedAtBlock = ((int)currentBlock.Min.X,(int)currentBlock.Min.Y,(int)currentBlock.Min.Z);
+                    LookedAtBlock = currentBlock.Min;
                     blockFound = true;
                 }
                 for(int j=0;j<2;j++){
@@ -60,12 +60,12 @@ namespace VoxelTechDemo{
                             break;
                     }
                     if(!Blocks.IsNotSolid(currentWorld.GetBlock((int)currentBlock.Min.X,(int)currentBlock.Min.Y,(int)currentBlock.Min.Z,CurrentChunk))){
-                        LookedAtBlock = ((int)currentBlock.Min.X,(int)currentBlock.Min.Y,(int)currentBlock.Min.Z);
+                        LookedAtBlock = currentBlock.Min;
                         blockFound = true;
                     }
                 }
                 if(blockFound == true){
-                    currentSide = GetFace(ray,new BoundingBox(new Vector3(LookedAtBlock.x,LookedAtBlock.y,LookedAtBlock.z),new Vector3(LookedAtBlock.x+1,LookedAtBlock.y+1,LookedAtBlock.z+1)));
+                    currentSide = GetFace(ray,new BoundingBox(LookedAtBlock,LookedAtBlock+Vector3.One));
                     break;
                 }
             }
