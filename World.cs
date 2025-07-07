@@ -234,29 +234,26 @@ namespace VoxelTechDemo{
                         + OpenSimplex2.Noise2(seed,x/100,z/100),2);
         }
         static void NormalizeChunkCoordinates(ref int x,ref int y,ref int z,ref (int x,int y,int z) chunkCoordinate){
-            while(x>ChunkSize-1){
-                chunkCoordinate.x+=1;
-                x-=ChunkSize;
+            if (x > ChunkSize - 1 || x < 0) {
+                int amount = x / ChunkSize;
+                if (x < 0)
+                    amount -= 1;
+                chunkCoordinate.x += amount;
+                x -= ChunkSize * amount;
             }
-            while(x<0){
-                chunkCoordinate.x-=1;
-                x+=ChunkSize;
+            if (y > ChunkSize - 1 || y < 0) {
+                int amount = y / ChunkSize;
+                if (y < 0)
+                    amount -= 1;
+                chunkCoordinate.y += amount;
+                y -= ChunkSize * amount;
             }
-            while(y>ChunkSize-1){
-                chunkCoordinate.y+=1;
-                y-=ChunkSize;
-            }
-            while(y<0){
-                chunkCoordinate.y-=1;
-                y+=ChunkSize;
-            }
-            while(z>ChunkSize-1){
-                chunkCoordinate.z+=1;
-                z-=ChunkSize;
-            }
-            while(z<0){
-                chunkCoordinate.z-=1;
-                z+=ChunkSize;
+            if (z > ChunkSize - 1 || z < 0) {
+                int amount = z / ChunkSize;
+                if (z < 0)
+                    amount -= 1;
+                chunkCoordinate.z += amount;
+                z -= ChunkSize * amount;
             }
         }
     }

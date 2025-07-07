@@ -16,9 +16,7 @@
     <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.4" />
     <PackageReference Include="Myra" Version="1.5.9" />
 	<EmbeddedResource Include="Icon.ico" />
-	<EmbeddedResource Include="Icon.bmp" />
 	<None Remove="Icon.ico" />
-	<None Remove="Icon.bmp" />
 	<None Update="Content/PublicPixel.ttf">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	</None>
