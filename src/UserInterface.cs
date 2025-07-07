@@ -1,4 +1,7 @@
+using System.Collections.Generic;
+using System;
 using System.IO;
+using System.Linq;
 using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Myra;
@@ -8,6 +11,7 @@ using static VoxelTechDemo.UserSettings;
 namespace VoxelTechDemo{
     static class UserInterface{
         static public Desktop _desktop;
+        static public readonly FrameCounter frameCounter = new();
         static public void Initialize(Game1 game, GraphicsDeviceManager _graphics){
             FontSystem ordinaryFontSystem = new();
             ordinaryFontSystem.AddFont(File.ReadAllBytes("Content/PublicPixel.ttf"));
@@ -172,6 +176,19 @@ namespace VoxelTechDemo{
             _desktop = new Desktop{
                 Root = mainPanel
             };
+        }
+        public class FrameCounter {
+            private readonly Queue<double> _sampleBuffer = new();
+            public FrameCounter() {
+                for (int i = 0; i < 10; i++) {
+                    _sampleBuffer.Enqueue(0);
+                }
+            }
+            public double GetFPS(double deltaTime) {
+                _sampleBuffer.Dequeue();
+                _sampleBuffer.Enqueue(deltaTime);
+                return Math.Round(1.0d / _sampleBuffer.Average(), 2);
+            }
         }
     }
 }
