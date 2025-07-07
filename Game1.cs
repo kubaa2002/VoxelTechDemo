@@ -37,17 +37,17 @@ namespace VoxelTechDemo{
             //Fullscreen setup
             _graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
             _graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
-            _graphics.IsFullScreen = true;
-
-            _graphics.ApplyChanges();
-            InitializeVoxelRenderer(GraphicsDevice);
-
             LoadSettings();
             if(FrameRateUnlocked){
                 _graphics.SynchronizeWithVerticalRetrace = !_graphics.SynchronizeWithVerticalRetrace;
                 IsFixedTimeStep = !IsFixedTimeStep;
-                _graphics.ApplyChanges();
             }
+            if (Fullscreen) {
+                _graphics.IsFullScreen = true;
+            }
+            _graphics.ApplyChanges();
+
+            InitializeVoxelRenderer(GraphicsDevice);
 
             // Custom shader setup
             solidEffect = new(Content.Load<Effect>("CustomEffect"), this);

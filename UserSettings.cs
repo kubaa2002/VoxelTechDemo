@@ -8,63 +8,76 @@ namespace VoxelTechDemo{
         static float fieldOfView = 45f;
         static bool fogEnabled = true;
         static bool frameRateUnlocked = false;
+        static bool fullscreen = true;
 
         static bool needUpdate = false;
 
         public static byte RenderDistance{
-                get{
-                    return renderDistance;
+            get{
+                return renderDistance;
+            }
+            set{
+                if(value != renderDistance){
+                    renderDistance = value;
+                    needUpdate = true;
                 }
-                set{
-                    if(value != renderDistance){
-                        renderDistance = value;
-                        needUpdate = true;
-                    }
-                }
+            }
         }
         public static float MouseSensitivity{
-                get{
-                    return mouseSensitivity;
+            get{
+                return mouseSensitivity;
+            }
+            set{
+                if(value != mouseSensitivity){
+                    mouseSensitivity = value;
+                    needUpdate = true;
                 }
-                set{
-                    if(value != mouseSensitivity){
-                        mouseSensitivity = value;
-                        needUpdate = true;
-                    }
-                }
+            }
         }
         public static float FieldOfView{
-                get{
-                    return fieldOfView;
+            get{
+                return fieldOfView;
+            }
+            set{
+                if(value != fieldOfView){
+                    fieldOfView = value;
+                    needUpdate = true;
                 }
-                set{
-                    if(value != fieldOfView){
-                        fieldOfView = value;
-                        needUpdate = true;
-                    }
-                }
+            }
         }
         public static bool FogEnabled{
-                get{
-                    return fogEnabled;
+            get{
+                return fogEnabled;
+            }
+            set{
+                if(value != fogEnabled){
+                    fogEnabled = value;
+                    needUpdate = true;
                 }
-                set{
-                    if(value != fogEnabled){
-                        fogEnabled = value;
-                        needUpdate = true;
-                    }
-                }
+            }
         }
         public static bool FrameRateUnlocked{
-                get{
-                    return frameRateUnlocked;
+            get{
+                return frameRateUnlocked;
+            }
+            set{
+                if(value != frameRateUnlocked){
+                    frameRateUnlocked = value;
+                    needUpdate = true;
                 }
-                set{
-                    if(value != frameRateUnlocked){
-                        frameRateUnlocked = value;
-                        needUpdate = true;
-                    }
+            }
+        }
+        public static bool Fullscreen
+        {
+            get{
+                return fullscreen; 
+            }
+            set{
+                if (value != fullscreen){
+                    fullscreen = value;
+                    needUpdate = true;
                 }
+            }
         }
         public static void LoadSettings(){
             if(File.Exists("Settings.txt")){
@@ -108,6 +121,11 @@ namespace VoxelTechDemo{
                         frameRateUnlocked = result;
                     }
                 }
+                if(variables.TryGetValue("Fullscreen", out value)) {
+                    if(bool.TryParse(value, out bool result)) {
+                        fullscreen = result;
+                    }
+                }
             }
             else{
                 UpdateSettingsFile();
@@ -126,6 +144,7 @@ namespace VoxelTechDemo{
             writer.WriteLine($"FieldOfView={fieldOfView}");
             writer.WriteLine($"FogEnabled={fogEnabled}");
             writer.WriteLine($"FrameRateUnlocked={frameRateUnlocked}");
+            writer.WriteLine($"Fullscreen={fullscreen}");
         }
     }
 }
