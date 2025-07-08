@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using static VoxelTechDemo.VoxelRenderer;
 
 namespace VoxelTechDemo{
     public class World{
         public ConcurrentDictionary<(int,int,int),Chunk> WorldMap = new();
+        public readonly HashSet<(int x, int z)> CurrentlyLoadedChunkLines = [];
         readonly long seed;
-        //MaxHeight need to divisable by ChunkSize
+        // MaxHeight needs to divisable by ChunkSize
         public const int MaxHeight = 512;
         public World(long seed){
             this.seed = seed;
@@ -254,6 +257,56 @@ namespace VoxelTechDemo{
                     amount -= 1;
                 chunkCoordinate.z += amount;
                 z -= ChunkSize * amount;
+            }
+        }
+        public void UpdateLoadedChunks(int chunkX,int chunkZ) {
+            for (int x = -UserSettings.RenderDistance; x <= UserSettings.RenderDistance; x++) {
+                for (int z = -UserSettings.RenderDistance; z <= UserSettings.RenderDistance; z++) {
+                    if (x * x + z * z <= (UserSettings.RenderDistance + 0.5f) * (UserSettings.RenderDistance + 0.5f)) {
+                        if (!CurrentlyLoadedChunkLines.Contains((chunkX + x, chunkZ + z))) {
+                            LoadChunkLine(chunkX + x, chunkZ + z);
+                        }
+                    }
+                }
+            }
+            foreach ((int x, int z) in CurrentlyLoadedChunkLines) {
+                if ((x - chunkX) * (x - chunkX) + (z - chunkZ) * (z - chunkZ) > (UserSettings.RenderDistance + 1.5f) * (UserSettings.RenderDistance + 1.5f)) {
+                    UnloadChunkLine(x, z);
+                }
+            }
+        }
+        Task LoadChunkLine(int x, int z) {
+            for (int y = 0; y < MaxHeight / ChunkSize; y++) {
+                WorldMap.TryAdd((x, y, z), new((x, y, z), this));
+            }
+            CurrentlyLoadedChunkLines.Add((x, z));
+            return Task.Run(() => {
+                //TOFIX: Sometimes chunk is generated 2 times
+                if (!WorldMap[(x, 0, z)].IsGenerated) {
+                    GenerateTerrain(x, z);
+                }
+                if (!WorldMap.ContainsKey((x + 1, 0, z)) || !WorldMap[(x + 1, 0, z)].IsGenerated) {
+                    GenerateChunkLine(x + 1, z);
+                }
+                if (!WorldMap.ContainsKey((x, 0, z + 1)) || !WorldMap[(x, 0, z + 1)].IsGenerated) {
+                    GenerateChunkLine(x, z + 1);
+                }
+                if (!WorldMap.ContainsKey((x - 1, 0, z)) || !WorldMap[(x - 1, 0, z)].IsGenerated) {
+                    GenerateChunkLine(x - 1, z);
+                }
+                if (!WorldMap.ContainsKey((x, 0, z - 1)) || !WorldMap[(x, 0, z - 1)].IsGenerated) {
+                    GenerateChunkLine(x, z - 1);
+                }
+                for (int y = 0; y < MaxHeight / ChunkSize; y++) {
+                    GenerateChunkMesh(WorldMap[(x, y, z)]);
+                }
+            });
+        }
+        void UnloadChunkLine(int x, int z) {
+            CurrentlyLoadedChunkLines.Remove((x, z));
+            for (int y = 0; y < MaxHeight / ChunkSize; y++) {
+                WorldMap[(x, y, z)].vertexBufferOpaque?.Dispose();
+                WorldMap[(x, y, z)].vertexBufferTransparent?.Dispose();
             }
         }
     }

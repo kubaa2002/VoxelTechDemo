@@ -52,7 +52,7 @@ namespace VoxelTechDemo{
             };
             spinButton.ValueChanged += (s, a) =>{
                 RenderDistance = (byte)spinButton.Value;
-                game.UpdateLoadedChunks();
+                game.world.UpdateLoadedChunks(game.player.CurrentChunk.x, game.player.CurrentChunk.z);
             };
             Grid.SetColumn(spinButton, 1);
             Grid.SetRow(spinButton, 1);

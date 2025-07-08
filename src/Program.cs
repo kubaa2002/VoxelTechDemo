@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -15,30 +13,30 @@ namespace VoxelTechDemo {
         private readonly GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
         private SpriteFont _spriteFont;
+        private float yaw = MathHelper.PiOver2, pitch;
+        private bool LeftButtonPressed = false, RightButtonPressed = false, IsPaused = false, IsEscPressed = false, IsNoClipOn = false, IsNPressed = false;
+        private byte chosenBlock = 1;
+        private int ScrollWheelValue;
+        private Point WindowCenter;
+        private CustomEffect solidEffect;
+        private FluidEffect fluidEffect;
+        private BasicEffect blockPreviewEffect;
 
-        public Matrix projectionMatrix, viewMatrix, worldMatrix;
-
-        CustomEffect solidEffect;
-        FluidEffect fluidEffect;
-
-        readonly World world = new(12345);//DateTime.UtcNow.ToBinary());
-        Point WindowCenter;
-        float yaw = MathHelper.PiOver2, pitch;
-        MouseState currentMouseState;
-        bool LeftButtonPressed = false, RightButtonPressed = false, IsPaused = false, IsEscPressed = false, IsNoClipOn = false, IsNPressed = false;
-        byte chosenBlock = 1;
-        int ScrollWheelValue;
-        Player player;
-        BasicEffect blockPreviewEffect;
-        readonly HashSet<(int x, int z)> CurrentlyLoadedChunkLines = [];
+        public Matrix projectionMatrix, viewMatrix;
+        public readonly World world = new(12345);
+        public Player player;
+        
         public Game1() {
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
         }
         protected override void Initialize() {
-            //Fullscreen setup
+
+            // Setting window size
             _graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
             _graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+            
+            // Loading user settings from a file
             LoadSettings();
             if (FrameRateUnlocked) {
                 _graphics.SynchronizeWithVerticalRetrace = !_graphics.SynchronizeWithVerticalRetrace;
@@ -67,8 +65,8 @@ namespace VoxelTechDemo {
             UserInterface.Initialize(this, _graphics);
 
             player = new Player(world);
+            world.UpdateLoadedChunks(0, 0);
             world.GenerateChunkLine(0, 0);
-            UpdateLoadedChunks();
             ChangeCubePreview(chosenBlock);
 
             //Camera setup
@@ -95,15 +93,11 @@ namespace VoxelTechDemo {
             }
             if (!IsPaused) {
                 //Camera look
-                currentMouseState = Mouse.GetState();
+                MouseState currentMouseState = Mouse.GetState();
                 yaw -= (currentMouseState.X - WindowCenter.X) * MouseSensitivity;
                 pitch -= (currentMouseState.Y - WindowCenter.Y) * MouseSensitivity;
                 pitch = MathHelper.Clamp(pitch, -1.57f, 1.57f);//-MathHelper.PiOver2, MathHelper.PiOver2
                 player.right = Vector3.Transform(Vector3.Right, Matrix.CreateFromYawPitchRoll(yaw, pitch, 0f));
-
-                if (player.ChunkChanged) {
-                    UpdateLoadedChunks();
-                }
 
                 //Check pressed keys
                 if (keyboardState.IsKeyUp(Keys.N)) {
@@ -173,57 +167,6 @@ namespace VoxelTechDemo {
             viewMatrix = Matrix.CreateLookAt(player.camPosition, player.camPosition + player.forward, Vector3.Up);
             base.Update(gameTime);
         }
-        public void UpdateLoadedChunks() {
-            player.ChunkChanged = false;
-            for (int x = -RenderDistance; x <= RenderDistance; x++) {
-                for (int z = -RenderDistance; z <= RenderDistance; z++) {
-                    if (x * x + z * z <= (RenderDistance + 0.5f) * (RenderDistance + 0.5f)) {
-                        if (!CurrentlyLoadedChunkLines.Contains((player.CurrentChunk.x + x, player.CurrentChunk.z + z))) {
-                            LoadChunkLine(player.CurrentChunk.x + x, player.CurrentChunk.z + z);
-                        }
-                    }
-                }
-            }
-            foreach ((int x, int z) in CurrentlyLoadedChunkLines) {
-                if ((x - player.CurrentChunk.x) * (x - player.CurrentChunk.x) + (z - player.CurrentChunk.z) * (z - player.CurrentChunk.z) > (RenderDistance + 1.5f) * (RenderDistance + 1.5f)) {
-                    UnloadChunkLine(x, z);
-                }
-            }
-        }
-        Task LoadChunkLine(int x, int z) {
-            for (int y = 0; y < World.MaxHeight / ChunkSize; y++) {
-                world.WorldMap.TryAdd((x, y, z), new((x, y, z), world));
-            }
-            CurrentlyLoadedChunkLines.Add((x, z));
-            return Task.Run(() => {
-                //TOFIX: Sometimes chunk is generated 2 times
-                if (!world.WorldMap.ContainsKey((x, 0, z)) || (world.WorldMap.ContainsKey((x, 0, z)) && !world.WorldMap[(x, 0, z)].IsGenerated)) {
-                    world.GenerateTerrain(x, z);
-                }
-                if (!world.WorldMap.ContainsKey((x + 1, 0, z)) || (world.WorldMap.ContainsKey((x + 1, 0, z)) && !world.WorldMap[(x + 1, 0, z)].IsGenerated)) {
-                    world.GenerateChunkLine(x + 1, z);
-                }
-                if (!world.WorldMap.ContainsKey((x, 0, z + 1)) || (world.WorldMap.ContainsKey((x, 0, z + 1)) && !world.WorldMap[(x, 0, z + 1)].IsGenerated)) {
-                    world.GenerateChunkLine(x, z + 1);
-                }
-                if (!world.WorldMap.ContainsKey((x - 1, 0, z)) || (world.WorldMap.ContainsKey((x - 1, 0, z)) && !world.WorldMap[(x - 1, 0, z)].IsGenerated)) {
-                    world.GenerateChunkLine(x - 1, z);
-                }
-                if (!world.WorldMap.ContainsKey((x, 0, z - 1)) || (world.WorldMap.ContainsKey((x, 0, z - 1)) && !world.WorldMap[(x, 0, z - 1)].IsGenerated)) {
-                    world.GenerateChunkLine(x, z - 1);
-                }
-                for (int y = 0; y < World.MaxHeight / ChunkSize; y++) {
-                    GenerateChunkMesh(world.WorldMap[(x, y, z)]);
-                }
-            });
-        }
-        void UnloadChunkLine(int x, int z) {
-            CurrentlyLoadedChunkLines.Remove((x, z));
-            for (int y = 0; y < World.MaxHeight / ChunkSize; y++) {
-                world.WorldMap[(x, y, z)].vertexBufferOpaque?.Dispose();
-                world.WorldMap[(x, y, z)].vertexBufferTransparent?.Dispose();
-            }
-        }
         protected override void Draw(GameTime gameTime) {
             if (player.IsUnderWater) {
                 GraphicsDevice.Clear(new Color(new Vector3(0.3f, 0.3f, 0.7f)));
@@ -239,6 +182,7 @@ namespace VoxelTechDemo {
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
             GraphicsDevice.Indices = indexBuffer;
 
+            Matrix worldMatrix;
             Matrix viewProj = viewMatrix * projectionMatrix;
             BoundingFrustum frustum = new(viewProj);
 
@@ -248,7 +192,7 @@ namespace VoxelTechDemo {
             // Render solid blocks
             for (int x = -RenderDistance; x <= RenderDistance; x++) {
                 for (int z = -RenderDistance; z <= RenderDistance; z++) {
-                    if (CurrentlyLoadedChunkLines.Contains((x + player.CurrentChunk.x, z + player.CurrentChunk.z)) && frustum.Intersects(new BoundingBox(
+                    if (world.CurrentlyLoadedChunkLines.Contains((x + player.CurrentChunk.x, z + player.CurrentChunk.z)) && frustum.Intersects(new BoundingBox(
                     new Vector3(x, -player.CurrentChunk.y, z) * ChunkSize, new Vector3(x + 1, -player.CurrentChunk.y + World.MaxHeight / ChunkSize, z + 1) * ChunkSize))) {
                         worldMatrix = Matrix.CreateWorld(new Vector3(x, -player.CurrentChunk.y, z) * ChunkSize, Vector3.Forward, Vector3.Up);
                         solidEffect.WorldViewProj.SetValue(worldMatrix * viewProj);
@@ -264,7 +208,7 @@ namespace VoxelTechDemo {
             GraphicsDevice.RasterizerState = RasterizerState.CullNone;
             for (int x = -RenderDistance; x <= RenderDistance; x++) {
                 for (int z = -RenderDistance; z <= RenderDistance; z++) {
-                    if (CurrentlyLoadedChunkLines.Contains((x + player.CurrentChunk.x, z + player.CurrentChunk.z)) && frustum.Intersects(new BoundingBox(
+                    if (world.CurrentlyLoadedChunkLines.Contains((x + player.CurrentChunk.x, z + player.CurrentChunk.z)) && frustum.Intersects(new BoundingBox(
                     new Vector3(x, -player.CurrentChunk.y, z) * ChunkSize, new Vector3(x + 1, -player.CurrentChunk.y + World.MaxHeight / ChunkSize, z + 1) * ChunkSize))) {
                         worldMatrix = Matrix.CreateWorld(new Vector3(x, -player.CurrentChunk.y, z) * ChunkSize, Vector3.Forward, Vector3.Up);
                         fluidEffect.WorldViewProj.SetValue(worldMatrix * viewProj);

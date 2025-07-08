@@ -4,17 +4,16 @@ using Microsoft.Xna.Framework.Input;
 using static VoxelTechDemo.VoxelRenderer;
 
 namespace VoxelTechDemo{
-    class Player{
+    public class Player{
         World currentWorld;
         public Vector3 LookedAtBlock;
         public bool IsUnderWater = false, blockFound = false;
         bool CanJump = false;
-        float movementSpeed, verticalSpeed;
+        float verticalSpeed;
         public Vector3 camPosition, forward, right;
         public BoundingBox playerHitBox;
         public BlockFace currentSide;
         public (int x,int y,int z) CurrentChunk;
-        public bool ChunkChanged = false;
         public Player(World world){
             currentWorld = world;
             camPosition = new Vector3(35.5f, 53+(int)Math.Floor(currentWorld.MountainNoise(35,35)), 35.5f);
@@ -71,6 +70,7 @@ namespace VoxelTechDemo{
             }
         }
         public void NoClipMovement(KeyboardState keyboardState, GameTime gameTime){
+            float movementSpeed;
             if(keyboardState.IsKeyDown(Keys.LeftShift)){
                 movementSpeed = 0.1f;
             }
@@ -105,6 +105,7 @@ namespace VoxelTechDemo{
         }
         public void NormalMovement(KeyboardState keyboardState, GameTime gameTime, float yaw){
             forward = Vector3.Zero;
+            float movementSpeed;
             if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z),CurrentChunk))){
                 if(keyboardState.IsKeyDown(Keys.LeftShift)){
                     movementSpeed = 0.005f;
@@ -272,6 +273,7 @@ namespace VoxelTechDemo{
             verticalSpeed = 0;
         }
         void ResetCamera(){
+            bool ChunkChanged = false;
             if(camPosition.X>ChunkSize){
                 camPosition.X-=ChunkSize;
                 CurrentChunk.x+=1;
@@ -309,6 +311,9 @@ namespace VoxelTechDemo{
             if(camPosition.Y<0f){
                 camPosition.Y+=ChunkSize;
                 CurrentChunk.y-=1;
+            }
+            if (ChunkChanged) {
+                currentWorld.UpdateLoadedChunks(CurrentChunk.x, CurrentChunk.z);
             }
         }
     }
