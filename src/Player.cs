@@ -70,30 +70,30 @@ namespace VoxelTechDemo{
             }
         }
         public void NoClipMovement(KeyboardState keyboardState, GameTime gameTime){
-            float movementSpeed;
+            float movementSpeed = (float)gameTime.ElapsedGameTime.TotalMilliseconds;
             if(keyboardState.IsKeyDown(Keys.LeftShift)){
-                movementSpeed = 0.1f;
+                movementSpeed *= 0.1f;
             }
             else{
-                movementSpeed = 0.025f;
+                movementSpeed *= 0.025f;
             }
             if (keyboardState.IsKeyDown(Keys.W)){
-                camPosition += forward*movementSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds;         
+                camPosition += forward*movementSpeed;         
             }
             if (keyboardState.IsKeyDown(Keys.S)){
-                camPosition -= forward*movementSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
+                camPosition -= forward*movementSpeed;
             }
             if (keyboardState.IsKeyDown(Keys.A)){
-                camPosition -= right*movementSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
+                camPosition -= right*movementSpeed;
             }
             if (keyboardState.IsKeyDown(Keys.D)){
-                camPosition += right*movementSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds; 
+                camPosition += right*movementSpeed; 
             }
             if(keyboardState.IsKeyDown(Keys.Space)){
-                camPosition += Vector3.Up*movementSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
+                camPosition.Y += movementSpeed;
             }
             if(keyboardState.IsKeyDown(Keys.LeftControl)){
-                camPosition -= Vector3.Up*movementSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
+                camPosition.Y -= movementSpeed;
             }
             ResetCamera();
             if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(camPosition.Y-0.1f),(int)Math.Floor(camPosition.Z),CurrentChunk))){

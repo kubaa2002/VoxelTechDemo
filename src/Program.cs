@@ -14,13 +14,15 @@ namespace VoxelTechDemo {
         private SpriteBatch _spriteBatch;
         private SpriteFont _spriteFont;
         private float yaw = MathHelper.PiOver2, pitch;
-        private bool LeftButtonPressed = false, RightButtonPressed = false, IsPaused = false, IsEscPressed = false, IsNoClipOn = false, IsNPressed = false;
+        private bool IsPaused = false, IsNoClipOn = false;
+        private KeyboardState lastKeyboardState;
+        private MouseState lastMouseState;
         private byte chosenBlock = 1;
-        private int ScrollWheelValue;
         private Point WindowCenter;
         private CustomEffect solidEffect;
         private FluidEffect fluidEffect;
-        private BasicEffect blockPreviewEffect;
+        private Effect blockPreviewEffect;
+        private Matrix previewMatrix;
 
         public Matrix projectionMatrix, viewMatrix;
         public readonly World world = new(12345);
@@ -29,13 +31,10 @@ namespace VoxelTechDemo {
         public Game1() {
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
-        }
-        protected override void Initialize() {
-
             // Setting window size
             _graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
             _graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
-            
+
             // Loading user settings from a file
             LoadSettings();
             if (FrameRateUnlocked) {
@@ -45,8 +44,8 @@ namespace VoxelTechDemo {
             if (Fullscreen) {
                 _graphics.IsFullScreen = true;
             }
-            _graphics.ApplyChanges();
-
+        }
+        protected override void Initialize() {
             InitializeVoxelRenderer(GraphicsDevice);
 
             // Custom shader setup
@@ -54,20 +53,17 @@ namespace VoxelTechDemo {
             fluidEffect = new(Content.Load<Effect>("FluidEffect"), this);
 
             // Setting up block preview effect
-            blockPreviewEffect = new BasicEffect(GraphicsDevice) {
-                World = Matrix.CreateWorld(Vector3.Zero, Vector3.Forward, Vector3.Up),
-                View = Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f, 0.5f, 0.5f), Vector3.Up),
-                Projection = CreateBlockPreviewProj((int)(GraphicsDevice.Viewport.Width * 0.93f), (int)(GraphicsDevice.Viewport.Height * 0.9f), 5),
-                Texture = Content.Load<Texture2D>("Textures"),
-                TextureEnabled = true
-            };
+            previewMatrix = Matrix.CreateWorld(Vector3.Zero, Vector3.Forward, Vector3.Up);
+            previewMatrix *= Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f, 0.5f, 0.5f), Vector3.Up);
+            previewMatrix *= CreateBlockPreviewProj((int)(GraphicsDevice.Viewport.Width * 0.93f), (int)(GraphicsDevice.Viewport.Height * 0.9f), 5);
+            ChangeCubePreview(chosenBlock);
+            blockPreviewEffect = solidEffect;
 
             UserInterface.Initialize(this, _graphics);
 
             player = new Player(world);
             world.UpdateLoadedChunks(0, 0);
             world.GenerateChunkLine(0, 0);
-            ChangeCubePreview(chosenBlock);
 
             //Camera setup
             projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView), GraphicsDevice.DisplayMode.AspectRatio, 0.1f, 10000f);
@@ -81,15 +77,11 @@ namespace VoxelTechDemo {
         }
         protected override void Update(GameTime gameTime) {
             KeyboardState keyboardState = Keyboard.GetState();
-            if (keyboardState.IsKeyDown(Keys.Escape) && !IsEscPressed) {
+            if (keyboardState.IsKeyDown(Keys.Escape) && lastKeyboardState.IsKeyUp(Keys.Escape)) {
                 IsPaused = !IsPaused;
-                IsEscPressed = true;
                 IsMouseVisible = !IsMouseVisible;
                 Mouse.SetPosition(WindowCenter.X, WindowCenter.Y);
                 CheckSettingsFile();
-            }
-            if (keyboardState.IsKeyUp(Keys.Escape)) {
-                IsEscPressed = false;
             }
             if (!IsPaused) {
                 //Camera look
@@ -100,12 +92,8 @@ namespace VoxelTechDemo {
                 player.right = Vector3.Transform(Vector3.Right, Matrix.CreateFromYawPitchRoll(yaw, pitch, 0f));
 
                 //Check pressed keys
-                if (keyboardState.IsKeyUp(Keys.N)) {
-                    IsNPressed = false;
-                }
-                if (keyboardState.IsKeyDown(Keys.N) && IsNPressed == false) {
+                if (keyboardState.IsKeyDown(Keys.N) && lastKeyboardState.IsKeyUp(Keys.N)) {
                     IsNoClipOn = !IsNoClipOn;
-                    IsNPressed = true;
                     player.ResetHitBox();
                 }
                 if (IsNoClipOn) {
@@ -119,52 +107,29 @@ namespace VoxelTechDemo {
                 player.forward = Vector3.Transform(Vector3.Forward, Matrix.CreateFromYawPitchRoll(yaw, pitch, 0f));
                 player.GetLookedAtBlock();
 
-                if (currentMouseState.LeftButton == ButtonState.Pressed && LeftButtonPressed == false && player.blockFound == true) {
+                if (currentMouseState.LeftButton == ButtonState.Pressed && lastMouseState.LeftButton == ButtonState.Released && player.blockFound) {
                     world.SetBlock(player.LookedAtBlock, player.CurrentChunk, 0);
-                    LeftButtonPressed = true;
                 }
-                if (currentMouseState.LeftButton == ButtonState.Released) {
-                    LeftButtonPressed = false;
-                }
-                if (currentMouseState.RightButton == ButtonState.Pressed && RightButtonPressed == false && player.blockFound == true) {
+                if (currentMouseState.RightButton == ButtonState.Pressed && lastMouseState.RightButton == ButtonState.Released && player.blockFound) {
                     world.SetBlock(player.LookedAtBlock, player.CurrentChunk, chosenBlock, player.currentSide, player.playerHitBox);
-                    RightButtonPressed = true;
                 }
-                if (currentMouseState.RightButton == ButtonState.Released) {
-                    RightButtonPressed = false;
-                }
-                if (currentMouseState.ScrollWheelValue > ScrollWheelValue) {
-                    chosenBlock++;
-                    if (chosenBlock == 15) {
-                        chosenBlock = 255;
-                        blockPreviewEffect.Texture = Content.Load<Texture2D>("Water_Texture");
-                        blockPreviewEffect.DiffuseColor = new Vector3(0.7f, 0.7f, 1.4f);
-                    }
+                if(currentMouseState.ScrollWheelValue != lastMouseState.ScrollWheelValue) {
+                    chosenBlock = (byte)((currentMouseState.ScrollWheelValue / 120 % 15 + 15) % 15);
                     if (chosenBlock == 0) {
-                        chosenBlock = 1;
-                        blockPreviewEffect.Texture = Content.Load<Texture2D>("Textures");
-                        blockPreviewEffect.DiffuseColor = Vector3.One;
-                    }
-                    ChangeCubePreview(chosenBlock);
-                }
-                if (currentMouseState.ScrollWheelValue < ScrollWheelValue) {
-                    chosenBlock--;
-                    if (chosenBlock == 0) {
+                        blockPreviewEffect = fluidEffect;
+                        ChangeCubePreview(255);
                         chosenBlock = 255;
-                        blockPreviewEffect.Texture = Content.Load<Texture2D>("Water_Texture");
-                        blockPreviewEffect.DiffuseColor = new Vector3(0.7f, 0.7f, 1.4f);
                     }
-                    if (chosenBlock == 254) {
-                        chosenBlock = 14;
-                        blockPreviewEffect.Texture = Content.Load<Texture2D>("Textures");
-                        blockPreviewEffect.DiffuseColor = Vector3.One;
+                    else {
+                        blockPreviewEffect = solidEffect;
+                        ChangeCubePreview(chosenBlock);
                     }
-                    ChangeCubePreview(chosenBlock);
                 }
-                ScrollWheelValue = currentMouseState.ScrollWheelValue;
+                lastMouseState = currentMouseState;
                 Mouse.SetPosition(WindowCenter.X, WindowCenter.Y);
             }
             viewMatrix = Matrix.CreateLookAt(player.camPosition, player.camPosition + player.forward, Vector3.Up);
+            lastKeyboardState = keyboardState;
             base.Update(gameTime);
         }
         protected override void Draw(GameTime gameTime) {
@@ -244,6 +209,8 @@ namespace VoxelTechDemo {
             GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
 
             if (!IsPaused) {
+                blockPreviewEffect.Parameters["WorldViewProj"].SetValue(previewMatrix);
+                blockPreviewEffect.Parameters["FogVector"].SetValue(Vector4.Zero);
                 blockPreviewEffect.CurrentTechnique.Passes[0].Apply();
                 DrawCubePreview();
             }
