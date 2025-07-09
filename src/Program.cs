@@ -194,21 +194,19 @@ namespace VoxelTechDemo {
             }
 
             //FPS counter and other UI
-            _spriteBatch.Begin();
             if (!IsPaused) {
+                _spriteBatch.Begin();
                 _spriteBatch.DrawString(_spriteFont, $"FPS:{UserInterface.frameCounter.GetFPS(gameTime.ElapsedGameTime.TotalSeconds)}", new(1, 3), Color.Black);
                 _spriteBatch.DrawString(_spriteFont, $"X:{Math.Round((double)player.camPosition.X + (long)player.CurrentChunk.x * ChunkSize, 2)}", new(1, 23), Color.Black);
                 _spriteBatch.DrawString(_spriteFont, $"Y:{Math.Round(player.camPosition.Y + player.CurrentChunk.y * ChunkSize - 1.7f, 2)}", new(1, 43), Color.Black);
                 _spriteBatch.DrawString(_spriteFont, $"Z:{Math.Round((double)player.camPosition.Z + (long)player.CurrentChunk.z * ChunkSize, 2)}", new(1, 63), Color.Black);
                 _spriteBatch.DrawString(_spriteFont, "+", new Vector2(WindowCenter.X, WindowCenter.Y) - (_spriteFont.MeasureString("+") / 2), Color.Black);
                 _spriteBatch.Draw(solidEffect.Texture.GetValueTexture2D(), new Rectangle((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f)), new Rectangle(225, 241, 15, 15), Color.White);
-            }
-            _spriteBatch.End();
+                _spriteBatch.End();
 
-            // Sprite batch resets some settings so they need to be set again
-            GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
+                // Sprite batch resets some settings so they need to be set again
+                GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
 
-            if (!IsPaused) {
                 blockPreviewEffect.Parameters["WorldViewProj"].SetValue(previewMatrix);
                 blockPreviewEffect.Parameters["FogVector"].SetValue(Vector4.Zero);
                 blockPreviewEffect.CurrentTechnique.Passes[0].Apply();
@@ -216,7 +214,7 @@ namespace VoxelTechDemo {
             }
             else {
                 UserInterface._desktop.Render();
-            }
+            }        
 
             base.Draw(gameTime);
         }
