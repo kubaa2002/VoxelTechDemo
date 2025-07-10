@@ -7,10 +7,11 @@ using static VoxelTechDemo.VoxelRenderer;
 namespace VoxelTechDemo{
     public class CustomEffect : Effect{
         public readonly EffectParameter Texture;
-        protected readonly EffectParameter DiffuseColor;
+        public readonly EffectParameter DiffuseColor;
         readonly EffectParameter FogColor;
         readonly EffectParameter FogVector;
         public readonly EffectParameter WorldViewProj;
+        public readonly EffectParameter AnimationFrame;
 
         public float FogStart;
         public float FogEnd{
@@ -29,6 +30,7 @@ namespace VoxelTechDemo{
             FogColor = Parameters["FogColor"];
             FogVector = Parameters["FogVector"];
             WorldViewProj = Parameters["WorldViewProj"];
+            AnimationFrame = Parameters["AnimationFrame"];
 
             Texture.SetValue(game.Content.Load<Texture2D>("Textures"));
             DiffuseColor.SetValue(new Vector4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -40,6 +42,9 @@ namespace VoxelTechDemo{
                 149f / 255f,  // Green
                 237f / 255f   // Blue
             ));
+        }
+        public void UpdateAnimationFrame(TimeSpan totalTime) {
+            AnimationFrame.SetValue((float)Math.Round(totalTime.TotalSeconds * 8 % 15) / 16);
         }
         public void Apply(Matrix worldView){
             if(FogEnabled){
@@ -59,31 +64,6 @@ namespace VoxelTechDemo{
             FogColor.SetValue(new Vector3(100f/255f,149f/255f,237f/255f));
             FogStart = RenderDistance*0.6f*ChunkSize;
             FogEnd = RenderDistance*0.8f*ChunkSize;
-        }
-    }
-    public class FluidEffect : CustomEffect{
-        readonly EffectParameter AnimationFrame;
-
-        int counter = 0;
-        TimeSpan timer = new();
-
-        public FluidEffect(Effect clone, Game game):base(clone, game){
-            // Animation Frame can be from 0 to 15
-            AnimationFrame = Parameters["AnimationFrame"];
-
-            Texture.SetValue(game.Content.Load<Texture2D>("WaterTexture"));
-            DiffuseColor.SetValue(new Vector3(0.7f,0.7f,1.4f));
-        }
-        public void UpdateAnimationFrame(TimeSpan elapsedTime){
-            timer += elapsedTime;
-            if(timer.Ticks>TimeSpan.TicksPerSecond/10){
-                counter++;
-                timer = new TimeSpan(timer.Ticks-TimeSpan.TicksPerSecond/10);
-                if(counter>15){
-                    counter = 0;
-                }
-                AnimationFrame.SetValue(counter);
-            }
         }
     }
 }

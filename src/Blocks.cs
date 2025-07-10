@@ -6,7 +6,7 @@ namespace VoxelTechDemo{
         public Dictionary<int, Vector2[]> TextureDictionary = [];
         public Blocks(){
             byte[] TextureCoordinates = [
-                255,255,255,255,255,255,//CubeFrame
+                241,241,241,241,241,241,//CubeFrame
 
                 1,1,0,2,1,1,//Grass
                 2,2,2,2,2,2, //Dirt
@@ -37,10 +37,10 @@ namespace VoxelTechDemo{
             }
             Vector2[] result2 = new Vector2[24];
             for(int i=0;i<6;i++){
-                result2[i*4]=new Vector2(0,0);
-                result2[i*4+1]=new Vector2(1,0);
-                result2[i*4+2]=new Vector2(0,1.0f/16f);
-                result2[i*4+3]=new Vector2(1,1.0f/16.0f);
+                result2[i*4]= new Vector2(15f/16f, 0);
+                result2[i*4+1]= new Vector2(1, 0);
+                result2[i*4+2]= new Vector2(15f/16f, 1f/16f);
+                result2[i*4+3]= new Vector2(1, 1f/16.0f);
             }
             TextureDictionary[255] = result2;
         }

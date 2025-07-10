@@ -20,8 +20,6 @@ namespace VoxelTechDemo {
         private byte chosenBlock = 1;
         private Point WindowCenter;
         private CustomEffect solidEffect;
-        private FluidEffect fluidEffect;
-        private Effect blockPreviewEffect;
         private Matrix previewMatrix;
 
         public Matrix projectionMatrix, viewMatrix;
@@ -50,14 +48,12 @@ namespace VoxelTechDemo {
 
             // Custom shader setup
             solidEffect = new(Content.Load<Effect>("CustomEffect"), this);
-            fluidEffect = new(Content.Load<Effect>("FluidEffect"), this);
 
             // Setting up block preview effect
             previewMatrix = Matrix.CreateWorld(Vector3.Zero, Vector3.Forward, Vector3.Up);
             previewMatrix *= Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f, 0.5f, 0.5f), Vector3.Up);
             previewMatrix *= CreateBlockPreviewProj((int)(GraphicsDevice.Viewport.Width * 0.93f), (int)(GraphicsDevice.Viewport.Height * 0.9f), 5);
             ChangeCubePreview(chosenBlock);
-            blockPreviewEffect = solidEffect;
 
             UserInterface.Initialize(this, _graphics);
 
@@ -116,14 +112,9 @@ namespace VoxelTechDemo {
                 if(currentMouseState.ScrollWheelValue != lastMouseState.ScrollWheelValue) {
                     chosenBlock = (byte)((currentMouseState.ScrollWheelValue / 120 % 15 + 15) % 15);
                     if (chosenBlock == 0) {
-                        blockPreviewEffect = fluidEffect;
-                        ChangeCubePreview(255);
                         chosenBlock = 255;
                     }
-                    else {
-                        blockPreviewEffect = solidEffect;
-                        ChangeCubePreview(chosenBlock);
-                    }
+                    ChangeCubePreview(chosenBlock);
                 }
                 lastMouseState = currentMouseState;
                 Mouse.SetPosition(WindowCenter.X, WindowCenter.Y);
@@ -133,15 +124,14 @@ namespace VoxelTechDemo {
             base.Update(gameTime);
         }
         protected override void Draw(GameTime gameTime) {
+            solidEffect.DiffuseColor.SetValue(Vector3.One);
             if (player.IsUnderWater) {
                 GraphicsDevice.Clear(new Color(new Vector3(0.3f, 0.3f, 0.7f)));
                 solidEffect.ApplyUnderWaterSettings();
-                fluidEffect.ApplyUnderWaterSettings();
             }
             else {
                 GraphicsDevice.Clear(Color.CornflowerBlue);
                 solidEffect.ApplyNormalSettings();
-                fluidEffect.ApplyNormalSettings();
             }
             GraphicsDevice.DepthStencilState = DepthStencilState.Default;
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
@@ -151,7 +141,6 @@ namespace VoxelTechDemo {
             Matrix viewProj = viewMatrix * projectionMatrix;
             BoundingFrustum frustum = new(viewProj);
 
-            fluidEffect.UpdateAnimationFrame(gameTime.ElapsedGameTime);
 
             //TODO: Make it so it doesn't recalculate world matrices every frame
             // Render solid blocks
@@ -171,13 +160,15 @@ namespace VoxelTechDemo {
 
             // Render fluids
             GraphicsDevice.RasterizerState = RasterizerState.CullNone;
+            solidEffect.UpdateAnimationFrame(gameTime.TotalGameTime);
+            solidEffect.DiffuseColor.SetValue(new Vector3(0.7f, 0.7f, 1.4f));
             for (int x = -RenderDistance; x <= RenderDistance; x++) {
                 for (int z = -RenderDistance; z <= RenderDistance; z++) {
                     if (world.CurrentlyLoadedChunkLines.Contains((x + player.CurrentChunk.x, z + player.CurrentChunk.z)) && frustum.Intersects(new BoundingBox(
                     new Vector3(x, -player.CurrentChunk.y, z) * ChunkSize, new Vector3(x + 1, -player.CurrentChunk.y + World.MaxHeight / ChunkSize, z + 1) * ChunkSize))) {
                         worldMatrix = Matrix.CreateWorld(new Vector3(x, -player.CurrentChunk.y, z) * ChunkSize, Vector3.Forward, Vector3.Up);
-                        fluidEffect.WorldViewProj.SetValue(worldMatrix * viewProj);
-                        fluidEffect.Apply(worldMatrix * viewMatrix);
+                        solidEffect.WorldViewProj.SetValue(worldMatrix * viewProj);
+                        solidEffect.Apply(worldMatrix * viewMatrix);
                         for (int y = 0; y < World.MaxHeight / ChunkSize; y++) {
                             DrawChunk(world.WorldMap[(x + player.CurrentChunk.x, y, z + player.CurrentChunk.z)].vertexBufferTransparent);
                         }
@@ -185,6 +176,8 @@ namespace VoxelTechDemo {
                 }
             }
             GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
+            solidEffect.AnimationFrame.SetValue(0);
+            solidEffect.DiffuseColor.SetValue(Vector3.One);
 
             worldMatrix = Matrix.CreateWorld(player.LookedAtBlock, Vector3.Forward, Vector3.Up);
             solidEffect.WorldViewProj.SetValue(worldMatrix * viewProj);
@@ -201,15 +194,18 @@ namespace VoxelTechDemo {
                 _spriteBatch.DrawString(_spriteFont, $"Y:{Math.Round(player.camPosition.Y + player.CurrentChunk.y * ChunkSize - 1.7f, 2)}", new(1, 43), Color.Black);
                 _spriteBatch.DrawString(_spriteFont, $"Z:{Math.Round((double)player.camPosition.Z + (long)player.CurrentChunk.z * ChunkSize, 2)}", new(1, 63), Color.Black);
                 _spriteBatch.DrawString(_spriteFont, "+", new Vector2(WindowCenter.X, WindowCenter.Y) - (_spriteFont.MeasureString("+") / 2), Color.Black);
-                _spriteBatch.Draw(solidEffect.Texture.GetValueTexture2D(), new Rectangle((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f)), new Rectangle(225, 241, 15, 15), Color.White);
+                _spriteBatch.Draw(solidEffect.Texture.GetValueTexture2D(), new Rectangle((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f)), new Rectangle(0, 241, 15, 15), Color.White);
                 _spriteBatch.End();
 
                 // Sprite batch resets some settings so they need to be set again
                 GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
 
-                blockPreviewEffect.Parameters["WorldViewProj"].SetValue(previewMatrix);
-                blockPreviewEffect.Parameters["FogVector"].SetValue(Vector4.Zero);
-                blockPreviewEffect.CurrentTechnique.Passes[0].Apply();
+                solidEffect.WorldViewProj.SetValue(previewMatrix);
+                solidEffect.Parameters["FogVector"].SetValue(Vector4.Zero);
+                if(chosenBlock == 255) {
+                    solidEffect.DiffuseColor.SetValue(new Vector3(0.7f, 0.7f, 1.4f));
+                }
+                solidEffect.CurrentTechnique.Passes[0].Apply();
                 DrawCubePreview();
             }
             else {
