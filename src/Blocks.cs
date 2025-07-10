@@ -6,7 +6,7 @@ namespace VoxelTechDemo{
         public Dictionary<int, Vector2[]> TextureDictionary = [];
         public Blocks(){
             byte[] blockFaces = [
-                241,241,241,241,241,241,    // 0  - Cube Frame (Air)
+                240,240,240,240,240,240,    // 0  - Cube Frame (Air)
 
                 1,1,0,2,1,1,                // 1  - Grass
                 2,2,2,2,2,2,                // 2  - Dirt

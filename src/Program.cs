@@ -10,9 +10,9 @@ game.Run();
 
 namespace VoxelTechDemo {
     public class Game1 : Game {
-        private readonly GraphicsDeviceManager _graphics;
-        private SpriteBatch _spriteBatch;
-        private SpriteFont _spriteFont;
+        private readonly GraphicsDeviceManager graphics;
+        private SpriteBatch spriteBatch;
+        private SpriteFont font;
         private float yaw = MathHelper.PiOver2, pitch;
         private bool IsPaused = false, IsNoClipOn = false;
         private KeyboardState lastKeyboardState;
@@ -21,26 +21,27 @@ namespace VoxelTechDemo {
         private Point WindowCenter;
         private CustomEffect solidEffect;
         private Matrix previewMatrix;
+        private Texture2D blankTexture;
 
         public Matrix projectionMatrix, viewMatrix;
         public readonly World world = new(12345);
         public Player player;
         
         public Game1() {
-            _graphics = new GraphicsDeviceManager(this);
+            graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
             // Setting window size
-            _graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
-            _graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+            graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+            graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
 
             // Loading user settings from a file
             LoadSettings();
             if (FrameRateUnlocked) {
-                _graphics.SynchronizeWithVerticalRetrace = !_graphics.SynchronizeWithVerticalRetrace;
+                graphics.SynchronizeWithVerticalRetrace = !graphics.SynchronizeWithVerticalRetrace;
                 IsFixedTimeStep = !IsFixedTimeStep;
             }
             if (Fullscreen) {
-                _graphics.IsFullScreen = true;
+                graphics.IsFullScreen = true;
             }
         }
         protected override void Initialize() {
@@ -55,7 +56,7 @@ namespace VoxelTechDemo {
             previewMatrix *= CreateBlockPreviewProj((int)(GraphicsDevice.Viewport.Width * 0.93f), (int)(GraphicsDevice.Viewport.Height * 0.9f), 5);
             ChangeCubePreview(chosenBlock);
 
-            UserInterface.Initialize(this, _graphics);
+            UserInterface.Initialize(this, graphics);
 
             player = new Player(world);
             world.UpdateLoadedChunks(0, 0);
@@ -68,8 +69,10 @@ namespace VoxelTechDemo {
             base.Initialize();
         }
         protected override void LoadContent() {
-            _spriteBatch = new SpriteBatch(GraphicsDevice);
-            _spriteFont = Content.Load<SpriteFont>("PublicPixel");
+            spriteBatch = new SpriteBatch(GraphicsDevice);
+            font = Content.Load<SpriteFont>("PublicPixel");
+            blankTexture = new(GraphicsDevice, 1, 1);
+            blankTexture.SetData([new Color(0, 0, 0, 128)]);
         }
         protected override void Update(GameTime gameTime) {
             KeyboardState keyboardState = Keyboard.GetState();
@@ -185,14 +188,14 @@ namespace VoxelTechDemo {
 
             //FPS counter and other UI
             if (!IsPaused) {
-                _spriteBatch.Begin();
-                _spriteBatch.DrawString(_spriteFont, $"FPS:{UserInterface.frameCounter.GetFPS(gameTime.ElapsedGameTime.TotalSeconds)}", new(1, 3), Color.Black);
-                _spriteBatch.DrawString(_spriteFont, $"X:{Math.Round((double)player.camPosition.X + (long)player.CurrentChunk.x * ChunkSize, 2)}", new(1, 23), Color.Black);
-                _spriteBatch.DrawString(_spriteFont, $"Y:{Math.Round(player.camPosition.Y + player.CurrentChunk.y * ChunkSize - 1.7f, 2)}", new(1, 43), Color.Black);
-                _spriteBatch.DrawString(_spriteFont, $"Z:{Math.Round((double)player.camPosition.Z + (long)player.CurrentChunk.z * ChunkSize, 2)}", new(1, 63), Color.Black);
-                _spriteBatch.DrawString(_spriteFont, "+", new Vector2(WindowCenter.X, WindowCenter.Y) - (_spriteFont.MeasureString("+") / 2), Color.Black);
-                _spriteBatch.Draw(solidEffect.Texture.GetValueTexture2D(), new Rectangle((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f)), new Rectangle(0, 241, 15, 15), Color.White);
-                _spriteBatch.End();
+                spriteBatch.Begin();
+                spriteBatch.DrawString(font, $"FPS:{UserInterface.frameCounter.GetFPS(gameTime.ElapsedGameTime.TotalSeconds)}", new(1, 3), Color.Black);
+                spriteBatch.DrawString(font, $"X:{Math.Round((double)player.camPosition.X + (long)player.CurrentChunk.x * ChunkSize, 2)}", new(1, 23), Color.Black);
+                spriteBatch.DrawString(font, $"Y:{Math.Round(player.camPosition.Y + player.CurrentChunk.y * ChunkSize - 1.7f, 2)}", new(1, 43), Color.Black);
+                spriteBatch.DrawString(font, $"Z:{Math.Round((double)player.camPosition.Z + (long)player.CurrentChunk.z * ChunkSize, 2)}", new(1, 63), Color.Black);
+                spriteBatch.DrawString(font, "+", new Vector2(WindowCenter.X, WindowCenter.Y) - (font.MeasureString("+") / 2), Color.Black);
+                spriteBatch.Draw(blankTexture, new Rectangle((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f)), Color.White);
+                spriteBatch.End();
 
                 // Sprite batch resets some settings so they need to be set again
                 GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
