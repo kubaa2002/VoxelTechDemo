@@ -5,29 +5,30 @@ namespace VoxelTechDemo{
     internal class Blocks{
         public Dictionary<int, Vector2[]> TextureDictionary = [];
         public Blocks(){
-            byte[] TextureCoordinates = [
-                241,241,241,241,241,241,//CubeFrame
+            byte[] blockFaces = [
+                241,241,241,241,241,241,    // 0  - Cube Frame (Air)
 
-                1,1,0,2,1,1,//Grass
-                2,2,2,2,2,2, //Dirt
-                3,3,3,3,3,3, //Stone
-                4,4,4,4,4,4, //cobblestone
-                16,16,17,17,16,16, //OakLog
-                19,19,19,19,19,19, //Planks
-                18,18,18,18,18,18, //Leaves
-                48,48,48,48,48,48, //Glass
-                33,33,32,19,33,33,//CraftingTable
-                64,64,64,64,64,64, //StoneBricks
-                5,5,5,5,5,5, //gravel
-                6,6,6,6,6,6, //sand
-                7,7,7,7,7,7, //snow
-                80,80,80,80,80,80, // Glowstone
+                1,1,0,2,1,1,                // 1  - Grass
+                2,2,2,2,2,2,                // 2  - Dirt
+                3,3,3,3,3,3,                // 3  - Stone
+                4,4,4,4,4,4,                // 4  - Cobblestone
+                16,16,17,17,16,16,          // 5  - Oak Log
+                19,19,19,19,19,19,          // 6  - Planks
+                18,18,18,18,18,18,          // 7  - Leaves
+                48,48,48,48,48,48,          // 8  - Glass
+                33,33,32,19,33,33,          // 9  - Crafting Table
+                64,64,64,64,64,64,          // 10 - Stone Bricks
+                5,5,5,5,5,5,                // 11 - Gravel
+                6,6,6,6,6,6,                // 12 - Sand
+                7,7,7,7,7,7,                // 13 - Snow
+                80,80,80,80,80,80,          // 14 - Glowstone
+                15,15,15,15,15,15,          // 15 - Water
             ];
-            for(int i=0;i<(TextureCoordinates.Length/6);i++){
+            for(int i=0;i<(blockFaces.Length/6);i++){
                 Vector2[] result= new Vector2[24];
                 for(int j=0;j<6;j++){
-                    int x=TextureCoordinates[i*6+j]%16;
-                    int y=TextureCoordinates[i*6+j]/16;
+                    int x=blockFaces[i*6+j]%16;
+                    int y=blockFaces[i*6+j]/16;
                     result[j*4]=new Vector2(0.0625f*(x+1),0.0625f*(y+1));
                     result[j*4+1]=new Vector2(0.0625f*x,0.0625f*(y+1));
                     result[j*4+2]=new Vector2(0.0625f*(x+1),0.0625f*y);
@@ -35,20 +36,12 @@ namespace VoxelTechDemo{
                 }
                 TextureDictionary[i]=result;
             }
-            Vector2[] result2 = new Vector2[24];
-            for(int i=0;i<6;i++){
-                result2[i*4]= new Vector2(15f/16f, 0);
-                result2[i*4+1]= new Vector2(1, 0);
-                result2[i*4+2]= new Vector2(15f/16f, 1f/16f);
-                result2[i*4+3]= new Vector2(1, 1f/16.0f);
-            }
-            TextureDictionary[255] = result2;
         }
         public static bool IsNotSolid(byte Id){
             switch(Id){
                 case 0:
                     return true;
-                case 255:
+                case 15:
                     return true;
                 default:
                     return false;
@@ -62,7 +55,7 @@ namespace VoxelTechDemo{
                     return true;
                 case 8:
                     return true;
-                case 255:
+                case 15:
                     return true;
                 default:
                     return false;
@@ -70,7 +63,7 @@ namespace VoxelTechDemo{
         }
         public static bool IsFluid(byte Id){
             switch(Id){
-                case 255:
+                case 15:
                     return true;
                 default:
                     return false;

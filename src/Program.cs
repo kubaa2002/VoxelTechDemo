@@ -110,10 +110,7 @@ namespace VoxelTechDemo {
                     world.SetBlock(player.LookedAtBlock, player.CurrentChunk, chosenBlock, player.currentSide, player.playerHitBox);
                 }
                 if(currentMouseState.ScrollWheelValue != lastMouseState.ScrollWheelValue) {
-                    chosenBlock = (byte)((currentMouseState.ScrollWheelValue / 120 % 15 + 15) % 15);
-                    if (chosenBlock == 0) {
-                        chosenBlock = 255;
-                    }
+                    chosenBlock = (byte)(((currentMouseState.ScrollWheelValue / 120 % 15 + 15) % 15) + 1);
                     ChangeCubePreview(chosenBlock);
                 }
                 lastMouseState = currentMouseState;
@@ -202,7 +199,7 @@ namespace VoxelTechDemo {
 
                 solidEffect.WorldViewProj.SetValue(previewMatrix);
                 solidEffect.Parameters["FogVector"].SetValue(Vector4.Zero);
-                if(chosenBlock == 255) {
+                if(chosenBlock == 15) {
                     solidEffect.DiffuseColor.SetValue(new Vector3(0.7f, 0.7f, 1.4f));
                 }
                 solidEffect.CurrentTechnique.Passes[0].Apply();
