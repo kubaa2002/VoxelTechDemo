@@ -153,7 +153,8 @@ namespace VoxelTechDemo{
             }
             cubeFrameVertex.SetData(cubeVertices);
         }
-        static public void DrawCubeFrame(){
+        static public void DrawCubeFrame(CustomEffect effect, Vector3 LookedAtBlock){
+            effect.Apply(Matrix.CreateWorld(LookedAtBlock, Vector3.Forward, Vector3.Up));
             graphicsDevice.SetVertexBuffer(cubeFrameVertex);
             graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, 12);
         }
@@ -171,7 +172,8 @@ namespace VoxelTechDemo{
             }
             cubePreviewVertex.SetData(cubeVerticesPreview);
         }
-        static public void DrawCubePreview(){
+        static public void DrawCubePreview(CustomEffect effect){
+            effect.DrawBlockPreview();
             graphicsDevice.SetVertexBuffer(cubePreviewVertex);
             //Indices have to be set because sprite batch resets it
             graphicsDevice.Indices = indexBuffer;

@@ -124,7 +124,7 @@ namespace VoxelTechDemo{
             };
             FOVslider.ValueChanged += (s, a) =>{
                 FieldOfView = FOVslider.Value;
-                game.projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView),game.GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f);
+                game.effect.projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView),game.GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f);
             };
             Grid.SetColumn(FOVslider,1);
             Grid.SetRow(FOVslider,4);

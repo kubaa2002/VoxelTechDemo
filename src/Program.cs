@@ -19,11 +19,10 @@ namespace VoxelTechDemo {
         private MouseState lastMouseState;
         private byte chosenBlock = 1;
         private Point WindowCenter;
-        private CustomEffect solidEffect;
-        private Matrix previewMatrix;
+        public CustomEffect effect;
+        
         private Texture2D blankTexture;
 
-        public Matrix projectionMatrix, viewMatrix;
         public readonly World world = new(12345);
         public Player player;
         
@@ -46,24 +45,15 @@ namespace VoxelTechDemo {
         }
         protected override void Initialize() {
             InitializeVoxelRenderer(GraphicsDevice);
-
-            // Custom shader setup
-            solidEffect = new(Content.Load<Effect>("CustomEffect"), this);
-
-            // Setting up block preview effect
-            previewMatrix = Matrix.CreateWorld(Vector3.Zero, Vector3.Forward, Vector3.Up);
-            previewMatrix *= Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f, 0.5f, 0.5f), Vector3.Up);
-            previewMatrix *= CreateBlockPreviewProj((int)(GraphicsDevice.Viewport.Width * 0.93f), (int)(GraphicsDevice.Viewport.Height * 0.9f), 5);
+            effect = new(Content.Load<Effect>("CustomEffect"), this);
             ChangeCubePreview(chosenBlock);
-
             UserInterface.Initialize(this, graphics);
 
+            // Creating player and making sure that spawn terrain is generated
             player = new Player(world);
-            world.UpdateLoadedChunks(0, 0);
-            world.GenerateChunkLine(0, 0);
+            world.GenerateChunkLine(player.CurrentChunk.x,player.CurrentChunk.z);
+            world.UpdateLoadedChunks(player.CurrentChunk.x,player.CurrentChunk.z);
 
-            //Camera setup
-            projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView), GraphicsDevice.DisplayMode.AspectRatio, 0.1f, 10000f);
             WindowCenter = new Point(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
 
             base.Initialize();
@@ -119,71 +109,36 @@ namespace VoxelTechDemo {
                 lastMouseState = currentMouseState;
                 Mouse.SetPosition(WindowCenter.X, WindowCenter.Y);
             }
-            viewMatrix = Matrix.CreateLookAt(player.camPosition, player.camPosition + player.forward, Vector3.Up);
+            effect.UpdateViewMatrix(player);
             lastKeyboardState = keyboardState;
             base.Update(gameTime);
         }
         protected override void Draw(GameTime gameTime) {
-            solidEffect.DiffuseColor.SetValue(Vector3.One);
             if (player.IsUnderWater) {
-                GraphicsDevice.Clear(new Color(new Vector3(0.3f, 0.3f, 0.7f)));
-                solidEffect.ApplyUnderWaterSettings();
+                effect.ApplyUnderWaterSettings();
             }
             else {
-                GraphicsDevice.Clear(Color.CornflowerBlue);
-                solidEffect.ApplyNormalSettings();
+                effect.ApplyNormalSettings();
             }
-            GraphicsDevice.DepthStencilState = DepthStencilState.Default;
-            GraphicsDevice.BlendState = BlendState.AlphaBlend;
-            GraphicsDevice.Indices = indexBuffer;
 
-            Matrix worldMatrix;
-            Matrix viewProj = viewMatrix * projectionMatrix;
-            BoundingFrustum frustum = new(viewProj);
+            BoundingFrustum frustum = new(effect.viewProj);
 
-
-            //TODO: Make it so it doesn't recalculate world matrices every frame
             // Render solid blocks
-            for (int x = -RenderDistance; x <= RenderDistance; x++) {
-                for (int z = -RenderDistance; z <= RenderDistance; z++) {
-                    if (world.CurrentlyLoadedChunkLines.Contains((x + player.CurrentChunk.x, z + player.CurrentChunk.z)) && frustum.Intersects(new BoundingBox(
-                    new Vector3(x, -player.CurrentChunk.y, z) * ChunkSize, new Vector3(x + 1, -player.CurrentChunk.y + World.MaxHeight / ChunkSize, z + 1) * ChunkSize))) {
-                        worldMatrix = Matrix.CreateWorld(new Vector3(x, -player.CurrentChunk.y, z) * ChunkSize, Vector3.Forward, Vector3.Up);
-                        solidEffect.WorldViewProj.SetValue(worldMatrix * viewProj);
-                        solidEffect.Apply(worldMatrix * viewMatrix);
-                        for (int y = 0; y < World.MaxHeight / ChunkSize; y++) {
-                            DrawChunk(world.WorldMap[(x + player.CurrentChunk.x, y, z + player.CurrentChunk.z)].vertexBufferOpaque);
-                        }
-                    }
-                }
-            }
+            DrawTerrain(frustum, true);
+
+            // Apply water animation settings
+            GraphicsDevice.RasterizerState = RasterizerState.CullNone;
+            effect.UpdateAnimationFrame(gameTime.TotalGameTime);
 
             // Render fluids
-            GraphicsDevice.RasterizerState = RasterizerState.CullNone;
-            solidEffect.UpdateAnimationFrame(gameTime.TotalGameTime);
-            solidEffect.DiffuseColor.SetValue(new Vector3(0.7f, 0.7f, 1.4f));
-            for (int x = -RenderDistance; x <= RenderDistance; x++) {
-                for (int z = -RenderDistance; z <= RenderDistance; z++) {
-                    if (world.CurrentlyLoadedChunkLines.Contains((x + player.CurrentChunk.x, z + player.CurrentChunk.z)) && frustum.Intersects(new BoundingBox(
-                    new Vector3(x, -player.CurrentChunk.y, z) * ChunkSize, new Vector3(x + 1, -player.CurrentChunk.y + World.MaxHeight / ChunkSize, z + 1) * ChunkSize))) {
-                        worldMatrix = Matrix.CreateWorld(new Vector3(x, -player.CurrentChunk.y, z) * ChunkSize, Vector3.Forward, Vector3.Up);
-                        solidEffect.WorldViewProj.SetValue(worldMatrix * viewProj);
-                        solidEffect.Apply(worldMatrix * viewMatrix);
-                        for (int y = 0; y < World.MaxHeight / ChunkSize; y++) {
-                            DrawChunk(world.WorldMap[(x + player.CurrentChunk.x, y, z + player.CurrentChunk.z)].vertexBufferTransparent);
-                        }
-                    }
-                }
-            }
-            GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
-            solidEffect.AnimationFrame.SetValue(0);
-            solidEffect.DiffuseColor.SetValue(Vector3.One);
+            DrawTerrain(frustum, false);
 
-            worldMatrix = Matrix.CreateWorld(player.LookedAtBlock, Vector3.Forward, Vector3.Up);
-            solidEffect.WorldViewProj.SetValue(worldMatrix * viewProj);
-            solidEffect.Apply(worldMatrix * viewMatrix);
+            // Return to normal settings
+            GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
+            effect.AnimationFrame.SetValue(0);
+
             if (player.blockFound) {
-                DrawCubeFrame();
+                DrawCubeFrame(effect,player.LookedAtBlock);
             }
 
             //FPS counter and other UI
@@ -197,22 +152,32 @@ namespace VoxelTechDemo {
                 spriteBatch.Draw(blankTexture, new Rectangle((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f)), Color.White);
                 spriteBatch.End();
 
-                // Sprite batch resets some settings so they need to be set again
-                GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
-
-                solidEffect.WorldViewProj.SetValue(previewMatrix);
-                solidEffect.Parameters["FogVector"].SetValue(Vector4.Zero);
-                if(chosenBlock == 15) {
-                    solidEffect.DiffuseColor.SetValue(new Vector3(0.7f, 0.7f, 1.4f));
-                }
-                solidEffect.CurrentTechnique.Passes[0].Apply();
-                DrawCubePreview();
+                DrawCubePreview(effect);
             }
             else {
                 UserInterface._desktop.Render();
-            }        
+            }
 
             base.Draw(gameTime);
+        }
+        private void DrawTerrain(BoundingFrustum frustum, bool opaque) {
+            //TODO: Make it so it doesn't recalculate world matrices every frame
+            int chunkX = player.CurrentChunk.x;
+            int chunkY = player.CurrentChunk.y;
+            int chunkZ = player.CurrentChunk.z;
+            Vector3 chunkLineSize = new(ChunkSize, World.MaxHeight, ChunkSize);
+            foreach((int x,int z) in world.CurrentlyLoadedChunkLines) {
+                Vector3 currentChunkCoords = new(x - chunkX, - chunkY, z - chunkZ);
+                currentChunkCoords *= ChunkSize;
+                if(frustum.Intersects(new BoundingBox(currentChunkCoords, currentChunkCoords + chunkLineSize))) {
+                    effect.Apply(Matrix.CreateWorld(currentChunkCoords, Vector3.Forward, Vector3.Up));
+                    for (int y = 0; y < World.MaxHeight / ChunkSize; y++) {
+                        if(world.WorldMap.TryGetValue((x, y, z), out Chunk chunk)) {
+                            DrawChunk(opaque ? chunk.vertexBufferOpaque : chunk.vertexBufferTransparent);
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -1,6 +1,5 @@
 // Shader constants
 sampler2D Texture;
-float4 DiffuseColor;
 float4 FogVector;
 float3 FogColor;
 float4x4 WorldViewProj;
@@ -17,7 +16,6 @@ struct VSInput
 struct VSOutput
 {
     float4 PositionPS : SV_Position;
-    float4 Diffuse    : COLOR0;
     float FogFactor   : COLOR1;
     float2 TexCoord   : TEXCOORD0;
 };
@@ -28,7 +26,6 @@ VSOutput VSCustomEffect(VSInput vin)
     VSOutput vout;
     
     vout.PositionPS = mul(vin.Position, WorldViewProj);
-    vout.Diffuse = DiffuseColor;
     vout.FogFactor = saturate(dot(vin.Position, FogVector));
     vout.TexCoord = float2(vin.TexCoord.x, vin.TexCoord.y + AnimationFrame);
 
@@ -38,7 +35,7 @@ VSOutput VSCustomEffect(VSInput vin)
 // Pixel shader
 float4 PSCustomEffect(VSOutput pin) : SV_Target0
 {
-    float4 color = tex2D(Texture, pin.TexCoord) * pin.Diffuse;
+    float4 color = tex2D(Texture, pin.TexCoord);
     if(color.a <= 0) discard;
     color.rgb = lerp(color.rgb, FogColor * color.a, pin.FogFactor);
 
