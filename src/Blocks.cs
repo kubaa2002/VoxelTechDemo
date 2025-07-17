@@ -23,6 +23,9 @@ namespace VoxelTechDemo{
                 7,7,7,7,7,7,                // 13 - Snow
                 80,80,80,80,80,80,          // 14 - Glowstone
                 15,15,15,15,15,15,          // 15 - Water
+                81,81,81,81,81,81,          // 16 - Red Glowstone
+                82,82,82,82,82,82,          // 17 - Green Glowstone
+                83,83,83,83,83,83,          // 18 - Blue Glowstone
             ];
             for(int i=0;i<(blockFaces.Length/6);i++){
                 Vector2[] result= new Vector2[24];
@@ -67,6 +70,35 @@ namespace VoxelTechDemo{
                     return true;
                 default:
                     return false;
+            }
+        }
+        public static bool IsLightEminiting(byte Id) {
+            switch (Id) {
+                case 14:
+                    return true;
+                case 16:
+                    return true;
+                case 17:
+                    return true;
+                case 18:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        public static (int red, int blue, int green) ReturnBlockLightValues(byte Id) {
+            switch (Id) {
+                // yellow glowstone
+                case 14:
+                    return (31, 31, 31);
+                case 16:
+                    return (31, 0, 0);
+                case 17:
+                    return (0, 31, 0);
+                case 18:
+                    return (0, 0, 31);
+                default:
+                    return (0, 0, 0);
             }
         }
     }

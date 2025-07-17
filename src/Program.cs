@@ -53,6 +53,7 @@ namespace VoxelTechDemo {
             player = new Player(world);
             world.GenerateChunkLine(player.CurrentChunk.x,player.CurrentChunk.z);
             world.UpdateLoadedChunks(player.CurrentChunk.x,player.CurrentChunk.z);
+            world.SetBlock(new Vector3(35, 12, 35), (0, 1, 0), 14);
 
             WindowCenter = new Point(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
 
@@ -103,13 +104,13 @@ namespace VoxelTechDemo {
                     world.SetBlock(player.LookedAtBlock, player.CurrentChunk, chosenBlock, player.currentSide, player.playerHitBox);
                 }
                 if(currentMouseState.ScrollWheelValue != lastMouseState.ScrollWheelValue) {
-                    chosenBlock = (byte)(((currentMouseState.ScrollWheelValue / 120 % 15 + 15) % 15) + 1);
+                    chosenBlock = (byte)(((currentMouseState.ScrollWheelValue / 120 % 18 + 18) % 18) + 1);
                     ChangeCubePreview(chosenBlock);
                 }
                 lastMouseState = currentMouseState;
                 Mouse.SetPosition(WindowCenter.X, WindowCenter.Y);
+                effect.UpdateViewMatrix(player);
             }
-            effect.UpdateViewMatrix(player);
             lastKeyboardState = keyboardState;
             base.Update(gameTime);
         }

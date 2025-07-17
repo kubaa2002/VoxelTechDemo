@@ -48,38 +48,44 @@ namespace VoxelTechDemo{
             if(!WorldMap.TryGetValue(chunkCoordinate, out Chunk chunk)){
                 return;
             }
+            Dictionary<(int, int, int), Chunk> Dict = [];
+            Dict[chunkCoordinate] = chunk;
+            chunk.UpdateLight(x, y, z, Id, Dict);
             chunk.blocks[x+(y*ChunkSize)+(z*ChunkSizeSquared)]=Id;
             chunk.CheckMaxY(y);
             GenerateChunkMesh(chunk);
             if(x==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x-1,chunkCoordinate.y,chunkCoordinate.z),out chunk)){
-                    GenerateChunkMesh(chunk);
+                    Dict[(chunkCoordinate.x - 1, chunkCoordinate.y, chunkCoordinate.z)] = chunk;
                 }
             }
             if(x==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x+1,chunkCoordinate.y,chunkCoordinate.z),out chunk)){
-                    GenerateChunkMesh(chunk);
+                    Dict[(chunkCoordinate.x + 1, chunkCoordinate.y, chunkCoordinate.z)] = chunk;
                 }
             }
             if(y==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y-1,chunkCoordinate.z),out chunk)){
-                    GenerateChunkMesh(chunk);
+                    Dict[(chunkCoordinate.x, chunkCoordinate.y - 1, chunkCoordinate.z)] = chunk;
                 }
             }
             if(y==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y+1,chunkCoordinate.z),out chunk)){
-                    GenerateChunkMesh(chunk);
+                    Dict[(chunkCoordinate.x, chunkCoordinate.y + 1, chunkCoordinate.z)] = chunk;
                 }
             }
             if(z==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z-1),out chunk)){
-                    GenerateChunkMesh(chunk);
+                    Dict[(chunkCoordinate.x, chunkCoordinate.y, chunkCoordinate.z - 1)] = chunk;
                 }
             }
             if(z==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z+1),out chunk)){
-                    GenerateChunkMesh(chunk);
+                    Dict[(chunkCoordinate.x, chunkCoordinate.y, chunkCoordinate.z + 1)] = chunk;
                 }
+            }
+            foreach (Chunk value in Dict.Values) {
+                GenerateChunkMesh(value);
             }
         }
         public void SetBlockWithoutUpdating(int x,int y,int z,(int x,int y,int z) chunkCoordinate,byte Id){
