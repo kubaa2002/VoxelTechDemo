@@ -47,6 +47,11 @@ namespace VoxelTechDemo{
                         UpdateSingleBlockLightValue(x, y, z, Dict);
                     }
                 }
+                else if ( !Blocks.IsNotSolid(Id) ) {
+                    PropagateShadow(x, y, z, 0, Dict);
+                    PropagateShadow(x, y, z, 5, Dict);
+                    PropagateShadow(x, y, z, 10, Dict);
+                }
             }
         }
         // TOFIX: Some blocks in the corner of chunks are not light up properly, could be casued by checking wrong block possitions somewhere
@@ -58,12 +63,10 @@ namespace VoxelTechDemo{
                     PropagateLight(x - 1, y, z, color - 1, bytesOffset, Dict);
                 }
             }
-            else {
-                if (world.WorldMap.TryGetValue((coordinates.x - 1, coordinates.y, coordinates.z), out Chunk adjacentChunk)) {
-                    Dict[(coordinates.x - 1, coordinates.y, coordinates.z)] = adjacentChunk;
-                    if (Blocks.IsTransparent(adjacentChunk.blocks[ChunkSize - 1 + y * ChunkSize + z * ChunkSizeSquared]) && ((adjacentChunk.blockLightValues[ChunkSize - 1 + y * ChunkSize + z * ChunkSizeSquared] >> bytesOffset) & 31) < color - 1) {
-                        adjacentChunk.PropagateLight(ChunkSize - 1, y, z, color - 1, bytesOffset, Dict);
-                    }
+            else if (world.WorldMap.TryGetValue((coordinates.x - 1, coordinates.y, coordinates.z), out Chunk adjacentChunk)) {
+                Dict[(coordinates.x - 1, coordinates.y, coordinates.z)] = adjacentChunk;
+                if (Blocks.IsTransparent(adjacentChunk.blocks[ChunkSize - 1 + y * ChunkSize + z * ChunkSizeSquared]) && ((adjacentChunk.blockLightValues[ChunkSize - 1 + y * ChunkSize + z * ChunkSizeSquared] >> bytesOffset) & 31) < color - 1) {
+                    adjacentChunk.PropagateLight(ChunkSize - 1, y, z, color - 1, bytesOffset, Dict);
                 }
             }
             if (x != ChunkSize - 1) {
@@ -71,12 +74,10 @@ namespace VoxelTechDemo{
                     PropagateLight(x + 1, y, z, color - 1, bytesOffset, Dict);
                 }
             }
-            else {
-                if (world.WorldMap.TryGetValue((coordinates.x + 1, coordinates.y, coordinates.z), out Chunk adjacentChunk)) {
-                    Dict[(coordinates.x + 1, coordinates.y, coordinates.z)] = adjacentChunk;
-                    if (Blocks.IsTransparent(adjacentChunk.blocks[y * ChunkSize + z * ChunkSizeSquared]) && ((adjacentChunk.blockLightValues[y * ChunkSize + z * ChunkSizeSquared] >> bytesOffset) & 31) < color - 1) {
-                        adjacentChunk.PropagateLight(0, y, z, color - 1, bytesOffset, Dict);
-                    }
+            else if (world.WorldMap.TryGetValue((coordinates.x + 1, coordinates.y, coordinates.z), out Chunk adjacentChunk)) {
+                Dict[(coordinates.x + 1, coordinates.y, coordinates.z)] = adjacentChunk;
+                if (Blocks.IsTransparent(adjacentChunk.blocks[y * ChunkSize + z * ChunkSizeSquared]) && ((adjacentChunk.blockLightValues[y * ChunkSize + z * ChunkSizeSquared] >> bytesOffset) & 31) < color - 1) {
+                    adjacentChunk.PropagateLight(0, y, z, color - 1, bytesOffset, Dict);
                 }
             }
             if (y != 0) {
@@ -84,12 +85,10 @@ namespace VoxelTechDemo{
                     PropagateLight(x, y - 1, z, color - 1, bytesOffset, Dict);
                 }
             }
-            else {
-                if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y - 1, coordinates.z), out Chunk adjacentChunk)) {
-                    Dict[(coordinates.x, coordinates.y - 1, coordinates.z)] = adjacentChunk;
-                    if (Blocks.IsTransparent(adjacentChunk.blocks[x + ChunkSize * (ChunkSize - 1) + z * ChunkSizeSquared]) && ((adjacentChunk.blockLightValues[x + (ChunkSize - 1) * ChunkSize + z * ChunkSizeSquared] >> bytesOffset) & 31) < color - 1) {
-                        adjacentChunk.PropagateLight(x, ChunkSize - 1, z, color - 1, bytesOffset, Dict);
-                    }
+            else if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y - 1, coordinates.z), out Chunk adjacentChunk)) {
+                Dict[(coordinates.x, coordinates.y - 1, coordinates.z)] = adjacentChunk;
+                if (Blocks.IsTransparent(adjacentChunk.blocks[x + ChunkSize * (ChunkSize - 1) + z * ChunkSizeSquared]) && ((adjacentChunk.blockLightValues[x + (ChunkSize - 1) * ChunkSize + z * ChunkSizeSquared] >> bytesOffset) & 31) < color - 1) {
+                    adjacentChunk.PropagateLight(x, ChunkSize - 1, z, color - 1, bytesOffset, Dict);
                 }
             }
             if (y != ChunkSize - 1) {
@@ -97,12 +96,10 @@ namespace VoxelTechDemo{
                     PropagateLight(x, y + 1, z, color - 1, bytesOffset, Dict);
                 }
             }
-            else {
-                if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y + 1, coordinates.z), out Chunk adjacentChunk)) {
-                    Dict[(coordinates.x, coordinates.y + 1, coordinates.z)] = adjacentChunk;
-                    if (Blocks.IsTransparent(adjacentChunk.blocks[x + z * ChunkSizeSquared]) && ((adjacentChunk.blockLightValues[x + z * ChunkSizeSquared] >> bytesOffset) & 31) < color - 1) {
-                        adjacentChunk.PropagateLight(x, 0, z, color - 1, bytesOffset, Dict);
-                    }
+            else if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y + 1, coordinates.z), out Chunk adjacentChunk)) {
+                Dict[(coordinates.x, coordinates.y + 1, coordinates.z)] = adjacentChunk;
+                if (Blocks.IsTransparent(adjacentChunk.blocks[x + z * ChunkSizeSquared]) && ((adjacentChunk.blockLightValues[x + z * ChunkSizeSquared] >> bytesOffset) & 31) < color - 1) {
+                    adjacentChunk.PropagateLight(x, 0, z, color - 1, bytesOffset, Dict);
                 }
             }
             if (z != 0) {
@@ -110,12 +107,10 @@ namespace VoxelTechDemo{
                     PropagateLight(x, y, z - 1, color - 1, bytesOffset, Dict);
                 }
             }
-            else {
-                if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y, coordinates.z - 1), out Chunk adjacentChunk)) {
-                    Dict[(coordinates.x, coordinates.y, coordinates.z - 1)] = adjacentChunk;
-                    if (Blocks.IsTransparent(adjacentChunk.blocks[x + y * ChunkSize + (ChunkSize - 1) * ChunkSizeSquared]) && ((adjacentChunk.blockLightValues[x + y * ChunkSize] >> bytesOffset) & 31) < color - 1) {
-                        adjacentChunk.PropagateLight(x, y, ChunkSize - 1, color - 1, bytesOffset, Dict);
-                    }
+            else if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y, coordinates.z - 1), out Chunk adjacentChunk)) {
+                Dict[(coordinates.x, coordinates.y, coordinates.z - 1)] = adjacentChunk;
+                if (Blocks.IsTransparent(adjacentChunk.blocks[x + y * ChunkSize + (ChunkSize - 1) * ChunkSizeSquared]) && ((adjacentChunk.blockLightValues[x + y * ChunkSize] >> bytesOffset) & 31) < color - 1) {
+                    adjacentChunk.PropagateLight(x, y, ChunkSize - 1, color - 1, bytesOffset, Dict);
                 }
             }
             if (z != ChunkSize - 1) {
@@ -123,12 +118,10 @@ namespace VoxelTechDemo{
                     PropagateLight(x, y, z + 1, color - 1, bytesOffset, Dict);
                 }
             }
-            else {
-                if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y, coordinates.z + 1), out Chunk adjacentChunk)) {
-                    Dict[(coordinates.x, coordinates.y, coordinates.z + 1)] = adjacentChunk;
-                    if (Blocks.IsTransparent(adjacentChunk.blocks[x + y * ChunkSize]) && ((adjacentChunk.blockLightValues[x + y * ChunkSize] >> bytesOffset) & 31) < color - 1) {
-                        adjacentChunk.PropagateLight(x, y, 0, color - 1, bytesOffset, Dict);
-                    }
+            else if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y, coordinates.z + 1), out Chunk adjacentChunk)) {
+                Dict[(coordinates.x, coordinates.y, coordinates.z + 1)] = adjacentChunk;
+                if (Blocks.IsTransparent(adjacentChunk.blocks[x + y * ChunkSize]) && ((adjacentChunk.blockLightValues[x + y * ChunkSize] >> bytesOffset) & 31) < color - 1) {
+                    adjacentChunk.PropagateLight(x, y, 0, color - 1, bytesOffset, Dict);
                 }
             }
         }
@@ -139,50 +132,38 @@ namespace VoxelTechDemo{
                     value = blockLightValues[x - 1 + y * ChunkSize + z * ChunkSizeSquared];
                 }
             }
-            else {
-                if (world.WorldMap.TryGetValue((coordinates.x - 1, coordinates.y, coordinates.z), out Chunk chunk)) {
-                    value = chunk.blockLightValues[ChunkSize - 1 + y * ChunkSize + z * ChunkSizeSquared];
-                }
+            else if (world.WorldMap.TryGetValue((coordinates.x - 1, coordinates.y, coordinates.z), out Chunk chunk)) {
+                value = chunk.blockLightValues[ChunkSize - 1 + y * ChunkSize + z * ChunkSizeSquared];
             }
             if (x != ChunkSize - 1) {
                 value = CalculateLightValue(x + 1, y, z, value);
             }
-            else {
-                if (world.WorldMap.TryGetValue((coordinates.x + 1, coordinates.y, coordinates.z), out Chunk chunk)) {
-                    value = chunk.CalculateLightValue(0, y, z, value);
-                }
+            else if (world.WorldMap.TryGetValue((coordinates.x + 1, coordinates.y, coordinates.z), out Chunk chunk)) {
+                value = chunk.CalculateLightValue(0, y, z, value);
             }
             if (y != 0) {
                 value = CalculateLightValue(x, y - 1, z, value);
             }
-            else {
-                if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y - 1, coordinates.z), out Chunk chunk)) {
-                    value = chunk.CalculateLightValue(x, ChunkSize - 1, z, value);
-                }
+            else if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y - 1, coordinates.z), out Chunk chunk)) {
+                value = chunk.CalculateLightValue(x, ChunkSize - 1, z, value);
             }
             if (y != ChunkSize - 1) {
                 value = CalculateLightValue(x, y + 1, z, value);
             }
-            else {
-                if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y + 1, coordinates.z), out Chunk chunk)) {
-                    value = chunk.CalculateLightValue(x, 0, z, value);
-                }
+            else if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y + 1, coordinates.z), out Chunk chunk)) {
+                value = chunk.CalculateLightValue(x, 0, z, value);
             }
             if (z != 0) {
                 value = CalculateLightValue(x, y, z - 1, value);
             }
-            else {
-                if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y, coordinates.z - 1), out Chunk chunk)) {
-                    value = chunk.CalculateLightValue(x, y, ChunkSize - 1, value);
-                }
+            else if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y, coordinates.z - 1), out Chunk chunk)) {
+                value = chunk.CalculateLightValue(x, y, ChunkSize - 1, value);
             }
             if (z != ChunkSize - 1) {
                 value = CalculateLightValue(x, y, z + 1, value);
             }
-            else {
-                if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y, coordinates.z + 1), out Chunk chunk)) {
-                    value = chunk.CalculateLightValue(x, y, 0, value);
-                }
+            else if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y, coordinates.z + 1), out Chunk chunk)) {
+                value = chunk.CalculateLightValue(x, y, 0, value);
             }
             if ((value & 31) != 0) {
                 value--;
@@ -213,87 +194,42 @@ namespace VoxelTechDemo{
             }
             return lightValue;
         }
-        public void PropagateShadow(int x, int y, int z, int bytesOffset, Dictionary<(int, int, int), Chunk> Dict) {
-            Queue<(int, int, int)> shadowQueue = [];
+        public void PropagateShadow(int startX, int startY, int startZ, int bytesOffset, Dictionary<(int, int, int), Chunk> Dict) {
+            Queue<(int, int, int, Chunk)> shadowQueue = [];
             Queue<(int, int, int)> lightQueue = [];
-            shadowQueue.Enqueue((x, y, x));
+            shadowQueue.Enqueue((startX,startY,startZ,this));
             while (shadowQueue.Count > 0) {
-                (int x, int y, int z) coords;
-                coords = shadowQueue.Dequeue();
-                int index = coords.x + coords.y * ChunkSize + coords.z * ChunkSizeSquared;
-                byte oldValue = (byte)((blockLightValues[index] >> bytesOffset) & 31);
-                blockLightValues[index] &= (short)~(31 << bytesOffset);
-                if (x != 0) {
-                    if (Blocks.IsTransparent(blocks[index - 1])) {
-                        if (((blockLightValues[index - 1] >> bytesOffset) & 31) == oldValue - 1) {
-                            shadowQueue.Enqueue((coords.x - 1, coords.y, coords.z));
-                        }
-                        else {
-                            if (((blockLightValues[index - 1] >> bytesOffset) & 31) > oldValue - 1) {
-                                lightQueue.Enqueue((coords.x - 1, coords.y, coords.z));
-                            }
-                        }
-                    }
+                (int x, int y, int z, Chunk chunk) = shadowQueue.Dequeue();
+                int index = x + y * ChunkSize + z * ChunkSizeSquared;
+                int oldValue = ((chunk.blockLightValues[index] >> bytesOffset) & 31) - 1;
+                chunk.blockLightValues[index] &= (short)~(31 << bytesOffset);
+
+                CheckNeighbor(x + 1, y, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Dict);
+                CheckNeighbor(x - 1, y, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Dict);
+                CheckNeighbor(x, y + 1, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Dict);
+                CheckNeighbor(x, y - 1, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Dict);
+                CheckNeighbor(x, y, z + 1, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Dict);
+                CheckNeighbor(x, y, z - 1, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Dict);
+            }
+        }
+        private void CheckNeighbor(int x,int y,int z, Chunk chunk, int oldValue, int bytesOffset, Queue<(int, int, int, Chunk)> shadowQueue, Queue<(int, int, int)> lightQueue, Dictionary<(int, int, int), Chunk> Dict) {
+            if (x < 0 || x >= ChunkSize || y < 0 || y >= ChunkSize || z < 0 || z >= ChunkSize) {
+                int chunkX = coordinates.x + (x >= 0 ? x / ChunkSize : ((x + 1) / ChunkSize) - 1);
+                int chunkY = coordinates.y + (y >= 0 ? y / ChunkSize : ((y + 1) / ChunkSize) - 1);
+                int chunkZ = coordinates.z + (z >= 0 ? z / ChunkSize : ((z + 1) / ChunkSize) - 1);
+                if (!world.WorldMap.TryGetValue((chunkX, chunkY, chunkZ), out chunk)) {
+                    return;
                 }
-                if (x != ChunkSize - 1) {
-                    if (Blocks.IsTransparent(blocks[index + 1])) {
-                        if (((blockLightValues[index + 1] >> bytesOffset) & 31) == oldValue - 1) {
-                            shadowQueue.Enqueue((coords.x + 1, coords.y, coords.z));
-                        }
-                        else {
-                            if (((blockLightValues[index + 1] >> bytesOffset) & 31) > oldValue - 1) {
-                                lightQueue.Enqueue((coords.x + 1, coords.y, coords.z));
-                            }
-                        }
-                    }
-                }
-                if (y != 0) {
-                    if (Blocks.IsTransparent(blocks[index - ChunkSize])) {
-                        if (((blockLightValues[index - ChunkSize] >> bytesOffset) & 31) == oldValue - 1) {
-                            shadowQueue.Enqueue((coords.x, coords.y - 1, coords.z));
-                        }
-                        else {
-                            if (((blockLightValues[index - ChunkSize] >> bytesOffset) & 31) > oldValue - 1) {
-                                lightQueue.Enqueue((coords.x, coords.y - 1, coords.z));
-                            }
-                        }
-                    }
-                }
-                if (y != ChunkSize - 1) {
-                    if (Blocks.IsTransparent(blocks[index + ChunkSize])) {
-                        if (((blockLightValues[index + ChunkSize] >> bytesOffset) & 31) == oldValue - 1) {
-                            shadowQueue.Enqueue((coords.x, coords.y + 1, coords.z));
-                        }
-                        else {
-                            if (((blockLightValues[index + ChunkSize] >> bytesOffset) & 31) > oldValue - 1) {
-                                lightQueue.Enqueue((coords.x, coords.y + 1, coords.z));
-                            }
-                        }
-                    }
-                }
-                if (z != 0) {
-                    if (Blocks.IsTransparent(blocks[index - ChunkSizeSquared])) {
-                        if (((blockLightValues[index - ChunkSizeSquared] >> bytesOffset) & 31) == oldValue - 1) {
-                            shadowQueue.Enqueue((coords.x, coords.y, coords.z - 1));
-                        }
-                        else {
-                            if (((blockLightValues[index - ChunkSizeSquared] >> bytesOffset) & 31) > oldValue - 1) {
-                                lightQueue.Enqueue((coords.x, coords.y, coords.z - 1));
-                            }
-                        }
-                    }
-                }
-                if (z != ChunkSize - 1) {
-                    if (Blocks.IsTransparent(blocks[index + ChunkSizeSquared])) {
-                        if (((blockLightValues[index + ChunkSizeSquared] >> bytesOffset) & 31) == oldValue - 1) {
-                            shadowQueue.Enqueue((coords.x, coords.y, coords.z + 1));
-                        }
-                        else {
-                            if (((blockLightValues[index + ChunkSizeSquared] >> bytesOffset) & 31) > oldValue - 1) {
-                                lightQueue.Enqueue((coords.x, coords.y, coords.z + 1));
-                            }
-                        }
-                    }
+                Dict[(chunkX, chunkY, chunkZ)] = chunk;
+                x = (x + ChunkSize) % ChunkSize;
+                y = (y + ChunkSize) % ChunkSize;
+                z = (z + ChunkSize) % ChunkSize;
+            }
+            int index = x + y * ChunkSize + z * ChunkSizeSquared;
+            // Will crash if x, y or z are below -ChunkSize but they never should be so it should be fine
+            if (Blocks.IsTransparent(chunk.blocks[index])) {             
+                if (((chunk.blockLightValues[index] >> bytesOffset) & 31) == oldValue) {
+                    shadowQueue.Enqueue((x, y, z, chunk));
                 }
             }
         }
