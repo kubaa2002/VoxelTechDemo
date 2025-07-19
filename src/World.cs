@@ -50,8 +50,8 @@ namespace VoxelTechDemo{
             }
             Dictionary<(int, int, int), Chunk> Dict = [];
             Dict[chunkCoordinate] = chunk;
-            chunk.UpdateLight(x, y, z, Id, Dict);
             chunk.blocks[x+(y*ChunkSize)+(z*ChunkSizeSquared)]=Id;
+            chunk.UpdateLight(x, y, z, Id, Dict);
             chunk.CheckMaxY(y);
             GenerateChunkMesh(chunk);
             if(x==0){
