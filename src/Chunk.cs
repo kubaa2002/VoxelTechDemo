@@ -23,82 +23,66 @@ namespace VoxelTechDemo{
                 maxY = (byte)y;
             }
         }
-        public void UpdateLight(int x, int y, int z, byte Id, Dictionary<(int, int, int), Chunk> Dict) {
+        public void UpdateLight(int x, int y, int z, byte Id, HashSet<Chunk> Set) {
             if (Blocks.IsLightEminiting(Id)) {
                 (int red, int green, int blue) = Blocks.ReturnBlockLightValues(Id);
                 short currentLightValue = blockLightValues[x + y * ChunkSize + z * ChunkSizeSquared];
-                PropagateShadow(x, y, z, Dict);
+                PropagateShadow(x, y, z, Set);
                 if ((currentLightValue & 31) < red) {
-                    PropagateLight(x, y, z, red, 0, Dict);
+                    PropagateLight(x, y, z, red, 0, Set);
                 }
                 if (((currentLightValue >> 5) & 31) < green) {
-                    PropagateLight(x, y, z, green, 5, Dict);
+                    PropagateLight(x, y, z, green, 5, Set);
                 }
                 if (((currentLightValue >> 10) & 31) < blue) {
-                    PropagateLight(x, y, z, blue, 10, Dict);
+                    PropagateLight(x, y, z, blue, 10, Set);
                 }
             }
             else if (Id == 0 || !Blocks.IsTransparent(Id)) {
-                PropagateShadow(x, y, z, Dict);
+                PropagateShadow(x, y, z, Set);
             }
         }
-        public void PropagateLight(int startX, int startY, int startZ, int lightValue, int bytesOffset, Dictionary<(int, int, int), Chunk> Dict) {
-            Queue<(int x, int y, int z, Chunk chunk, int light)> lightQueue = [];
-            lightQueue.Enqueue((startX, startY, startZ, this, lightValue));
+        public void PropagateLight(int x, int y, int z, int lightValue, int bytesOffset, HashSet<Chunk> Set) {
+            Queue<(int, int, int, Chunk, int)> lightQueue = [];
+            int index = x + y * ChunkSize + z * ChunkSizeSquared;
+            blockLightValues[index] &= (short)~(31 << bytesOffset);
+            blockLightValues[index] |= (short)(lightValue << bytesOffset);
+            lightQueue.Enqueue((x, y, z, this, lightValue-1));
 
-            PropagateLight(bytesOffset, Dict, lightQueue);
+            PropagateLight(bytesOffset, lightQueue, Set);
         }
-        public void PropagateLight(int bytesOffset, Dictionary<(int, int, int), Chunk> Dict, Queue<(int, int, int, Chunk, int)> lightQueue) {
+        public void PropagateLight(int bytesOffset, Queue<(int, int, int, Chunk, int)> lightQueue, HashSet<Chunk> Set) {
             while (lightQueue.Count > 0) {
                 var (x, y, z, chunk, light) = lightQueue.Dequeue();
 
-                int index = x + y * ChunkSize + z * ChunkSizeSquared;
-                int currentValue = (chunk.blockLightValues[index] >> bytesOffset) & 31;
-
-                if (light <= currentValue) continue;
-
-                // Write the light value to the block
-                chunk.blockLightValues[index] &= (short)~(31 << bytesOffset);
-                chunk.blockLightValues[index] |= (short)(light << bytesOffset);
-                light--;
-                if (light <= 0) continue;
-
                 // Check all 6 directions
-                TryPropagateTo(x + 1, y, z, chunk, light, bytesOffset, lightQueue, Dict);
-                TryPropagateTo(x - 1, y, z, chunk, light, bytesOffset, lightQueue, Dict);
-                TryPropagateTo(x, y + 1, z, chunk, light, bytesOffset, lightQueue, Dict);
-                TryPropagateTo(x, y - 1, z, chunk, light, bytesOffset, lightQueue, Dict);
-                TryPropagateTo(x, y, z + 1, chunk, light, bytesOffset, lightQueue, Dict);
-                TryPropagateTo(x, y, z - 1, chunk, light, bytesOffset, lightQueue, Dict);
+                CheckNeighborLight(x + 1, y, z, chunk, light, bytesOffset, lightQueue, Set);
+                CheckNeighborLight(x - 1, y, z, chunk, light, bytesOffset, lightQueue, Set);
+                CheckNeighborLight(x, y + 1, z, chunk, light, bytesOffset, lightQueue, Set);
+                CheckNeighborLight(x, y - 1, z, chunk, light, bytesOffset, lightQueue, Set);
+                CheckNeighborLight(x, y, z + 1, chunk, light, bytesOffset, lightQueue, Set);
+                CheckNeighborLight(x, y, z - 1, chunk, light, bytesOffset, lightQueue, Set);
             }
         }
-        private void TryPropagateTo(int x, int y, int z, Chunk chunk, int lightValue, int bytesOffset, Queue<(int, int, int, Chunk, int)> queue, Dictionary<(int, int, int), Chunk> Dict) {
-            if (x < 0 || x >= ChunkSize || y < 0 || y >= ChunkSize || z < 0 || z >= ChunkSize) {
-                int chunkX = chunk.coordinates.x + (x >= 0 ? x / ChunkSize : ((x + 1) / ChunkSize) - 1);
-                int chunkY = chunk.coordinates.y + (y >= 0 ? y / ChunkSize : ((y + 1) / ChunkSize) - 1);
-                int chunkZ = chunk.coordinates.z + (z >= 0 ? z / ChunkSize : ((z + 1) / ChunkSize) - 1);
-
-                if (!chunk.world.WorldMap.TryGetValue((chunkX, chunkY, chunkZ), out chunk)) return;
-                Dict[(chunkX, chunkY, chunkZ)] = chunk;
-
-                x = (x + ChunkSize) % ChunkSize;
-                y = (y + ChunkSize) % ChunkSize;
-                z = (z + ChunkSize) % ChunkSize;
-            }
+        private void CheckNeighborLight(int x, int y, int z, Chunk chunk, int lightValue, int bytesOffset, Queue<(int, int, int, Chunk, int)> queue, HashSet<Chunk> Set) {
+            CheckChunkBoundry(ref x, ref y, ref z, ref chunk, Set);
             int index = x + y * ChunkSize + z * ChunkSizeSquared;
             if (Blocks.IsTransparent(chunk.blocks[index])) {
                 int current = (chunk.blockLightValues[index] >> bytesOffset) & 31;
                 if (lightValue > current) {
-                    queue.Enqueue((x, y, z, chunk, lightValue));
+                    chunk.blockLightValues[index] &= (short)~(31 << bytesOffset);
+                    chunk.blockLightValues[index] |= (short)(lightValue << bytesOffset);
+                    if(lightValue > 1)
+                        queue.Enqueue((x, y, z, chunk, lightValue-1));
                 }
             }
         }
-        public void PropagateShadow(int x, int y, int z, Dictionary<(int, int, int), Chunk> Dict) {
-            PropagateShadow(x, y, z, 0, Dict);
-            PropagateShadow(x, y, z, 5, Dict);
-            PropagateShadow(x, y, z, 10, Dict);
+        public void PropagateShadow(int x, int y, int z, HashSet<Chunk> Set) {
+            PropagateShadow(x, y, z, 0, Set);
+            PropagateShadow(x, y, z, 5, Set);
+            PropagateShadow(x, y, z, 10, Set);
         }
-        public void PropagateShadow(int startX, int startY, int startZ, int bytesOffset, Dictionary<(int, int, int), Chunk> Dict) {
+        public void PropagateShadow(int startX, int startY, int startZ, int bytesOffset, HashSet<Chunk> Set) {
             Queue<(int, int, int, Chunk, int)> shadowQueue = [];
             Queue<(int, int, int, Chunk, int)> lightQueue = [];
             int currentValue = ((blockLightValues[startX + startY * ChunkSize + startZ * ChunkSizeSquared] >> bytesOffset) & 31) - 1;
@@ -107,30 +91,18 @@ namespace VoxelTechDemo{
             while (shadowQueue.Count > 0) {
                 (int x, int y, int z, Chunk chunk, int oldValue) = shadowQueue.Dequeue();
 
-                CheckNeighbor(x + 1, y, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Dict);
-                CheckNeighbor(x - 1, y, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Dict);
-                CheckNeighbor(x, y + 1, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Dict);
-                CheckNeighbor(x, y - 1, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Dict);
-                CheckNeighbor(x, y, z + 1, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Dict);
-                CheckNeighbor(x, y, z - 1, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Dict);
+                CheckNeighborShadow(x + 1, y, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
+                CheckNeighborShadow(x - 1, y, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
+                CheckNeighborShadow(x, y + 1, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
+                CheckNeighborShadow(x, y - 1, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
+                CheckNeighborShadow(x, y, z + 1, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
+                CheckNeighborShadow(x, y, z - 1, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
             }
-            PropagateLight(bytesOffset, Dict, lightQueue);
+            PropagateLight(bytesOffset, lightQueue, Set);
         }
-        private void CheckNeighbor(int x,int y,int z, Chunk chunk, int oldValue, int bytesOffset, Queue<(int, int, int, Chunk, int)> shadowQueue, Queue<(int, int, int, Chunk, int)> lightQueue, Dictionary<(int, int, int), Chunk> Dict) {
-            if (x < 0 || x >= ChunkSize || y < 0 || y >= ChunkSize || z < 0 || z >= ChunkSize) {
-                int chunkX = chunk.coordinates.x + (x >= 0 ? x / ChunkSize : ((x + 1) / ChunkSize) - 1);
-                int chunkY = chunk.coordinates.y + (y >= 0 ? y / ChunkSize : ((y + 1) / ChunkSize) - 1);
-                int chunkZ = chunk.coordinates.z + (z >= 0 ? z / ChunkSize : ((z + 1) / ChunkSize) - 1);
-
-                if (!world.WorldMap.TryGetValue((chunkX, chunkY, chunkZ), out chunk)) return;
-                Dict[(chunkX, chunkY, chunkZ)] = chunk;
-
-                x = (x + ChunkSize) % ChunkSize;
-                y = (y + ChunkSize) % ChunkSize;
-                z = (z + ChunkSize) % ChunkSize;
-            }
+        private void CheckNeighborShadow(int x,int y,int z, Chunk chunk, int oldValue, int bytesOffset, Queue<(int, int, int, Chunk, int)> shadowQueue, Queue<(int, int, int, Chunk, int)> lightQueue, HashSet<Chunk> Set) {
+            CheckChunkBoundry(ref x, ref y, ref z, ref chunk, Set);
             int index = x + y * ChunkSize + z * ChunkSizeSquared;
-            // Will crash if x, y or z are below -ChunkSize but they never should be so it should be fine
             if (Blocks.IsTransparent(chunk.blocks[index]) || Blocks.IsLightEminiting(chunk.blocks[index])) {
                 int value = ((chunk.blockLightValues[index] >> bytesOffset) & 31);
                 if (value == oldValue) {
@@ -140,8 +112,25 @@ namespace VoxelTechDemo{
                 }
                 else if (value > oldValue) {
                     chunk.blockLightValues[index] &= (short)~(31 << bytesOffset);
-                    lightQueue.Enqueue((x,y,z,chunk,value));
+                    chunk.blockLightValues[index] |= (short)(value << bytesOffset);
+                    if (value > 1)
+                        lightQueue.Enqueue((x,y,z,chunk,value-1));
                 }
+            }
+        }
+        private void CheckChunkBoundry(ref int x, ref int y, ref int z, ref Chunk chunk, HashSet<Chunk> Set) {
+            if (x < 0 || x >= ChunkSize || y < 0 || y >= ChunkSize || z < 0 || z >= ChunkSize) {
+                int chunkX = chunk.coordinates.x + (x >= 0 ? x / ChunkSize : ((x + 1) / ChunkSize) - 1);
+                int chunkY = chunk.coordinates.y + (y >= 0 ? y / ChunkSize : ((y + 1) / ChunkSize) - 1);
+                int chunkZ = chunk.coordinates.z + (z >= 0 ? z / ChunkSize : ((z + 1) / ChunkSize) - 1);
+
+                if (!world.WorldMap.TryGetValue((chunkX, chunkY, chunkZ), out chunk)) return;
+                Set.Add(chunk);
+
+                // Will cause a crash later if x, y or z are below -ChunkSize but they never should be so it should be fine
+                x = (x + ChunkSize) % ChunkSize;
+                y = (y + ChunkSize) % ChunkSize;
+                z = (z + ChunkSize) % ChunkSize;
             }
         }
         public Vector3 GetLightValues(int currentBlock, int face) {
