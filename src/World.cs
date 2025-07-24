@@ -303,6 +303,7 @@ namespace VoxelTechDemo{
                 if (!WorldMap.ContainsKey((x, 0, z - 1)) || !WorldMap[(x, 0, z - 1)].IsGenerated) {
                     GenerateChunkLine(x, z - 1);
                 }
+                Light.PropagateSkyLight(WorldMap[(x,(MaxHeight/ChunkSize)-1,z)]);
                 for (int y = 0; y < MaxHeight / ChunkSize; y++) {
                     GenerateChunkMesh(WorldMap[(x, y, z)]);
                 }

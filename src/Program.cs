@@ -149,6 +149,13 @@ namespace VoxelTechDemo {
                 spriteBatch.DrawString(font, $"X:{Math.Round((double)player.camPosition.X + (long)player.CurrentChunk.x * ChunkSize, 2)}", new(1, 23), Color.Black);
                 spriteBatch.DrawString(font, $"Y:{Math.Round(player.camPosition.Y + player.CurrentChunk.y * ChunkSize - 1.7f, 2)}", new(1, 43), Color.Black);
                 spriteBatch.DrawString(font, $"Z:{Math.Round((double)player.camPosition.Z + (long)player.CurrentChunk.z * ChunkSize, 2)}", new(1, 63), Color.Black);
+                if(world.WorldMap.TryGetValue(player.CurrentChunk, out Chunk chunk)) {
+                    ushort value = chunk.blockLightValues[((int)player.camPosition.X) + (((int)player.camPosition.Y) * ChunkSize) + ((int)player.camPosition.Z * ChunkSizeSquared)];
+                    spriteBatch.DrawString(font, $"Red level:{value & Light.lightMask}", new(1, 83), Color.Black);
+                    spriteBatch.DrawString(font, $"Green level:{(value >> Light.bitsPerLight) & Light.lightMask}", new(1, 103), Color.Black);
+                    spriteBatch.DrawString(font, $"Blue level:{(value >> (2*Light.bitsPerLight)) & Light.lightMask}", new(1, 123), Color.Black);
+                    spriteBatch.DrawString(font, $"Sky level:{value >> (3*Light.bitsPerLight)}", new(1, 143), Color.Black);
+                }
                 spriteBatch.DrawString(font, "+", new Vector2(WindowCenter.X, WindowCenter.Y) - (font.MeasureString("+") / 2), Color.Black);
                 spriteBatch.Draw(blankTexture, new Rectangle((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f)), Color.White);
                 spriteBatch.End();

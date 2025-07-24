@@ -9,7 +9,7 @@ float AnimationFrame;
 struct VSInput
 {
     float4 Position : POSITION;
-    float3 Light    : NORMAL;
+    float4 Light    : COLOR0;
     float2 TexCoord : TEXCOORD;
 };
 
@@ -30,7 +30,7 @@ VSOutput VSCustomEffect(VSInput vin)
     vout.PositionPS = mul(vin.Position, WorldViewProj);
     vout.FogFactor = saturate(dot(vin.Position, FogVector));
     vout.TexCoord = float2(vin.TexCoord.x, vin.TexCoord.y + AnimationFrame);
-    vout.Diffuse = float4(vin.Light,1);
+    vout.Diffuse = float4(max(vin.Light.xyz,vin.Light.w), 1);
 
     return vout;
 }

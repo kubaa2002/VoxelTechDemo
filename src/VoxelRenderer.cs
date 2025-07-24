@@ -24,8 +24,8 @@ namespace VoxelTechDemo{
         public static void GenerateChunkMesh(Chunk chunk){
             //TODO: Try to combine multiple chunks into single region to reduce number of world matrixes needed
             int CurrentChunkY = chunk.coordinates.y*ChunkSize;
-            List<VertexPositionNormalTexture> solidVertices = [];
-            List<VertexPositionNormalTexture> fluidVertices = [];
+            List<VertexPositionColorTexture> solidVertices = [];
+            List<VertexPositionColorTexture> fluidVertices = [];
             
             byte[] blocks = chunk.blocks;
 
@@ -91,15 +91,15 @@ namespace VoxelTechDemo{
                             
                             if(faces != 0){
                                 Vector2[] textureCoordinates = TextureDictionary[blockId];
-                                List<VertexPositionNormalTexture> listRef = Blocks.IsNotSolid(blockId) ? fluidVertices : solidVertices;
+                                List<VertexPositionColorTexture> listRef = Blocks.IsNotSolid(blockId) ? fluidVertices : solidVertices;
                                 for(int face=0;faces!=0;face++){
                                     if((faces&1u)!=0){
                                         for(int i=face*4;i<face*4+4;i++){
-                                            listRef.Add(new VertexPositionNormalTexture(new Vector3(
+                                            listRef.Add(new VertexPositionColorTexture(new Vector3(
                                                 x+((offsetX>>i)&1),
                                                 y+((offsetY>>i)&1)+CurrentChunkY,
                                                 z+((offsetZ>>i)&1)),
-                                                chunk.GetLightValues(currentBlock, face) * 0.03125f,
+                                                chunk.GetLightValues(currentBlock, face),
                                                 textureCoordinates[i]));
                                         }
                                     }
@@ -114,13 +114,13 @@ namespace VoxelTechDemo{
 
             chunk.vertexBufferOpaque?.Dispose();
             if(solidVertices.Count != 0){
-                VertexBuffer vertexBufferOpaque = new(graphicsDevice,typeof(VertexPositionNormalTexture),solidVertices.Count,BufferUsage.None);
+                VertexBuffer vertexBufferOpaque = new(graphicsDevice,typeof(VertexPositionColorTexture),solidVertices.Count,BufferUsage.None);
                 vertexBufferOpaque.SetData(solidVertices.ToArray());
                 chunk.vertexBufferOpaque = vertexBufferOpaque;
             }
             chunk.vertexBufferTransparent?.Dispose();
             if(fluidVertices.Count != 0){
-                VertexBuffer vertexBufferTransparent = new(graphicsDevice,typeof(VertexPositionNormalTexture),fluidVertices.Count,BufferUsage.None);
+                VertexBuffer vertexBufferTransparent = new(graphicsDevice,typeof(VertexPositionColorTexture),fluidVertices.Count,BufferUsage.None);
                 vertexBufferTransparent.SetData(fluidVertices.ToArray());
                 chunk.vertexBufferTransparent = vertexBufferTransparent;
             }
@@ -145,16 +145,16 @@ namespace VoxelTechDemo{
         static VertexBuffer cubeFrameVertex;
         static VertexBuffer cubePreviewVertex;
         static public void SetupCubeFrame(){
-            cubeFrameVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionNormalTexture), 24, BufferUsage.None);
-            cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionNormalTexture), 12, BufferUsage.None);
+            cubeFrameVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 24, BufferUsage.None);
+            cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 12, BufferUsage.None);
             Vector2[] cubeFrameTextureCoordinates = TextureDictionary[0];
-            VertexPositionNormalTexture[] cubeVertices = new VertexPositionNormalTexture[24];
+            VertexPositionColorTexture[] cubeVertices = new VertexPositionColorTexture[24];
             for(int i=0;i<24;i++){
-                cubeVertices[i] = new VertexPositionNormalTexture(new Vector3(
+                cubeVertices[i] = new VertexPositionColorTexture(new Vector3(
                     1.0025f*((offsetX&(1<<i))>>i)-0.00125f,
                     1.0025f*((offsetY&(1<<i))>>i)-0.00125f,
                     1.0025f*((offsetZ&(1<<i))>>i)-0.00125f),
-                    Vector3.One,
+                    Color.White,
                     cubeFrameTextureCoordinates[i]);
             }
             cubeFrameVertex.SetData(cubeVertices);
@@ -165,16 +165,16 @@ namespace VoxelTechDemo{
             graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, 12);
         }
         static public void ChangeCubePreview(byte Id){
-            VertexPositionNormalTexture[] cubeVerticesPreview = new VertexPositionNormalTexture[12];
+            VertexPositionColorTexture[] cubeVerticesPreview = new VertexPositionColorTexture[12];
             Vector2[] TextureCoordinates = TextureDictionary[Id];
             for(int i=0;i<4;i++){
-                cubeVerticesPreview[i] = new VertexPositionNormalTexture(new Vector3((offsetX&(1<<i))>>i,(offsetY&(1<<i))>>i,(offsetZ&(1<<i))>>i), Vector3.One, TextureCoordinates[i]);
+                cubeVerticesPreview[i] = new VertexPositionColorTexture(new Vector3((offsetX&(1<<i))>>i,(offsetY&(1<<i))>>i,(offsetZ&(1<<i))>>i), Color.White, TextureCoordinates[i]);
             }
             for(int i=8;i<12;i++){
-                cubeVerticesPreview[i-4] = new VertexPositionNormalTexture(new Vector3((offsetX&(1<<i))>>i,(offsetY&(1<<i))>>i,(offsetZ&(1<<i))>>i), Vector3.One, TextureCoordinates[i]);
+                cubeVerticesPreview[i-4] = new VertexPositionColorTexture(new Vector3((offsetX&(1<<i))>>i,(offsetY&(1<<i))>>i,(offsetZ&(1<<i))>>i), Color.White, TextureCoordinates[i]);
             }
             for(int i=16;i<20;i++){
-                cubeVerticesPreview[i-8] = new VertexPositionNormalTexture(new Vector3((offsetX&(1<<i))>>i,(offsetY&(1<<i))>>i,(offsetZ&(1<<i))>>i), Vector3.One, TextureCoordinates[i]);
+                cubeVerticesPreview[i-8] = new VertexPositionColorTexture(new Vector3((offsetX&(1<<i))>>i,(offsetY&(1<<i))>>i,(offsetZ&(1<<i))>>i), Color.White, TextureCoordinates[i]);
             }
             cubePreviewVertex.SetData(cubeVerticesPreview);
         }

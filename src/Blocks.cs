@@ -90,13 +90,13 @@ namespace VoxelTechDemo{
             switch (Id) {
                 // yellow glowstone
                 case 14:
-                    return (31, 31, 31);
+                    return (Light.lightMask, Light.lightMask, Light.lightMask);
                 case 16:
-                    return (31, 0, 0);
+                    return (Light.lightMask, 0, 0);
                 case 17:
-                    return (0, 31, 0);
+                    return (0, Light.lightMask, 0);
                 case 18:
-                    return (0, 0, 31);
+                    return (0, 0, Light.lightMask);
                 default:
                     return (0, 0, 0);
             }
