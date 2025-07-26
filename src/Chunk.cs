@@ -8,7 +8,7 @@ namespace VoxelTechDemo{
     public class Chunk{
         public byte[] blocks = new byte[ChunkSizeCubed];
         public ushort[] blockLightValues = new ushort[ChunkSizeCubed];
-        public (int x,int y,int z) coordinates;
+        public readonly (int x,int y,int z) coordinates;
         public readonly World world;
         public VertexBuffer vertexBufferOpaque;
         public VertexBuffer vertexBufferTransparent;

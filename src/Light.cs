@@ -6,143 +6,162 @@ namespace VoxelTechDemo {
         public const int bitsPerLight = 4;
         public const int lightMask = (1 << bitsPerLight) - 1;
 
+        private const int RedLight = 0;
+        private const int GreenLight = bitsPerLight;
+        private const int BlueLight = 2*bitsPerLight;
+        private const int SkyLight = 3*bitsPerLight;
+        private enum Direction { PosX = 1, NegX = -1, PosY = ChunkSize, NegY = -ChunkSize, PosZ = ChunkSizeSquared, NegZ = -ChunkSizeSquared }
+
         public static void PropagateLight(int x, int y, int z, Chunk chunk, int lightValue, int bytesOffset, HashSet<Chunk> Set) {
-            Queue<(int, int, int, Chunk, int)> lightQueue = [];
+            Queue<(int, Chunk, int)> lightQueue = [];
             int index = x + y * ChunkSize + z * ChunkSizeSquared;
             chunk.blockLightValues[index] &= (ushort)~(lightMask << bytesOffset);
             chunk.blockLightValues[index] |= (ushort)(lightValue << bytesOffset);
-            lightQueue.Enqueue((x, y, z, chunk, lightValue - 1));
+            lightQueue.Enqueue((index, chunk, lightValue - 1));
 
             PropagateLight(bytesOffset, lightQueue, Set);
         }
-        private static void PropagateLight(int bytesOffset, Queue<(int, int, int, Chunk, int)> lightQueue, HashSet<Chunk> Set) {
+        public static void PropagateSkyLight(Chunk startChunk) {
+            Queue<(int, Chunk, int)> lightQueue = [];
+            for (int x = 0; x < ChunkSize; x++) {
+                for (int z = 0; z < ChunkSize; z++) {
+                    int index = x + (ChunkSize - 1) * ChunkSize + z * ChunkSizeSquared;
+                    Chunk currentChunk = startChunk;
+                    while (Blocks.IsTransparent(currentChunk.blocks[index])) {
+                        currentChunk.blockLightValues[index] |= lightMask << SkyLight;
+                        if ((index >> 6) % ChunkSize == 0) {
+                            if (!currentChunk.world.WorldMap.TryGetValue((currentChunk.coordinates.x, currentChunk.coordinates.y - 1, currentChunk.coordinates.z), out currentChunk)) break;
+                            index += ChunkSizeSquared - ChunkSize;
+                        }
+                        else {
+                            index -= ChunkSize;
+                        }
+                    }
+                    if(currentChunk is not null)
+                        lightQueue.Enqueue((index, currentChunk, lightMask - 1));
+                }
+            }
+            PropagateLight(SkyLight, lightQueue, null);
+        }
+        private static void PropagateLight(int bytesOffset, Queue<(int, Chunk, int)> lightQueue, HashSet<Chunk> Set) {
             while (lightQueue.Count > 0) {
-                var (x, y, z, chunk, light) = lightQueue.Dequeue();
+                var (index, chunk, light) = lightQueue.Dequeue();
 
-                CheckNeighborLight(x + 1, y, z, chunk, light, bytesOffset, lightQueue, Set);
-                CheckNeighborLight(x - 1, y, z, chunk, light, bytesOffset, lightQueue, Set);
-                CheckNeighborLight(x, y + 1, z, chunk, light, bytesOffset, lightQueue, Set);
-                CheckNeighborLight(x, y - 1, z, chunk, light, bytesOffset, lightQueue, Set);
-                CheckNeighborLight(x, y, z + 1, chunk, light, bytesOffset, lightQueue, Set);
-                CheckNeighborLight(x, y, z - 1, chunk, light, bytesOffset, lightQueue, Set);
+                CheckNeighborLight(index, Direction.PosX, chunk, light, bytesOffset, lightQueue, Set);
+                CheckNeighborLight(index, Direction.NegX, chunk, light, bytesOffset, lightQueue, Set);
+                CheckNeighborLight(index, Direction.PosY, chunk, light, bytesOffset, lightQueue, Set);
+                CheckNeighborLight(index, Direction.NegY, chunk, (light == lightMask - 1) && (bytesOffset == SkyLight) ? light + 1 : light, bytesOffset, lightQueue, Set);
+                CheckNeighborLight(index, Direction.PosZ, chunk, light, bytesOffset, lightQueue, Set);
+                CheckNeighborLight(index, Direction.NegZ, chunk, light, bytesOffset, lightQueue, Set);
             }
         }
-        private static void CheckNeighborLight(int x, int y, int z, Chunk chunk, int lightValue, int bytesOffset, Queue<(int, int, int, Chunk, int)> queue, HashSet<Chunk> Set) {
-            CheckChunkBoundry(ref x, ref y, ref z, ref chunk, Set);
-            if(chunk == null) {
-                return;
-            }
-            int index = x + y * ChunkSize + z * ChunkSizeSquared;
+        private static void CheckNeighborLight(int index, Direction dir, Chunk chunk, int lightValue, int bytesOffset, Queue<(int, Chunk, int)> queue, HashSet<Chunk> Set) {
+            if(!CheckChunkBoundry(ref index, dir, ref chunk, Set)) return;
             if (Blocks.IsTransparent(chunk.blocks[index])) {
                 int current = (chunk.blockLightValues[index] >> bytesOffset) & lightMask;
                 if (lightValue > current) {
                     chunk.blockLightValues[index] &= (ushort)~(lightMask << bytesOffset);
                     chunk.blockLightValues[index] |= (ushort)(lightValue << bytesOffset);
                     if (lightValue > 1)
-                        queue.Enqueue((x, y, z, chunk, lightValue - 1));
+                        queue.Enqueue((index, chunk, lightValue - 1));
                 }
             }
         }
         public static void PropagateShadow(int x, int y, int z, Chunk chunk, HashSet<Chunk> Set) {
-            PropagateShadow(x, y, z, chunk, 0, Set);
-            PropagateShadow(x, y, z, chunk, bitsPerLight, Set);
-            PropagateShadow(x, y, z, chunk, 2*bitsPerLight, Set);
-            PropagateSkyShadow(x, y, z, chunk, Set);
+            int index = x + y * ChunkSize + z * ChunkSizeSquared;
+            PropagateShadow(index, chunk, RedLight, Set);
+            PropagateShadow(index, chunk, GreenLight, Set);
+            PropagateShadow(index, chunk, BlueLight, Set);
+            PropagateShadow(index, chunk, SkyLight, Set);
         }
-        private static void PropagateShadow(int startX, int startY, int startZ, Chunk startChunk, int bytesOffset, HashSet<Chunk> Set) {
-            Queue<(int, int, int, Chunk, int)> shadowQueue = [];
-            Queue<(int, int, int, Chunk, int)> lightQueue = [];
-            int currentValue = ((startChunk.blockLightValues[startX + startY * ChunkSize + startZ * ChunkSizeSquared] >> bytesOffset) & lightMask) - 1;
-            shadowQueue.Enqueue((startX, startY, startZ, startChunk, currentValue));
-            startChunk.blockLightValues[startX + startY * ChunkSize + startZ * ChunkSizeSquared] &= (ushort)~(lightMask << bytesOffset);
+        private static void PropagateShadow(int startIndex, Chunk startChunk, int bytesOffset, HashSet<Chunk> Set) {
+            Queue<(int, Chunk, int)> shadowQueue = [];
+            Queue<(int, Chunk, int)> lightQueue = [];
+            int currentValue = ((startChunk.blockLightValues[startIndex] >> bytesOffset) & lightMask) - 1;
+            shadowQueue.Enqueue((startIndex, startChunk, currentValue));
+            startChunk.blockLightValues[startIndex] &= (ushort)~(lightMask << bytesOffset);
             while (shadowQueue.Count > 0) {
-                (int x, int y, int z, Chunk chunk, int oldValue) = shadowQueue.Dequeue();
+                (int index, Chunk chunk, int oldValue) = shadowQueue.Dequeue();
 
-                CheckNeighborShadow(x + 1, y, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
-                CheckNeighborShadow(x - 1, y, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
-                CheckNeighborShadow(x, y + 1, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
-                CheckNeighborShadow(x, y - 1, z, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
-                CheckNeighborShadow(x, y, z + 1, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
-                CheckNeighborShadow(x, y, z - 1, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
+                CheckNeighborShadow(index, Direction.PosX, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
+                CheckNeighborShadow(index, Direction.NegX, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
+                CheckNeighborShadow(index, Direction.PosY, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
+                CheckNeighborShadow(index, Direction.NegY, chunk, (oldValue == lightMask - 1) && (bytesOffset == SkyLight) ? oldValue + 1 : oldValue, bytesOffset, shadowQueue, lightQueue, Set);
+                CheckNeighborShadow(index, Direction.PosZ, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
+                CheckNeighborShadow(index, Direction.NegZ, chunk, oldValue, bytesOffset, shadowQueue, lightQueue, Set);
             }
             PropagateLight(bytesOffset, lightQueue, Set);
         }
-        private static void CheckNeighborShadow(int x, int y, int z, Chunk chunk, int oldValue, int bytesOffset, Queue<(int, int, int, Chunk, int)> shadowQueue, Queue<(int, int, int, Chunk, int)> lightQueue, HashSet<Chunk> Set) {
-            CheckChunkBoundry(ref x, ref y, ref z, ref chunk, Set);
-            int index = x + y * ChunkSize + z * ChunkSizeSquared;
+        private static void CheckNeighborShadow(int index, Direction dir, Chunk chunk, int oldValue, int bytesOffset, Queue<(int, Chunk, int)> shadowQueue, Queue<(int, Chunk, int)> lightQueue, HashSet<Chunk> Set) {
+            if (!CheckChunkBoundry(ref index, dir, ref chunk, Set)) return;
             if (Blocks.IsTransparent(chunk.blocks[index]) || Blocks.IsLightEminiting(chunk.blocks[index])) {
                 int current = ((chunk.blockLightValues[index] >> bytesOffset) & lightMask);
                 if (current == oldValue) {
                     if (current <= 0) return;
-                    shadowQueue.Enqueue((x, y, z, chunk, current - 1));
+                    shadowQueue.Enqueue((index, chunk, current - 1));
                     chunk.blockLightValues[index] &= (ushort)~(lightMask << bytesOffset);
                 }
                 else if (current > oldValue) {
                     chunk.blockLightValues[index] &= (ushort)~(lightMask << bytesOffset);
                     chunk.blockLightValues[index] |= (ushort)(current << bytesOffset);
                     if (current > 1)
-                        lightQueue.Enqueue((x, y, z, chunk, current - 1));
+                        lightQueue.Enqueue((index, chunk, current - 1));
                 }
             }
         }
-        private static void CheckChunkBoundry(ref int x, ref int y, ref int z, ref Chunk chunk, HashSet<Chunk> Set) {
-            if (x < 0 || x >= ChunkSize || y < 0 || y >= ChunkSize || z < 0 || z >= ChunkSize) {
-                int chunkX = chunk.coordinates.x + (x >= 0 ? x / ChunkSize : ((x + 1) / ChunkSize) - 1);
-                int chunkY = chunk.coordinates.y + (y >= 0 ? y / ChunkSize : ((y + 1) / ChunkSize) - 1);
-                int chunkZ = chunk.coordinates.z + (z >= 0 ? z / ChunkSize : ((z + 1) / ChunkSize) - 1);
-
-                if (!chunk.world.WorldMap.TryGetValue((chunkX, chunkY, chunkZ), out chunk)) return;
-                Set.Add(chunk);
-
-                // Will cause a crash later if x, y or z are below -ChunkSize but they never should be so it should be fine
-                x = (x + ChunkSize) % ChunkSize;
-                y = (y + ChunkSize) % ChunkSize;
-                z = (z + ChunkSize) % ChunkSize;
+        private static bool CheckChunkBoundry(ref int index, Direction dir, ref Chunk chunk, HashSet<Chunk> Set) {
+            switch (dir) {
+                case Direction.PosX:
+                    if ((index & (ChunkSize - 1)) == (ChunkSize - 1)) {
+                        if (!chunk.world.WorldMap.TryGetValue((chunk.coordinates.x + 1, chunk.coordinates.y, chunk.coordinates.z), out chunk)) return false;
+                        index &= ~(ChunkSize - 1);
+                        Set?.Add(chunk);
+                        return true;
+                    }
+                    break;
+                case Direction.NegX:
+                    if ((index & (ChunkSize - 1)) == 0) {
+                        if (!chunk.world.WorldMap.TryGetValue((chunk.coordinates.x - 1, chunk.coordinates.y, chunk.coordinates.z), out chunk)) return false;
+                        index |= ChunkSize - 1;
+                        Set?.Add(chunk);
+                        return true;
+                    }
+                    break;
+                case Direction.PosY:
+                    if (((index >> 6) & (ChunkSize - 1)) == (ChunkSize - 1)) {
+                        if (!chunk.world.WorldMap.TryGetValue((chunk.coordinates.x, chunk.coordinates.y + 1, chunk.coordinates.z), out chunk)) return false;
+                        index &= ~((ChunkSize - 1) << 6);
+                        Set?.Add(chunk);
+                        return true;
+                    }
+                    break;
+                case Direction.NegY:
+                    if (((index >> 6) & (ChunkSize - 1)) == 0) {
+                        if (!chunk.world.WorldMap.TryGetValue((chunk.coordinates.x, chunk.coordinates.y - 1, chunk.coordinates.z), out chunk)) return false;
+                        index |= (ChunkSize - 1) << 6;
+                        Set?.Add(chunk);
+                        return true;
+                    }
+                    break;
+                case Direction.PosZ:
+                    if ((index >> 12) == (ChunkSize - 1)) {
+                        if (!chunk.world.WorldMap.TryGetValue((chunk.coordinates.x, chunk.coordinates.y, chunk.coordinates.z + 1), out chunk)) return false;
+                        index &= ~((ChunkSize - 1) << 12);
+                        Set?.Add(chunk);
+                        return true;
+                    }
+                    break;
+                case Direction.NegZ:
+                    if ((index >> 12) == 0) {
+                        if (!chunk.world.WorldMap.TryGetValue((chunk.coordinates.x, chunk.coordinates.y, chunk.coordinates.z - 1), out chunk)) return false;
+                        index |= (ChunkSize - 1) << 12;
+                        Set?.Add(chunk);
+                        return true;
+                    }
+                    break;
             }
-        }
-        public static void PropagateSkyLight(Chunk startChunk) {
-            Queue<(int, int, int, Chunk, int)> lightQueue = [];
-            for (int x = 0; x < ChunkSize; x++) {
-                for (int z = 0; z < ChunkSize; z++) {
-                    int index = x + (ChunkSize - 1) * ChunkSize + z * ChunkSizeSquared;
-                    startChunk.blockLightValues[index] |= lightMask << (3*bitsPerLight);
-                    lightQueue.Enqueue((x, ChunkSize - 1, z, startChunk, lightMask - 1));
-                }
-            }
-            HashSet<Chunk> Set = [];
-            PropagateSkyLight(lightQueue, Set);
-        }
-        private static void PropagateSkyLight(Queue<(int,int,int,Chunk,int)> lightQueue, HashSet<Chunk> Set) {
-            while (lightQueue.Count > 0) {
-                var (x, y, z, chunk, light) = lightQueue.Dequeue();
-
-                CheckNeighborLight(x + 1, y, z, chunk, light, 3 * bitsPerLight, lightQueue, Set);
-                CheckNeighborLight(x - 1, y, z, chunk, light, 3 * bitsPerLight, lightQueue, Set);
-                CheckNeighborLight(x, y + 1, z, chunk, light, 3 * bitsPerLight, lightQueue, Set);
-                CheckNeighborLight(x, y - 1, z, chunk, light == lightMask - 1 ? light+1 : light, 3 * bitsPerLight, lightQueue, Set);
-                CheckNeighborLight(x, y, z + 1, chunk, light, 3 * bitsPerLight, lightQueue, Set);
-                CheckNeighborLight(x, y, z - 1, chunk, light, 3 * bitsPerLight, lightQueue, Set);
-            }
-        }
-        public static void PropagateSkyShadow(int startX, int startY, int startZ, Chunk startChunk, HashSet<Chunk> Set) {
-            Queue<(int, int, int, Chunk, int)> shadowQueue = [];
-            Queue<(int, int, int, Chunk, int)> lightQueue = [];
-            int currentValue = ((startChunk.blockLightValues[startX + startY * ChunkSize + startZ * ChunkSizeSquared] >> (3*bitsPerLight)) & lightMask) - 1;
-            shadowQueue.Enqueue((startX, startY, startZ, startChunk, currentValue));
-            unchecked {
-                startChunk.blockLightValues[startX + startY * ChunkSize + startZ * ChunkSizeSquared] &= (ushort)~(lightMask << (3 * bitsPerLight));
-            }
-            while (shadowQueue.Count > 0) {
-                (int x, int y, int z, Chunk chunk, int oldValue) = shadowQueue.Dequeue();
-
-                CheckNeighborShadow(x + 1, y, z, chunk, oldValue, 3 * bitsPerLight, shadowQueue, lightQueue, Set);
-                CheckNeighborShadow(x - 1, y, z, chunk, oldValue, 3 * bitsPerLight, shadowQueue, lightQueue, Set);
-                CheckNeighborShadow(x, y + 1, z, chunk, oldValue, 3 * bitsPerLight, shadowQueue, lightQueue, Set);
-                CheckNeighborShadow(x, y - 1, z, chunk, oldValue == lightMask - 1 ? oldValue+1 : oldValue, 3 * bitsPerLight, shadowQueue, lightQueue, Set);
-                CheckNeighborShadow(x, y, z + 1, chunk, oldValue, 3 * bitsPerLight, shadowQueue, lightQueue, Set);
-                CheckNeighborShadow(x, y, z - 1, chunk, oldValue, 3 * bitsPerLight, shadowQueue, lightQueue, Set);
-            }
-            PropagateSkyLight(lightQueue, Set);
+            index += (int)dir;
+            return true;
         }
     }
 }
