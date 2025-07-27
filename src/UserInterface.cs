@@ -152,6 +152,60 @@ namespace VoxelTechDemo{
             Grid.SetColumn(MouseSlider,1);
             Grid.SetRow(MouseSlider,5);
             grid.Widgets.Add(MouseSlider);
+
+
+            // Sky light level slider
+            Label SkyLight = new() {
+                Text = "Sky light level:",
+                Width = 320,
+                Height = 60,
+                Font = ordinaryFontSystem.GetFont(32),
+                Visible = !DayCycle,
+            };
+            Grid.SetColumn(SkyLight, 0);
+            Grid.SetRow(SkyLight, 7);
+            grid.Widgets.Add(SkyLight);
+
+            HorizontalSlider SkyLightSlider = new() {
+                Minimum = 0,
+                Maximum = 1,
+                Value = 1,
+                Visible = !DayCycle,
+            };
+            SkyLightSlider.ValueChanged += (s, a) => {
+                game.effect.CurrentSkyLightLevel.SetValue(1 - SkyLightSlider.Value);
+            };
+            Grid.SetColumn(SkyLightSlider, 1);
+            Grid.SetRow(SkyLightSlider, 7);
+            grid.Widgets.Add(SkyLightSlider);
+            
+            // Day cycle button
+            Label dayCycle = new() {
+                Text = "Day cycle enabled:",
+                Width = 320,
+                Height = 60,
+                Font = ordinaryFontSystem.GetFont(32),
+            };
+            Grid.SetColumn(dayCycle, 0);
+            Grid.SetRow(dayCycle, 6);
+            grid.Widgets.Add(dayCycle);
+
+            CheckButton dayCycleCheck = new() {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                IsChecked = DayCycle
+            };
+            dayCycleCheck.Click += (s, a) => {
+                SkyLight.Visible = !SkyLight.Visible;
+                SkyLightSlider.Visible = !SkyLightSlider.Visible;
+                DayCycle = !DayCycle;
+                if (!DayCycle) {
+                    game.effect.CurrentSkyLightLevel.SetValue(1 - SkyLightSlider.Value);
+                }
+            };
+            Grid.SetColumn(dayCycleCheck, 1);
+            Grid.SetRow(dayCycleCheck, 6);
+            grid.Widgets.Add(dayCycleCheck);
+
             mainPanel.Widgets.Add(grid);
 
             // Exit Button

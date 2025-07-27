@@ -11,6 +11,7 @@ namespace VoxelTechDemo{
         readonly EffectParameter FogVector;
         public readonly EffectParameter WorldViewProj;
         public readonly EffectParameter AnimationFrame;
+        public readonly EffectParameter CurrentSkyLightLevel;
 
         public Matrix projectionMatrix;
         private Matrix viewMatrix;
@@ -34,6 +35,7 @@ namespace VoxelTechDemo{
             FogVector = Parameters["FogVector"];
             WorldViewProj = Parameters["WorldViewProj"];
             AnimationFrame = Parameters["AnimationFrame"];
+            CurrentSkyLightLevel = Parameters["CurrentSkyLightLevel"];
 
             Texture.SetValue(game.Content.Load<Texture2D>("Textures"));
             FogStart = RenderDistance*0.6f*ChunkSize;
@@ -64,6 +66,9 @@ namespace VoxelTechDemo{
         }
         public void UpdateAnimationFrame(TimeSpan totalTime) {
             AnimationFrame.SetValue((float)Math.Round(totalTime.TotalSeconds * 8 % 15) / 16);
+            if (DayCycle) {
+                CurrentSkyLightLevel.SetValue((float)(Math.Sin((totalTime.TotalSeconds) * Math.PI / 60) + 1) / 2);
+            }
         }
         public void Apply(Matrix worldMatrix){
             WorldViewProj.SetValue(worldMatrix * viewProj);

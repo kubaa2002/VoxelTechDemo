@@ -4,6 +4,7 @@ float4 FogVector;
 float3 FogColor;
 float4x4 WorldViewProj;
 float AnimationFrame;
+float CurrentSkyLightLevel;
 
 // Vertex shader input
 struct VSInput
@@ -30,7 +31,7 @@ VSOutput VSCustomEffect(VSInput vin)
     vout.PositionPS = mul(vin.Position, WorldViewProj);
     vout.FogFactor = saturate(dot(vin.Position, FogVector));
     vout.TexCoord = float2(vin.TexCoord.x, vin.TexCoord.y + AnimationFrame);
-    vout.Diffuse = float4(max(vin.Light.xyz,vin.Light.w), 1);
+    vout.Diffuse = float4(max(vin.Light.xyz,vin.Light.w - CurrentSkyLightLevel), 1);
 
     return vout;
 }

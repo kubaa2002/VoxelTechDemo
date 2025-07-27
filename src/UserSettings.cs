@@ -9,6 +9,7 @@ namespace VoxelTechDemo{
         static bool fogEnabled = true;
         static bool frameRateUnlocked = false;
         static bool fullscreen = true;
+        static bool dayCycle = true;
 
         static bool needUpdate = false;
 
@@ -79,6 +80,17 @@ namespace VoxelTechDemo{
                 }
             }
         }
+        public static bool DayCycle {
+            get {
+                return dayCycle;
+            }
+            set {
+                if (value != dayCycle) {
+                    dayCycle = value;
+                    needUpdate = true;
+                }
+            }
+        }
         public static void LoadSettings(){
             if(File.Exists("Settings.txt")){
                 string[] lines = File.ReadAllLines("Settings.txt");
@@ -126,6 +138,11 @@ namespace VoxelTechDemo{
                         fullscreen = result;
                     }
                 }
+                if (variables.TryGetValue("DayCycle", out value)) {
+                    if (bool.TryParse(value, out bool result)) {
+                        dayCycle = result;
+                    }
+                }
             }
             else{
                 UpdateSettingsFile();
@@ -145,6 +162,7 @@ namespace VoxelTechDemo{
             writer.WriteLine($"FogEnabled={fogEnabled}");
             writer.WriteLine($"FrameRateUnlocked={frameRateUnlocked}");
             writer.WriteLine($"Fullscreen={fullscreen}");
+            writer.WriteLine($"DayCycle={dayCycle}");
         }
     }
 }
