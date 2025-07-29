@@ -48,38 +48,44 @@ namespace VoxelTechDemo{
             if(!WorldMap.TryGetValue(chunkCoordinate, out Chunk chunk)){
                 return;
             }
+            HashSet<Chunk> Set = [];
+            Set.Add(chunk);
             chunk.blocks[x+(y*ChunkSize)+(z*ChunkSizeSquared)]=Id;
+            chunk.UpdateLight(x, y, z, Id, Set);
             chunk.CheckMaxY(y);
             GenerateChunkMesh(chunk);
             if(x==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x-1,chunkCoordinate.y,chunkCoordinate.z),out chunk)){
-                    GenerateChunkMesh(chunk);
+                    Set.Add(chunk);
                 }
             }
             if(x==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x+1,chunkCoordinate.y,chunkCoordinate.z),out chunk)){
-                    GenerateChunkMesh(chunk);
+                    Set.Add(chunk);
                 }
             }
             if(y==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y-1,chunkCoordinate.z),out chunk)){
-                    GenerateChunkMesh(chunk);
+                    Set.Add(chunk);
                 }
             }
             if(y==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y+1,chunkCoordinate.z),out chunk)){
-                    GenerateChunkMesh(chunk);
+                    Set.Add(chunk);
                 }
             }
             if(z==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z-1),out chunk)){
-                    GenerateChunkMesh(chunk);
+                    Set.Add(chunk);
                 }
             }
             if(z==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z+1),out chunk)){
-                    GenerateChunkMesh(chunk);
+                    Set.Add(chunk);
                 }
+            }
+            foreach (Chunk value in Set) {
+                GenerateChunkMesh(value);
             }
         }
         public void SetBlockWithoutUpdating(int x,int y,int z,(int x,int y,int z) chunkCoordinate,byte Id){
@@ -197,7 +203,8 @@ namespace VoxelTechDemo{
                     }
                 }
             }
-            for(int i=0;i<MaxHeight/ChunkSize;i++){
+            Light.PropagateSkyLight(chunks[^1]);
+            for (int i=0;i<MaxHeight/ChunkSize;i++){
                 chunks[i].IsGenerated = true;
             }
         }
