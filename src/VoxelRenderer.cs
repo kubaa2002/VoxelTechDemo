@@ -10,9 +10,10 @@ namespace VoxelTechDemo{
         const int offsetX = 0b1010_0101_1010_1010_0000_1111;
         const int offsetY = 0b1100_1100_0000_1111_1100_1100;
         const int offsetZ = 0b0000_1111_0011_1100_0101_1010;
-        const int exponent = 6;
-        //ChunkSize needs to be an power of 2. Works up to 64 (exponent = 6)
-        public const int ChunkSize = 1<<exponent;
+        //ChunkSize needs to be an power of 2. Works up to 64 (YShift = 6)
+        public const int YShift = 6;
+        public const int ZShift = YShift * 2;
+        public const int ChunkSize = 1 << YShift;
         public const int ChunkSizeSquared = ChunkSize*ChunkSize;
         public const int ChunkSizeCubed = ChunkSize*ChunkSize*ChunkSize;
         public static IndexBuffer indexBuffer;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -45,7 +46,6 @@ namespace VoxelTechDemo {
         }
         protected override void Initialize() {
             InitializeVoxelRenderer(GraphicsDevice);
-            effect = new(Content.Load<Effect>("CustomEffect"), this);
             ChangeCubePreview(chosenBlock);
             UserInterface.Initialize(this, graphics);
 
@@ -60,6 +60,8 @@ namespace VoxelTechDemo {
             base.Initialize();
         }
         protected override void LoadContent() {
+            byte[] bytes = File.ReadAllBytes("Content/CustomEffect.mgfx");
+            effect = new(new Effect(GraphicsDevice, bytes), this);
             spriteBatch = new SpriteBatch(GraphicsDevice);
             font = Content.Load<SpriteFont>("PublicPixel");
             blankTexture = new(GraphicsDevice, 1, 1);
@@ -152,9 +154,9 @@ namespace VoxelTechDemo {
                 if(world.WorldMap.TryGetValue(player.CurrentChunk, out Chunk chunk)) {
                     ushort value = chunk.blockLightValues[((int)player.camPosition.X) + (((int)player.camPosition.Y) * ChunkSize) + ((int)player.camPosition.Z * ChunkSizeSquared)];
                     spriteBatch.DrawString(font, $"Red level:{value & Light.lightMask}", new(1, 83), Color.Black);
-                    spriteBatch.DrawString(font, $"Green level:{(value >> Light.bitsPerLight) & Light.lightMask}", new(1, 103), Color.Black);
-                    spriteBatch.DrawString(font, $"Blue level:{(value >> (2*Light.bitsPerLight)) & Light.lightMask}", new(1, 123), Color.Black);
-                    spriteBatch.DrawString(font, $"Sky level:{value >> (3*Light.bitsPerLight)}", new(1, 143), Color.Black);
+                    spriteBatch.DrawString(font, $"Green level:{(value >> Light.RedLight) & Light.lightMask}", new(1, 103), Color.Black);
+                    spriteBatch.DrawString(font, $"Blue level:{(value >> (2*Light.GreenLight)) & Light.lightMask}", new(1, 123), Color.Black);
+                    spriteBatch.DrawString(font, $"Sky level:{value >> (3*Light.BlueLight)}", new(1, 143), Color.Black);
                 }
                 spriteBatch.DrawString(font, "+", new Vector2(WindowCenter.X, WindowCenter.Y) - (font.MeasureString("+") / 2), Color.Black);
                 spriteBatch.Draw(blankTexture, new Rectangle((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f)), Color.White);

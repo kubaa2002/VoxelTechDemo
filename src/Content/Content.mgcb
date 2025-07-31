@@ -13,12 +13,6 @@
 
 #---------------------------------- Content ---------------------------------#
 
-#begin CustomEffect.fx
-/importer:EffectImporter
-/processor:EffectProcessor
-/processorParam:DebugMode=Auto
-/build:CustomEffect.fx
-
 #begin PublicPixel.spritefont
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor

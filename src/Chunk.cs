@@ -30,13 +30,13 @@ namespace VoxelTechDemo{
                 ushort currentLightValue = blockLightValues[x + y * ChunkSize + z * ChunkSizeSquared];
                 PropagateShadow(x, y, z, this, Set);
                 if ((currentLightValue & lightMask) < red) {
-                    PropagateLight(x, y, z, this, red, 0, Set);
+                    PropagateLight(x, y, z, this, red, RedLight, Set);
                 }
-                if (((currentLightValue >> bitsPerLight) & lightMask) < green) {
-                    PropagateLight(x, y, z, this, green, bitsPerLight, Set);
+                if (((currentLightValue >> GreenLight) & lightMask) < green) {
+                    PropagateLight(x, y, z, this, green, GreenLight, Set);
                 }
-                if (((currentLightValue >> (2*bitsPerLight)) & lightMask) < blue) {
-                    PropagateLight(x, y, z, this, blue, (2*bitsPerLight), Set);
+                if (((currentLightValue >> BlueLight) & lightMask) < blue) {
+                    PropagateLight(x, y, z, this, blue, BlueLight, Set);
                 }
             }
             else if (Id == 0 || !Blocks.IsTransparent(Id)) {
@@ -101,9 +101,6 @@ namespace VoxelTechDemo{
                     break;
             }
             return Color.White;
-        }
-        private static Color ConvertLightValues(ushort value) {
-            return new Color((value & lightMask)*17, ((value >> bitsPerLight) & lightMask)*17, ((value >> (2*bitsPerLight)) & lightMask)*17, (value >> (3*bitsPerLight))*17);
         }
     }
 }

@@ -1,15 +1,17 @@
 ﻿using System.Collections.Generic;
+using Microsoft.Xna.Framework;
 using static VoxelTechDemo.VoxelRenderer;
 
 namespace VoxelTechDemo {
     internal static class Light {
-        public const int bitsPerLight = 4;
+        private const int bitsPerLight = 4;
         public const int lightMask = (1 << bitsPerLight) - 1;
 
-        private const int RedLight = 0;
-        private const int GreenLight = bitsPerLight;
-        private const int BlueLight = 2*bitsPerLight;
-        private const int SkyLight = 3*bitsPerLight;
+        public const int RedLight = 0;
+        public const int GreenLight = bitsPerLight;
+        public const int BlueLight = 2 * bitsPerLight;
+        public const int SkyLight = 3 * bitsPerLight;
+
         private enum Direction { PosX = 1, NegX = -1, PosY = ChunkSize, NegY = -ChunkSize, PosZ = ChunkSizeSquared, NegZ = -ChunkSizeSquared }
 
         public static void PropagateLight(int x, int y, int z, Chunk chunk, int lightValue, int bytesOffset, HashSet<Chunk> Set) {
@@ -29,7 +31,7 @@ namespace VoxelTechDemo {
                     Chunk currentChunk = startChunk;
                     while (Blocks.IsTransparent(currentChunk.blocks[index])) {
                         currentChunk.blockLightValues[index] |= lightMask << SkyLight;
-                        if ((index >> 6) % ChunkSize == 0) {
+                        if ((index >> YShift) % ChunkSize == 0) {
                             if (!currentChunk.world.WorldMap.TryGetValue((currentChunk.coordinates.x, currentChunk.coordinates.y - 1, currentChunk.coordinates.z), out currentChunk)) break;
                             index += ChunkSizeSquared - ChunkSize;
                         }
@@ -37,14 +39,15 @@ namespace VoxelTechDemo {
                             index -= ChunkSize;
                         }
                     }
-                    if(currentChunk is not null)
+                    if (currentChunk is not null)
                         lightQueue.Enqueue((index, currentChunk, lightMask - 1));
                 }
             }
             PropagateLight(SkyLight, lightQueue, null);
         }
         private static void PropagateLight(int bytesOffset, Queue<(int, Chunk, int)> lightQueue, HashSet<Chunk> Set) {
-            while (lightQueue.Count > 0) {
+            while (lightQueue.Count > 0)
+            {
                 var (index, chunk, light) = lightQueue.Dequeue();
 
                 CheckNeighborLight(index, Direction.PosX, chunk, light, bytesOffset, lightQueue, Set);
@@ -56,7 +59,7 @@ namespace VoxelTechDemo {
             }
         }
         private static void CheckNeighborLight(int index, Direction dir, Chunk chunk, int lightValue, int bytesOffset, Queue<(int, Chunk, int)> queue, HashSet<Chunk> Set) {
-            if(!CheckChunkBoundry(ref index, dir, ref chunk, Set)) return;
+            if (!CheckChunkBoundary(ref index, dir, ref chunk, Set)) return;
             if (Blocks.IsTransparent(chunk.blocks[index])) {
                 int current = (chunk.blockLightValues[index] >> bytesOffset) & lightMask;
                 if (lightValue > current) {
@@ -93,9 +96,9 @@ namespace VoxelTechDemo {
             PropagateLight(bytesOffset, lightQueue, Set);
         }
         private static void CheckNeighborShadow(int index, Direction dir, Chunk chunk, int oldValue, int bytesOffset, Queue<(int, Chunk, int)> shadowQueue, Queue<(int, Chunk, int)> lightQueue, HashSet<Chunk> Set) {
-            if (!CheckChunkBoundry(ref index, dir, ref chunk, Set)) return;
+            if (!CheckChunkBoundary(ref index, dir, ref chunk, Set)) return;
             if (Blocks.IsTransparent(chunk.blocks[index]) || Blocks.IsLightEminiting(chunk.blocks[index])) {
-                int current = ((chunk.blockLightValues[index] >> bytesOffset) & lightMask);
+                int current = (chunk.blockLightValues[index] >> bytesOffset) & lightMask;
                 if (current == oldValue) {
                     if (current <= 0) return;
                     shadowQueue.Enqueue((index, chunk, current - 1));
@@ -109,7 +112,7 @@ namespace VoxelTechDemo {
                 }
             }
         }
-        private static bool CheckChunkBoundry(ref int index, Direction dir, ref Chunk chunk, HashSet<Chunk> Set) {
+        private static bool CheckChunkBoundary(ref int index, Direction dir, ref Chunk chunk, HashSet<Chunk> Set) {
             switch (dir) {
                 case Direction.PosX:
                     if ((index & (ChunkSize - 1)) == (ChunkSize - 1)) {
@@ -128,33 +131,33 @@ namespace VoxelTechDemo {
                     }
                     break;
                 case Direction.PosY:
-                    if (((index >> 6) & (ChunkSize - 1)) == (ChunkSize - 1)) {
+                    if (((index >> YShift) & (ChunkSize - 1)) == (ChunkSize - 1)) {
                         if (!chunk.world.WorldMap.TryGetValue((chunk.coordinates.x, chunk.coordinates.y + 1, chunk.coordinates.z), out chunk)) return false;
-                        index &= ~((ChunkSize - 1) << 6);
+                        index &= ~((ChunkSize - 1) << YShift);
                         Set?.Add(chunk);
                         return true;
                     }
                     break;
                 case Direction.NegY:
-                    if (((index >> 6) & (ChunkSize - 1)) == 0) {
+                    if (((index >> YShift) & (ChunkSize - 1)) == 0) {
                         if (!chunk.world.WorldMap.TryGetValue((chunk.coordinates.x, chunk.coordinates.y - 1, chunk.coordinates.z), out chunk)) return false;
-                        index |= (ChunkSize - 1) << 6;
+                        index |= (ChunkSize - 1) << YShift;
                         Set?.Add(chunk);
                         return true;
                     }
                     break;
                 case Direction.PosZ:
-                    if ((index >> 12) == (ChunkSize - 1)) {
+                    if ((index >> ZShift) == (ChunkSize - 1)) {
                         if (!chunk.world.WorldMap.TryGetValue((chunk.coordinates.x, chunk.coordinates.y, chunk.coordinates.z + 1), out chunk)) return false;
-                        index &= ~((ChunkSize - 1) << 12);
+                        index &= ~((ChunkSize - 1) << ZShift);
                         Set?.Add(chunk);
                         return true;
                     }
                     break;
                 case Direction.NegZ:
-                    if ((index >> 12) == 0) {
+                    if ((index >> ZShift) == 0) {
                         if (!chunk.world.WorldMap.TryGetValue((chunk.coordinates.x, chunk.coordinates.y, chunk.coordinates.z - 1), out chunk)) return false;
-                        index |= (ChunkSize - 1) << 12;
+                        index |= (ChunkSize - 1) << ZShift;
                         Set?.Add(chunk);
                         return true;
                     }
@@ -162,6 +165,10 @@ namespace VoxelTechDemo {
             }
             index += (int)dir;
             return true;
+        }
+        private const int colorMultiplier = 255 / lightMask;
+        public static Color ConvertLightValues(ushort value) {
+            return new Color((value & lightMask) * colorMultiplier, ((value >> GreenLight) & lightMask) * colorMultiplier, ((value >> BlueLight) & lightMask) * colorMultiplier, (value >> SkyLight) * colorMultiplier);
         }
     }
 }

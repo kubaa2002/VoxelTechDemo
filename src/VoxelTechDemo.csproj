@@ -1,23 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RollForward>Major</RollForward>
     <PublishReadyToRun>false</PublishReadyToRun>
     <TieredCompilation>false</TieredCompilation>
-    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="MonoGame.Framework.WindowsDX" Version="3.8.4" />
+    <PackageReference Include="MonoGame.Framework.desktopGL" Version="3.8.4" />
     <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.4" />
     <PackageReference Include="Myra" Version="1.5.9" />
 	<EmbeddedResource Include="Icon.ico" />
 	<None Remove="Icon.ico" />
 	<None Update="Content/PublicPixel.ttf">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	</None>
+  <None Update="Content/CustomEffect.mgfx">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	</None>
   </ItemGroup>
