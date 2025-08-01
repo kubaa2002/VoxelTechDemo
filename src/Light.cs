@@ -45,7 +45,7 @@ namespace VoxelTechDemo {
             }
             PropagateLight(SkyLight, lightQueue, null);
         }
-        private static void PropagateLight(int bytesOffset, Queue<(int, Chunk, int)> lightQueue, HashSet<Chunk> Set) {
+        public static void PropagateLight(int bytesOffset, Queue<(int, Chunk, int)> lightQueue, HashSet<Chunk> Set) {
             while (lightQueue.Count > 0)
             {
                 var (index, chunk, light) = lightQueue.Dequeue();

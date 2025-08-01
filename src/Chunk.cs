@@ -5,24 +5,17 @@ using static VoxelTechDemo.VoxelRenderer;
 using static VoxelTechDemo.Light;
 
 namespace VoxelTechDemo{
-    public class Chunk{
+    public class Chunk {
         public byte[] blocks = new byte[ChunkSizeCubed];
         public ushort[] blockLightValues = new ushort[ChunkSizeCubed];
-        public readonly (int x,int y,int z) coordinates;
+        public readonly (int x, int y, int z) coordinates;
         public readonly World world;
         public VertexBuffer vertexBufferOpaque;
         public VertexBuffer vertexBufferTransparent;
         public bool IsGenerated = false;
-        public byte maxY = 0;
-        public Chunk((int x,int y,int z) coordinates, World world){
+        public Chunk((int x, int y, int z) coordinates, World world) {
             this.coordinates = coordinates;
             this.world = world;
-        }
-        public void CheckMaxY(int y){
-            y++;
-            if(y>maxY){
-                maxY = (byte)y;
-            }
         }
         public void UpdateLight(int x, int y, int z, byte Id, HashSet<Chunk> Set) {
             if (Blocks.IsLightEminiting(Id)) {
@@ -50,7 +43,7 @@ namespace VoxelTechDemo{
                     if (currentBlock % ChunkSize != ChunkSize - 1) {
                         return ConvertLightValues(blockLightValues[currentBlock + 1]);
                     }
-                    else if (world.WorldMap.TryGetValue((coordinates.x + 1, coordinates.y, coordinates.z), out Chunk adjecentChunk)){
+                    else if (world.WorldMap.TryGetValue((coordinates.x + 1, coordinates.y, coordinates.z), out Chunk adjecentChunk)) {
                         return ConvertLightValues(adjecentChunk.blockLightValues[-ChunkSize + 1 + currentBlock]);
                     }
                     break;

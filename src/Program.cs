@@ -21,12 +21,12 @@ namespace VoxelTechDemo {
         private byte chosenBlock = 1;
         private Point WindowCenter;
         public CustomEffect effect;
-        
+
         private Texture2D blankTexture;
 
         public readonly World world = new(12345);
         public Player player;
-        
+
         public Game1() {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
@@ -48,12 +48,12 @@ namespace VoxelTechDemo {
             InitializeVoxelRenderer(GraphicsDevice);
             ChangeCubePreview(chosenBlock);
             UserInterface.Initialize(this, graphics);
+            Directory.CreateDirectory("Save");
 
             // Creating player and making sure that spawn terrain is generated
             player = new Player(world);
-            world.GenerateChunkLine(player.CurrentChunk.x,player.CurrentChunk.z);
-            world.UpdateLoadedChunks(player.CurrentChunk.x,player.CurrentChunk.z);
-            world.SetBlock(new Vector3(35, 12, 35), (0, 1, 0), 14);
+            world.GenerateChunkLine(player.CurrentChunk.x, player.CurrentChunk.z);
+            world.UpdateLoadedChunks(player.CurrentChunk.x, player.CurrentChunk.z);
 
             WindowCenter = new Point(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
 
@@ -105,7 +105,7 @@ namespace VoxelTechDemo {
                 if (currentMouseState.RightButton == ButtonState.Pressed && lastMouseState.RightButton == ButtonState.Released && player.blockFound) {
                     world.SetBlock(player.LookedAtBlock, player.CurrentChunk, chosenBlock, player.currentSide, player.playerHitBox);
                 }
-                if(currentMouseState.ScrollWheelValue != lastMouseState.ScrollWheelValue) {
+                if (currentMouseState.ScrollWheelValue != lastMouseState.ScrollWheelValue) {
                     chosenBlock = (byte)(((currentMouseState.ScrollWheelValue / 120 % 18 + 18) % 18) + 1);
                     ChangeCubePreview(chosenBlock);
                 }
@@ -141,7 +141,7 @@ namespace VoxelTechDemo {
             effect.AnimationFrame.SetValue(0);
 
             if (player.blockFound) {
-                DrawCubeFrame(effect,player.LookedAtBlock);
+                DrawCubeFrame(effect, player.LookedAtBlock);
             }
 
             //FPS counter and other UI
@@ -151,12 +151,12 @@ namespace VoxelTechDemo {
                 spriteBatch.DrawString(font, $"X:{Math.Round((double)player.camPosition.X + (long)player.CurrentChunk.x * ChunkSize, 2)}", new(1, 23), Color.Black);
                 spriteBatch.DrawString(font, $"Y:{Math.Round(player.camPosition.Y + player.CurrentChunk.y * ChunkSize - 1.7f, 2)}", new(1, 43), Color.Black);
                 spriteBatch.DrawString(font, $"Z:{Math.Round((double)player.camPosition.Z + (long)player.CurrentChunk.z * ChunkSize, 2)}", new(1, 63), Color.Black);
-                if(world.WorldMap.TryGetValue(player.CurrentChunk, out Chunk chunk)) {
+                if (world.WorldMap.TryGetValue(player.CurrentChunk, out Chunk chunk)) {
                     ushort value = chunk.blockLightValues[((int)player.camPosition.X) + (((int)player.camPosition.Y) * ChunkSize) + ((int)player.camPosition.Z * ChunkSizeSquared)];
                     spriteBatch.DrawString(font, $"Red level:{value & Light.lightMask}", new(1, 83), Color.Black);
-                    spriteBatch.DrawString(font, $"Green level:{(value >> Light.RedLight) & Light.lightMask}", new(1, 103), Color.Black);
-                    spriteBatch.DrawString(font, $"Blue level:{(value >> (2*Light.GreenLight)) & Light.lightMask}", new(1, 123), Color.Black);
-                    spriteBatch.DrawString(font, $"Sky level:{value >> (3*Light.BlueLight)}", new(1, 143), Color.Black);
+                    spriteBatch.DrawString(font, $"Green level:{(value >> Light.GreenLight) & Light.lightMask}", new(1, 103), Color.Black);
+                    spriteBatch.DrawString(font, $"Blue level:{(value >> Light.BlueLight) & Light.lightMask}", new(1, 123), Color.Black);
+                    spriteBatch.DrawString(font, $"Sky level:{value >> Light.SkyLight}", new(1, 143), Color.Black);
                 }
                 spriteBatch.DrawString(font, "+", new Vector2(WindowCenter.X, WindowCenter.Y) - (font.MeasureString("+") / 2), Color.Black);
                 spriteBatch.Draw(blankTexture, new Rectangle((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f)), Color.White);
@@ -176,18 +176,25 @@ namespace VoxelTechDemo {
             int chunkY = player.CurrentChunk.y;
             int chunkZ = player.CurrentChunk.z;
             Vector3 chunkLineSize = new(ChunkSize, World.MaxHeight, ChunkSize);
-            foreach((int x,int z) in world.CurrentlyLoadedChunkLines) {
-                Vector3 currentChunkCoords = new(x - chunkX, - chunkY, z - chunkZ);
+            foreach ((int x, int z) in world.CurrentlyLoadedChunkLines) {
+                Vector3 currentChunkCoords = new(x - chunkX, -chunkY, z - chunkZ);
                 currentChunkCoords *= ChunkSize;
-                if(frustum.Intersects(new BoundingBox(currentChunkCoords, currentChunkCoords + chunkLineSize))) {
+                if (frustum.Intersects(new BoundingBox(currentChunkCoords, currentChunkCoords + chunkLineSize))) {
                     effect.Apply(Matrix.CreateWorld(currentChunkCoords, Vector3.Forward, Vector3.Up));
-                    for (int y = 0; y < World.MaxHeight / ChunkSize; y++) {
-                        if(world.WorldMap.TryGetValue((x, y, z), out Chunk chunk)) {
+                    for (int y = 0; y < World.MaxYChunk; y++) {
+                        if (world.WorldMap.TryGetValue((x, y, z), out Chunk chunk)) {
                             DrawChunk(opaque ? chunk.vertexBufferOpaque : chunk.vertexBufferTransparent);
                         }
                     }
                 }
             }
+        }
+        public new void Exit() {
+            foreach ((int x, int z) in world.CurrentlyLoadedChunkLines) {
+                SaveFile.SaveChunkLine(world, x, z);
+            }
+
+            base.Exit();
         }
     }
 }

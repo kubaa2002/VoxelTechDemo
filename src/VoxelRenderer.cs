@@ -53,7 +53,7 @@ namespace VoxelTechDemo{
             // Check every block within a chunk if it needs to be meshed
             for(int z=0;z<ChunkSize;z++){
                 int currentBlock = z*ChunkSizeSquared;
-                for(int y=0;y<chunk.maxY;y++){
+                for(int y=0;y<ChunkSize;y++){
                     for(int x=0;x<ChunkSize;x++){
                         if(blocks[currentBlock]!=0){
                             uint faces = 0;
