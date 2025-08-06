@@ -71,12 +71,12 @@ namespace VoxelTechDemo{
                             }
                             // Face y+
                             if (y != ChunkSize-1 ? (blockId!=blocks[currentBlock+ChunkSize] && Blocks.IsTransparent(blocks[currentBlock+ChunkSize]))
-                            : (blocksUp != null && blockId!=blocksUp[currentBlock+(ChunkSize-ChunkSizeSquared)] && Blocks.IsTransparent(blocksUp[currentBlock+(ChunkSize-ChunkSizeSquared)]))){
+                            : (blocksUp != null && blockId!=blocksUp[currentBlock-(ChunkSizeSquared-ChunkSize)] && Blocks.IsTransparent(blocksUp[currentBlock-(ChunkSizeSquared-ChunkSize)]))){
                                 faces |= 4;
                             }
                             // Face y-
                             if (y != 0 ? (blockId!=blocks[currentBlock-ChunkSize] && Blocks.IsTransparent(blocks[currentBlock-ChunkSize]))
-                            : (blocksDown != null && blockId!=blocksDown[currentBlock-(ChunkSize-ChunkSizeSquared)] && Blocks.IsTransparent(blocksUp[currentBlock-(ChunkSize-ChunkSizeSquared)]))){
+                            : (blocksDown != null && blockId!=blocksDown[currentBlock+(ChunkSizeSquared-ChunkSize)] && Blocks.IsTransparent(blocksDown[currentBlock+(ChunkSizeSquared-ChunkSize)]))){
                                 faces |= 8;
                             }
                             // Face z+
