@@ -179,12 +179,13 @@ namespace VoxelTechDemo {
             foreach ((int x, int z) in world.CurrentlyLoadedChunkLines) {
                 Vector3 currentChunkCoords = new(x - chunkX, -chunkY, z - chunkZ);
                 currentChunkCoords *= ChunkSize;
-                if (frustum.Intersects(new BoundingBox(currentChunkCoords, currentChunkCoords + chunkLineSize))) {
-                    effect.Apply(Matrix.CreateWorld(currentChunkCoords, Vector3.Forward, Vector3.Up));
-                    for (int y = 0; y < World.MaxYChunk; y++) {
-                        if (world.WorldMap.TryGetValue((x, y, z), out Chunk chunk)) {
-                            DrawChunk(opaque ? chunk.vertexBufferOpaque : chunk.vertexBufferTransparent);
-                        }
+                if (!frustum.Intersects(new BoundingBox(currentChunkCoords, currentChunkCoords + chunkLineSize))) {
+                    continue;
+                }
+                effect.Apply(Matrix.CreateWorld(currentChunkCoords, Vector3.Forward, Vector3.Up));
+                for (int y = 0; y < World.MaxYChunk; y++) {
+                    if (world.WorldMap.TryGetValue((x, y, z), out Chunk chunk)) {
+                        DrawChunk(opaque ? chunk.vertexBufferOpaque : chunk.vertexBufferTransparent);
                     }
                 }
             }
@@ -193,7 +194,8 @@ namespace VoxelTechDemo {
             foreach ((int x, int z) in world.CurrentlyLoadedChunkLines) {
                 SaveFile.SaveChunkLine(world, x, z);
             }
-
+            SaveFile.SavePlayer(player);
+            
             base.Exit();
         }
     }
