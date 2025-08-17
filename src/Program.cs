@@ -99,10 +99,10 @@ namespace VoxelTechDemo {
                 player.forward = Vector3.Transform(Vector3.Forward, Matrix.CreateFromYawPitchRoll(yaw, pitch, 0f));
                 player.GetLookedAtBlock();
 
-                if (currentMouseState.LeftButton == ButtonState.Pressed && lastMouseState.LeftButton == ButtonState.Released && player.blockFound) {
+                if (currentMouseState.LeftButton == ButtonState.Pressed && lastMouseState.LeftButton == ButtonState.Released && player.BlockFound) {
                     world.SetBlock(player.LookedAtBlock, player.CurrentChunk, 0);
                 }
-                if (currentMouseState.RightButton == ButtonState.Pressed && lastMouseState.RightButton == ButtonState.Released && player.blockFound) {
+                if (currentMouseState.RightButton == ButtonState.Pressed && lastMouseState.RightButton == ButtonState.Released && player.BlockFound) {
                     world.SetBlock(player.LookedAtBlock, player.CurrentChunk, chosenBlock, player.currentSide, player.playerHitBox);
                 }
                 if (currentMouseState.ScrollWheelValue != lastMouseState.ScrollWheelValue) {
@@ -140,7 +140,7 @@ namespace VoxelTechDemo {
             GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
             effect.AnimationFrame.SetValue(0);
 
-            if (player.blockFound) {
+            if (player.BlockFound) {
                 DrawCubeFrame(effect, player.LookedAtBlock);
             }
 

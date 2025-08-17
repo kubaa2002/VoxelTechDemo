@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -6,6 +7,7 @@ using Microsoft.Xna.Framework;
 
 namespace VoxelTechDemo {
     static class SaveFile {
+        // TODO: Don't save chunks that did not change or generated
         public static void SaveChunkLine(World world, int x, int z) {
             using BrotliStream writer = new(File.Create($"Save/{x},{z}"), CompressionLevel.Optimal);
             for (int y = 0; y < World.MaxYChunk; y++) {
@@ -23,17 +25,23 @@ namespace VoxelTechDemo {
             for (int y = 0; y < World.MaxYChunk; y++) {
                 Chunk chunk = world.WorldMap[(x, y, z)];
                 byte[] blocks = chunk.blocks;
-                stream.ReadExactly(blocks);
+                try {
+                    stream.ReadExactly(blocks);
 
-                for (int index = 0; index < blocks.Length; index++) {
-                    if (Blocks.IsLightEminiting(blocks[index])) {
-                        (int red, int green, int blue) = Blocks.ReturnBlockLightValues(blocks[index]);
-                        if (red != 0) redLightQueue.Enqueue((index, chunk, red));
-                        if (green != 0) greenLightQueue.Enqueue((index, chunk, green));
-                        if (blue != 0) blueLightQueue.Enqueue((index, chunk, blue));
+                    for (int index = 0; index < blocks.Length; index++) {
+                        if (Blocks.IsLightEminiting(blocks[index])) {
+                            (int red, int green, int blue) = Blocks.ReturnBlockLightValues(blocks[index]);
+                            if (red != 0) redLightQueue.Enqueue((index, chunk, red));
+                            if (green != 0) greenLightQueue.Enqueue((index, chunk, green));
+                            if (blue != 0) blueLightQueue.Enqueue((index, chunk, blue));
+                        }
                     }
+
+                    chunk.IsGenerated = true;
                 }
-                chunk.IsGenerated = true;
+                catch {
+                    Console.WriteLine($"Failed to read chunk at {x},{y},{z}");
+                }
             }
             Light.PropagateSkyLight(world.WorldMap[(x, World.MaxYChunk - 1, z)]);
             Light.PropagateLight(Light.RedLight, redLightQueue, null);
@@ -71,6 +79,7 @@ namespace VoxelTechDemo {
                 return true;
             }
             catch {
+                Console.WriteLine("Failed to read player position");
                 return false;
             }
         }

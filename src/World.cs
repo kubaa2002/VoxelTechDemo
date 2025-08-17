@@ -7,16 +7,16 @@ using static VoxelTechDemo.VoxelRenderer;
 
 namespace VoxelTechDemo{
     public class World{
-        public ConcurrentDictionary<(int,int,int),Chunk> WorldMap = new();
+        public readonly ConcurrentDictionary<(int,int,int),Chunk> WorldMap = new();
         public readonly HashSet<(int x, int z)> CurrentlyLoadedChunkLines = [];
-        readonly long seed;
-        // MaxHeight needs to divisable by ChunkSize
+        private readonly long seed;
+        // MaxHeight needs to divisible by ChunkSize
         public const int MaxHeight = 512;
         public const int MaxYChunk = MaxHeight / ChunkSize;
         public World(long seed) {
             this.seed = seed;
         }
-        public void SetBlock(Vector3 coords,(int, int, int) chunkCoordinate, byte Id, BlockFace blockSide, BoundingBox PlayerHitBox){
+        public void SetBlock(Vector3 coords,(int, int, int) chunkCoordinate, byte id, BlockFace blockSide, BoundingBox playerHitBox){
             switch(blockSide){
                 case BlockFace.Right:
                     coords.X -= 1;
@@ -37,11 +37,11 @@ namespace VoxelTechDemo{
                     coords.Z += 1;
                     break;
             }
-            if (!PlayerHitBox.Intersects(new BoundingBox(coords, coords+Vector3.One))) {
-                SetBlock(coords, chunkCoordinate, Id);
+            if (!playerHitBox.Intersects(new BoundingBox(coords, coords+Vector3.One))) {
+                SetBlock(coords, chunkCoordinate, id);
             }
         }
-        public void SetBlock(Vector3 coords, (int x,int y,int z) chunkCoordinate,byte Id){
+        public void SetBlock(Vector3 coords, (int x,int y,int z) chunkCoordinate,byte id){
             int x = (int)coords.X;
             int y = (int)coords.Y;
             int z = (int)coords.Z;
@@ -49,64 +49,60 @@ namespace VoxelTechDemo{
             if(!WorldMap.TryGetValue(chunkCoordinate, out Chunk chunk)){
                 return;
             }
-            HashSet<Chunk> Set = [];
-            Set.Add(chunk);
-            chunk.blocks[x+(y*ChunkSize)+(z*ChunkSizeSquared)]=Id;
-            chunk.UpdateLight(x, y, z, Id, Set);
+            HashSet<Chunk> set = [
+                chunk
+            ];
+            chunk.blocks[x+(y*ChunkSize)+(z*ChunkSizeSquared)]=id;
+            chunk.UpdateLight(x, y, z, id, set);
             GenerateChunkMesh(chunk);
             if(x==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x-1,chunkCoordinate.y,chunkCoordinate.z),out chunk)){
-                    Set.Add(chunk);
+                    set.Add(chunk);
                 }
             }
             if(x==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x+1,chunkCoordinate.y,chunkCoordinate.z),out chunk)){
-                    Set.Add(chunk);
+                    set.Add(chunk);
                 }
             }
             if(y==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y-1,chunkCoordinate.z),out chunk)){
-                    Set.Add(chunk);
+                    set.Add(chunk);
                 }
             }
             if(y==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y+1,chunkCoordinate.z),out chunk)){
-                    Set.Add(chunk);
+                    set.Add(chunk);
                 }
             }
             if(z==0){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z-1),out chunk)){
-                    Set.Add(chunk);
+                    set.Add(chunk);
                 }
             }
             if(z==ChunkSize-1){
                 if(WorldMap.TryGetValue((chunkCoordinate.x,chunkCoordinate.y,chunkCoordinate.z+1),out chunk)){
-                    Set.Add(chunk);
+                    set.Add(chunk);
                 }
             }
-            foreach (Chunk value in Set) {
+            foreach (Chunk value in set) {
                 GenerateChunkMesh(value);
             }
         }
-        public void SetBlockWithoutUpdating(int x,int y,int z,(int x,int y,int z) chunkCoordinate,byte Id){
+        private void SetBlockWithoutUpdating(int x,int y,int z,(int x,int y,int z) chunkCoordinate,byte id){
             NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
-            if(WorldMap.TryGetValue(chunkCoordinate,out Chunk chunk)){
-                chunk.blocks[x+y*ChunkSize+z*ChunkSizeSquared]=Id;
-            }
-            else{
+            if(!WorldMap.TryGetValue(chunkCoordinate,out Chunk chunk)){
                 WorldMap.TryAdd(chunkCoordinate,new(chunkCoordinate,this));
                 chunk = WorldMap[chunkCoordinate];
-                chunk.blocks[x+y*ChunkSize+z*ChunkSizeSquared]=Id;
             }
+            chunk.blocks[x+y*ChunkSize+z*ChunkSizeSquared]=id;
         }
         public byte GetBlock(int x,int y,int z, (int x,int y,int z) chunkCoordinate){
             NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
             if(WorldMap.TryGetValue(chunkCoordinate, out Chunk chunk)){
                 return chunk.blocks[x+(y*ChunkSize)+(z*ChunkSizeSquared)];
             }
-            else{
-                return 0;
-            }
+            return 0;
         }
         public void GenerateChunkLine(int x,int z){
             for(int y=0;y<MaxYChunk;y++){
@@ -115,7 +111,7 @@ namespace VoxelTechDemo{
             if(!SaveFile.TryLoadChunkLine(this, x, z))
                 GenerateTerrain(x,z);
         }
-        public void GenerateTerrain(int chunkX,int chunkZ){
+        private void GenerateTerrain(int chunkX,int chunkZ){
             Chunk[] chunks = new Chunk[MaxYChunk];
             for(int y=0;y<MaxYChunk;y++){
                 chunks[y]=WorldMap[(chunkX,y,chunkZ)];
@@ -124,17 +120,17 @@ namespace VoxelTechDemo{
                 for(int z=0;z<ChunkSize;z++){
                     // If yLevel below 0 needs to be generated, MountainNoise needs to floored before casting to int
                     int yLevel = 50+(int)MountainNoise((double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z);
-                    int blockPossition = x+yLevel%ChunkSize*ChunkSize+z*ChunkSizeSquared;
+                    int blockPosition = x+yLevel%ChunkSize*ChunkSize+z*ChunkSizeSquared;
                     byte[] chunkBlocks = chunks[yLevel/ChunkSize].blocks;
                     // Water level
                     if(yLevel < 63){
                         for(int y=63;y>yLevel;y--){
                             if(y%ChunkSize==ChunkSize-1){
                                 chunkBlocks = chunks[y/ChunkSize].blocks;
-                                blockPossition = x+ChunkSizeSquared-ChunkSize+z*ChunkSizeSquared;
+                                blockPosition = x+ChunkSizeSquared-ChunkSize+z*ChunkSizeSquared;
                             }
-                            chunkBlocks[blockPossition]=15;
-                            blockPossition-=ChunkSize;
+                            chunkBlocks[blockPosition]=15;
+                            blockPosition-=ChunkSize;
                         }
                     }
                     // Dirt level
@@ -143,56 +139,56 @@ namespace VoxelTechDemo{
                     for(int y=yLevel;y>=yLevel-2;y--){
                         if(y%ChunkSize==ChunkSize-1){
                             chunkBlocks = chunks[y/ChunkSize].blocks;
-                            blockPossition = x+ChunkSizeSquared-ChunkSize+z*ChunkSizeSquared;
+                            blockPosition = x+ChunkSizeSquared-ChunkSize+z*ChunkSizeSquared;
                         }
                         if(y == yLevel){
                             if(y>=65){
                                 if(y>=238+stoneNoise){
                                     if(y>=258+stoneNoise){
                                         // Snow
-                                        chunkBlocks[blockPossition]=13;
+                                        chunkBlocks[blockPosition]=13;
                                     }
                                     else{
                                         // Stone
-                                        chunkBlocks[blockPossition]=3;
+                                        chunkBlocks[blockPosition]=3;
                                     }
                                 }
                                 else{
                                     // Grass
-                                    chunkBlocks[blockPossition]=1;
+                                    chunkBlocks[blockPosition]=1;
                                 }
                             }
                             else{
                                 if(yLevel<62){
                                     // Gravel
-                                    chunkBlocks[blockPossition]=11;
+                                    chunkBlocks[blockPosition]=11;
                                 }
                                 else{
                                     // Sand
-                                    chunkBlocks[blockPossition]=12;
+                                    chunkBlocks[blockPosition]=12;
                                 }
                             }
                         }
                         else{
                             if(y>=238+stoneNoise){
                                 // Stone
-                                chunkBlocks[blockPossition]=3;
+                                chunkBlocks[blockPosition]=3;
                             }
                             else{
                                 // Dirt
-                                chunkBlocks[blockPossition]=2;
+                                chunkBlocks[blockPosition]=2;
                             }
                         }
-                        blockPossition-=ChunkSize;
+                        blockPosition-=ChunkSize;
                     }
                     // Stone level
                     for(int y=yLevel-3;y>=0;y--){
                         if(y%ChunkSize==ChunkSize-1){
                             chunkBlocks = chunks[y/ChunkSize].blocks;
-                            blockPossition += ChunkSizeSquared;
+                            blockPosition += ChunkSizeSquared;
                         }
-                        chunkBlocks[blockPossition]=3;
-                        blockPossition-=ChunkSize;
+                        chunkBlocks[blockPosition]=3;
+                        blockPosition-=ChunkSize;
                     }
                     if(OpenSimplex2.Noise2(seed,(double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z) > 0.9f + 0.0004f*yLevel && yLevel>=65){
                         CreateTree(x,yLevel%ChunkSize,z, chunks[yLevel/ChunkSize]);
@@ -239,7 +235,7 @@ namespace VoxelTechDemo{
                         + OpenSimplex2.Noise2(seed,x/400,z/400)*4
                         + OpenSimplex2.Noise2(seed,x/100,z/100),2);
         }
-        static void NormalizeChunkCoordinates(ref int x,ref int y,ref int z,ref (int x,int y,int z) chunkCoordinate){
+        private static void NormalizeChunkCoordinates(ref int x,ref int y,ref int z,ref (int x,int y,int z) chunkCoordinate){
             if (x > ChunkSize - 1 || x < 0) {
                 int amount = x / ChunkSize;
                 if (x < 0)
@@ -278,10 +274,10 @@ namespace VoxelTechDemo{
                 }
             }
         }
-        Task LoadChunkLine(int x, int z) {
+        private Task LoadChunkLine(int x, int z) {
             CurrentlyLoadedChunkLines.Add((x, z));
             return Task.Run(() => {
-                //TOFIX: Sometimes chunk is generated 2 times
+                // TOFIX: Sometimes chunk is generated 2 times
                 if (!WorldMap.TryGetValue((x, 0, z), out Chunk chunk) || !chunk.IsGenerated) {
                     GenerateChunkLine(x, z);
                 }
@@ -302,11 +298,13 @@ namespace VoxelTechDemo{
                 }
             });
         }
-        void UnloadChunkLine(int x, int z) {
+        private void UnloadChunkLine(int x, int z) {
             CurrentlyLoadedChunkLines.Remove((x, z));
             SaveFile.SaveChunkLine(this, x, z);
             for (int y = 0; y < MaxYChunk; y++) {
-                WorldMap.Remove((x, y, z), out Chunk chunk);
+                if (!WorldMap.Remove((x, y, z), out Chunk chunk)) {
+                    continue;
+                }
                 chunk.vertexBufferOpaque?.Dispose();
                 chunk.vertexBufferTransparent?.Dispose();
             }
