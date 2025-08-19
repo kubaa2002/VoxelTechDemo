@@ -89,10 +89,10 @@ namespace VoxelTechDemo {
                     player.ResetHitBox();
                 }
                 if (IsNoClipOn) {
-                    player.NoClipMovement(keyboardState, gameTime);
+                    player.NoClipMovement(keyboardState, (float)gameTime.ElapsedGameTime.TotalSeconds);
                 }
                 else {
-                    player.NormalMovement(keyboardState, gameTime, yaw);
+                    player.NormalMovement(keyboardState, (float)gameTime.ElapsedGameTime.TotalSeconds);
                 }
 
                 //Check looked at block

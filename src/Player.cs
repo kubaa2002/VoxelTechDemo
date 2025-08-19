@@ -71,13 +71,10 @@ namespace VoxelTechDemo{
                 }
             }
         }
-        public void NoClipMovement(KeyboardState keyboardState, GameTime gameTime){
-            float movementSpeed = (float)gameTime.ElapsedGameTime.TotalMilliseconds;
+        public void NoClipMovement(KeyboardState keyboardState, float elapsedSeconds){
+            float movementSpeed = 25f * elapsedSeconds;
             if(keyboardState.IsKeyDown(Keys.LeftShift)){
-                movementSpeed *= 0.1f;
-            }
-            else{
-                movementSpeed *= 0.025f;
+                movementSpeed *= 4;
             }
             if (keyboardState.IsKeyDown(Keys.W)){
                 camPosition += forward*movementSpeed;         
@@ -98,120 +95,95 @@ namespace VoxelTechDemo{
                 camPosition.Y -= movementSpeed;
             }
             ResetCamera();
-            if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(camPosition.Y-0.1f),(int)Math.Floor(camPosition.Z),CurrentChunk))){
-                IsUnderWater = true;
-            }
-            else{
-                IsUnderWater = false;
-            }
+            IsUnderWater = CheckIfInWater(camPosition.X, camPosition.Y - 0.1f, camPosition.Z);
         }
-        public void NormalMovement(KeyboardState keyboardState, GameTime gameTime, float yaw){
-            forward = Vector3.Zero;
-            float movementSpeed;
-            if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z),CurrentChunk))){
-                movementSpeed = 0.0025f;
-            }
-            else{
-                movementSpeed = 0.00625f;
-            }
-            if(keyboardState.IsKeyDown(Keys.LeftShift)){
-                movementSpeed *= 2;
-            }
+        public void NormalMovement(KeyboardState keyboardState, float elapsedSeconds){
+            Vector3 direction = Vector3.Zero;
             if (keyboardState.IsKeyDown(Keys.W)){
-                forward += Vector3.Transform(Vector3.Forward, Matrix.CreateFromYawPitchRoll(yaw, 0f, 0f));
+                direction += forward;
             }
             if (keyboardState.IsKeyDown(Keys.S)){
-                forward -= Vector3.Transform(Vector3.Forward, Matrix.CreateFromYawPitchRoll(yaw, 0f, 0f));
+                direction -= forward;
             }
             if (keyboardState.IsKeyDown(Keys.A)){
-                forward -= right;
+                direction -= right;
             }
             if (keyboardState.IsKeyDown(Keys.D)){
-                forward += right;
+                direction += right;
             }
             
-            if(forward != Vector3.Zero){
-                forward.Normalize();
-                forward *= movementSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
-                if(forward.X != 0) {
-                    int blockX = (int)Math.Floor((forward.X > 0 ? playerHitBox.Max.X : playerHitBox.Min.X) + forward.X);
-                    if(CheckCollision(blockX,(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(playerHitBox.Min.Z),blockX,(int)Math.Floor(playerHitBox.Max.Y),(int)Math.Floor(playerHitBox.Max.Z))) {
-                        camPosition.X = (float)Math.Floor(camPosition.X) + (forward.X > 0 ? 0.75f : 0.25f);
-                    }
-                    else{
-                        camPosition.X += forward.X;
-                    }
-                    playerHitBox.Min.X = camPosition.X-0.2499f;
-                    playerHitBox.Max.X = camPosition.X+0.2499f;
+            if(direction != Vector3.Zero){
+                float movementSpeed = 6.25f;
+                if(CheckIfInWater(camPosition.X, playerHitBox.Min.Y, camPosition.Z)){
+                    movementSpeed = 2.5f;
                 }
-                if(forward.Z != 0){
-                    int blockZ = (int)Math.Floor((forward.Z > 0 ? playerHitBox.Max.Z : playerHitBox.Min.Z) + forward.Z);
-                    if(CheckCollision((int)Math.Floor(playerHitBox.Min.X),(int)Math.Floor(playerHitBox.Min.Y),blockZ,(int)Math.Floor(playerHitBox.Max.X),(int)Math.Floor(playerHitBox.Max.Y),blockZ)){
-                        camPosition.Z = (float)Math.Floor(camPosition.Z) + (forward.Z > 0 ? 0.75f : 0.25f);
-                    }
-                    else{
-                        camPosition.Z += forward.Z;
-                    }
-                    playerHitBox.Min.Z = camPosition.Z-0.2499f;
-                    playerHitBox.Max.Z = camPosition.Z+0.2499f;
+                if(keyboardState.IsKeyDown(Keys.LeftShift)){
+                    movementSpeed *= 2;
                 }
+                direction.Y = 0;
+                direction.Normalize();
+                direction *= movementSpeed * elapsedSeconds;
+
+                float blockX = (direction.X > 0 ? playerHitBox.Max.X : playerHitBox.Min.X) + direction.X;
+                if(CheckCollision(blockX, playerHitBox.Min.Y, playerHitBox.Min.Z, blockX, playerHitBox.Max.Y, playerHitBox.Max.Z)) {
+                    camPosition.X = (float)Math.Floor(camPosition.X) + (direction.X > 0 ? 0.75f : 0.25f);
+                }
+                else{
+                    camPosition.X += direction.X;
+                }
+                playerHitBox.Min.X = camPosition.X - 0.2499f;
+                playerHitBox.Max.X = camPosition.X + 0.2499f;
+
+                float blockZ = (direction.Z > 0 ? playerHitBox.Max.Z : playerHitBox.Min.Z) + direction.Z;
+                if(CheckCollision(playerHitBox.Min.X, playerHitBox.Min.Y, blockZ, playerHitBox.Max.X, playerHitBox.Max.Y, blockZ)){
+                    camPosition.Z = (float)Math.Floor(camPosition.Z) + (direction.Z > 0 ? 0.75f : 0.25f);
+                }
+                else{
+                    camPosition.Z += direction.Z;
+                }
+                playerHitBox.Min.Z = camPosition.Z - 0.2499f;
+                playerHitBox.Max.Z = camPosition.Z + 0.2499f;
             }
             
-            if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z),CurrentChunk))){
-                if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y+0.8f),(int)Math.Floor(camPosition.Z),CurrentChunk))){
+            if(CheckIfInWater(camPosition.X, playerHitBox.Min.Y, camPosition.Z)){
+                if(CheckIfInWater(camPosition.X, playerHitBox.Min.Y + 0.8f, camPosition.Z)){
                     if(keyboardState.IsKeyDown(Keys.Space)){
-                        verticalSpeed = 0.003f;
+                        verticalSpeed = 3f;
                     }
-                    verticalSpeed -= 0.0000015f*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
-                    if(verticalSpeed<-0.004f){
-                        verticalSpeed = -0.004f;
-                    }
+                    verticalSpeed -= 1.5f * elapsedSeconds;
+                    verticalSpeed = Math.Max(verticalSpeed, -4f);
                 }
             }
             else{
                 if(keyboardState.IsKeyDown(Keys.Space) && canJump){
-                    verticalSpeed = 0.0085f;
+                    verticalSpeed = 8.5f;
                 }
-                verticalSpeed -= 0.000015f*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
-                if(verticalSpeed<-1f){
-                    verticalSpeed = -1f;
-                }
+                verticalSpeed -= 15f * elapsedSeconds;
+                verticalSpeed = Math.Max(verticalSpeed, -1000f);
             }
             
-            int blockY = verticalSpeed <= 0
-                ? (int)Math.Floor(playerHitBox.Min.Y + verticalSpeed * (float)gameTime.ElapsedGameTime.TotalMilliseconds)
-                : (int)(Math.Floor(playerHitBox.Max.Y + 0.13f) + verticalSpeed * (float)gameTime.ElapsedGameTime.TotalMilliseconds);
-            if(CheckCollision((int)Math.Floor(playerHitBox.Min.X),blockY,(int)Math.Floor(playerHitBox.Min.Z),(int)Math.Floor(playerHitBox.Max.X),blockY,(int)Math.Floor(playerHitBox.Max.Z))){
+            float blockY = (verticalSpeed <= 0 ? playerHitBox.Min.Y : playerHitBox.Max.Y) + verticalSpeed * elapsedSeconds;
+            if(CheckCollision(playerHitBox.Min.X, blockY, playerHitBox.Min.Z, playerHitBox.Max.X, blockY, playerHitBox.Max.Z)){
                 if (verticalSpeed <= 0) {
-                    camPosition.Y = (float)Math.Round((float)Math.Floor(playerHitBox.Min.Y) + 1.7f, 2);
+                    camPosition.Y = (float)Math.Floor(playerHitBox.Min.Y) + 1.7f;
                     canJump = true;
                 }
                 verticalSpeed = 0;
             }
             else{
-                camPosition.Y += verticalSpeed*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
+                camPosition.Y += verticalSpeed * elapsedSeconds;
                 canJump = false;
-                if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(playerHitBox.Min.Y),(int)Math.Floor(camPosition.Z),CurrentChunk))){
-                    verticalSpeed -= 0.0000015f*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
-                }
-                else{
-                    verticalSpeed -= 0.000015f*(float)gameTime.ElapsedGameTime.TotalMilliseconds;
-                }
+                verticalSpeed -= (CheckIfInWater(camPosition.X, playerHitBox.Min.Y, camPosition.Z) ? 1.5f : 15f) * elapsedSeconds;
             }
             ResetCamera();
-            playerHitBox.Min.Y = camPosition.Y-1.6999f;
-            playerHitBox.Max.Y = camPosition.Y+0.0999f;
-            if(Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(camPosition.X),(int)Math.Floor(camPosition.Y-0.1f),(int)Math.Floor(camPosition.Z),CurrentChunk))){
-                IsUnderWater = true;
-            }
-            else{
-                IsUnderWater = false;
-            }
+            playerHitBox.Min.Y = camPosition.Y - 1.6999f;
+            playerHitBox.Max.Y = camPosition.Y + 0.0999f;
+            IsUnderWater = CheckIfInWater(camPosition.X, camPosition.Y - 0.1f, camPosition.Z);
         }
-        private bool CheckCollision(int startX, int startY, int startZ, int endX, int endY, int endZ) {
-            for (int x = startX; x <= endX; x++) {
-                for (int y = startY; y <= endY; y++) {
-                    for (int z = startZ; z <= endZ; z++) {
+        private bool CheckCollision(float startX, float startY, float startZ, float endX, float endY, float endZ) {
+            for (int x = (int)Math.Floor(startX); x <= (int)Math.Floor(endX); x++) {
+                for (int y = (int)Math.Floor(startY); y <= (int)Math.Floor(endY); y++) {
+                    for (int z = (int)Math.Floor(startZ); z <= (int)Math.Floor(endZ); z++) {
                         if(!Blocks.IsNotSolid(currentWorld.GetBlock(x,y,z,CurrentChunk))) {
                             return true;
                         }
@@ -219,6 +191,9 @@ namespace VoxelTechDemo{
                 }
             }
             return false;
+        }
+        private bool CheckIfInWater(float x, float y, float z) {
+            return Blocks.IsFluid(currentWorld.GetBlock((int)Math.Floor(x),(int)Math.Floor(y),(int)Math.Floor(z),CurrentChunk));
         }
         public void ResetHitBox(){
             playerHitBox.Min.X = camPosition.X-0.2499f;
