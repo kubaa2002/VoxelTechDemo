@@ -15,15 +15,14 @@ namespace VoxelTechDemo {
         private SpriteBatch spriteBatch;
         private SpriteFont font;
         private float yaw = MathHelper.PiOver2, pitch;
-        private bool IsPaused = false, IsNoClipOn = false;
+        private bool IsPaused, IsNoClipOn;
         private KeyboardState lastKeyboardState;
         private MouseState lastMouseState;
         private byte chosenBlock = 1;
         private Point WindowCenter;
-        public CustomEffect effect;
-
         private Texture2D blankTexture;
 
+        public CustomEffect effect;
         public readonly World world = new(12345);
         public Player player;
 
@@ -86,7 +85,12 @@ namespace VoxelTechDemo {
                 //Check pressed keys
                 if (keyboardState.IsKeyDown(Keys.N) && lastKeyboardState.IsKeyUp(Keys.N)) {
                     IsNoClipOn = !IsNoClipOn;
-                    player.ResetHitBox();
+                    if (IsNoClipOn) {
+                        player.playerHitBox = new BoundingBox(Vector3.Zero, Vector3.Zero);
+                    }
+                    else {
+                        player.ResetHitBox();
+                    }
                 }
                 if (IsNoClipOn) {
                     player.NoClipMovement(keyboardState, (float)gameTime.ElapsedGameTime.TotalSeconds);
