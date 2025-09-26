@@ -37,9 +37,17 @@ namespace VoxelTechDemo{
                     coords.Z += 1;
                     break;
             }
-            if (!playerHitBox.Intersects(new BoundingBox(coords, coords+Vector3.One))) {
-                SetBlock(coords, chunkCoordinate, id);
+            if (!Blocks.IsNotSolid(id)){
+                if(playerHitBox.Intersects(new BoundingBox(coords, coords+Vector3.One))) {
+                    return;
+                }
             }
+            else {
+                if (Blocks.IsFoliage(GetBlock((int)coords.X,(int)coords.Y - 1,(int)coords.Z,chunkCoordinate))) {
+                    return;
+                }
+            }
+            SetBlock(coords, chunkCoordinate, id);
         }
         public void SetBlock(Vector3 coords, (int x,int y,int z) chunkCoordinate,byte id){
             int x = (int)coords.X;
@@ -108,8 +116,10 @@ namespace VoxelTechDemo{
             for(int y=0;y<MaxYChunk;y++){
                 WorldMap.TryAdd((x,y,z),new((x,y,z),this));
             }
-            if(!SaveFile.TryLoadChunkLine(this, x, z))
+
+            if (!SaveFile.TryLoadChunkLine(this, x, z)) {
                 GenerateTerrain(x,z);
+            }
         }
         private void GenerateTerrain(int chunkX,int chunkZ){
             Chunk[] chunks = new Chunk[MaxYChunk];
@@ -190,8 +200,23 @@ namespace VoxelTechDemo{
                         chunkBlocks[blockPosition]=3;
                         blockPosition-=ChunkSize;
                     }
-                    if(OpenSimplex2.Noise2(seed,(double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z) > 0.9f + 0.0004f*yLevel && yLevel>=65){
+                    double foliageNoise = OpenSimplex2.Noise2(seed, (double)chunkX * ChunkSize + x,
+                        (double)chunkZ * ChunkSize + z);
+                    
+                    if(foliageNoise > 0.9f + 0.0004f*yLevel && yLevel>=65){
                         CreateTree(x,yLevel%ChunkSize,z, chunks[yLevel/ChunkSize]);
+                    }
+                    
+                    if (foliageNoise < -0.5f && yLevel >= 65) {
+                        if (GetBlock(x,yLevel,z,(chunkX,0,chunkZ)) == 1) {
+                            if (foliageNoise > -0.525f) {
+                                SetBlockWithoutUpdating(x, yLevel + 1, z, (chunkX, 0, chunkZ),
+                                    foliageNoise > -0.5125f ? (byte)20 : (byte)21);
+                            }
+                            else {
+                                SetBlockWithoutUpdating(x,yLevel+1,z,(chunkX,0,chunkZ),19);
+                            }
+                        }
                     }
                 }
             }

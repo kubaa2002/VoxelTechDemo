@@ -11,7 +11,13 @@ namespace VoxelTechDemo {
         public static void SaveChunkLine(World world, int x, int z) {
             using BrotliStream writer = new(File.Create($"Save/{x},{z}"), CompressionLevel.Optimal);
             for (int y = 0; y < World.MaxYChunk; y++) {
-                writer.Write(world.WorldMap[(x, y, z)].blocks);
+                if (world.WorldMap.TryGetValue((x, y, z), out Chunk chunk)) {
+                    writer.Write(chunk.blocks);
+                }
+                else {
+                    Console.WriteLine($"Failed to save chunk line {x}, {z}");
+                    return;
+                }
             }
         }
         public static bool TryLoadChunkLine(World world, int x, int z) {

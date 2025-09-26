@@ -6,10 +6,10 @@ using static VoxelTechDemo.VoxelRenderer;
 
 namespace VoxelTechDemo{
     public class CustomEffect : Effect{
-        public readonly EffectParameter Texture;
+        readonly EffectParameter Texture;
         readonly EffectParameter FogColor;
         readonly EffectParameter FogVector;
-        public readonly EffectParameter WorldViewProj;
+        readonly EffectParameter WorldViewProj;
         public readonly EffectParameter AnimationFrame;
         public readonly EffectParameter CurrentSkyLightLevel;
 
@@ -18,7 +18,7 @@ namespace VoxelTechDemo{
         public Matrix viewProj;
         private Matrix previewMatrix;
 
-        public float FogStart;
+        float FogStart;
         public float FogEnd{
             private get{
                 return fogValue;
@@ -48,21 +48,23 @@ namespace VoxelTechDemo{
             ));
 
             projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView), GraphicsDevice.DisplayMode.AspectRatio, 0.1f, 10000f);
-            previewMatrix = Matrix.CreateWorld(Vector3.Zero, Vector3.Forward, Vector3.Up);
-            previewMatrix *= Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f, 0.5f, 0.5f), Vector3.Up);
+            previewMatrix = Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f, 0.5f, 0.5f), Vector3.Up);
             previewMatrix *= CreateBlockPreviewProj((int)(GraphicsDevice.Viewport.Width * 0.93f), (int)(GraphicsDevice.Viewport.Height * 0.9f), 5);
+        }
+        private Matrix CreateBlockPreviewProj(int x,int y,float scale){
+            float aspectRatio = GraphicsDevice.Viewport.AspectRatio * scale;
+            float translateX = aspectRatio-(float)x / GraphicsDevice.Viewport.Width * (aspectRatio + aspectRatio);
+            float translateY = (float)y / GraphicsDevice.Viewport.Height * (scale + scale) - scale;
+            return Matrix.CreateOrthographicOffCenter(translateX-aspectRatio,aspectRatio+translateX,translateY-scale,scale+translateY,1f, 10f);
         }
         public void UpdateViewMatrix(Player player) {
             viewMatrix = Matrix.CreateLookAt(player.camPosition, player.camPosition + player.forward, Vector3.Up);
             viewProj = viewMatrix * projectionMatrix;
         }
         public void DrawBlockPreview() {
-            // Sprite batch resets some settings so they need to be set again
-            GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
             WorldViewProj.SetValue(previewMatrix);
             FogVector.SetValue(Vector4.Zero);
             CurrentTechnique.Passes[0].Apply();
-            
         }
         public void UpdateAnimationFrame(TimeSpan totalTime) {
             AnimationFrame.SetValue((float)Math.Round(totalTime.TotalSeconds * 8 % 15) / 16);
@@ -86,20 +88,12 @@ namespace VoxelTechDemo{
             FogColor.SetValue(new Vector3(0.3f,0.3f,0.7f));
             FogStart = -RenderDistance*0.2f*ChunkSize;
             FogEnd = RenderDistance*0.2f*ChunkSize;
-            ApplySettings();
         }
         public void ApplyNormalSettings(){
             GraphicsDevice.Clear(Color.CornflowerBlue);
             FogColor.SetValue(new Vector3(100f/255f,149f/255f,237f/255f));
             FogStart = RenderDistance*0.6f*ChunkSize;
             FogEnd = RenderDistance*0.8f*ChunkSize;
-            ApplySettings();
-        }
-        private void ApplySettings() {
-            GraphicsDevice.DepthStencilState = DepthStencilState.Default;
-            GraphicsDevice.BlendState = BlendState.AlphaBlend;
-            GraphicsDevice.Indices = indexBuffer;
-            GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
         }
     }
 }

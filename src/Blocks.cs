@@ -1,8 +1,10 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System;
+using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 
 namespace VoxelTechDemo{
-    internal class Blocks{
+    internal class Blocks {
+        public static int NumOfBlocks = 0;
         public Dictionary<int, Vector2[]> TextureDictionary = [];
         public Blocks(){
             byte[] blockFaces = [
@@ -39,12 +41,36 @@ namespace VoxelTechDemo{
                 }
                 TextureDictionary[i]=result;
             }
+
+            byte[] blockFoliage = [
+                96,
+                97,
+                98,
+            ];
+            for (int i = 0; i < blockFoliage.Length; i++) {
+                Vector2[] result= new Vector2[4];
+                int x=blockFoliage[i]%16;
+                int y=blockFoliage[i]/16;
+                result[0]=new Vector2(0.0625f*(x+1),0.0625f*(y+1));
+                result[1]=new Vector2(0.0625f*x,0.0625f*(y+1));
+                result[2]=new Vector2(0.0625f*(x+1),0.0625f*y);
+                result[3]=new Vector2(0.0625f*x,0.0625f*y);
+                TextureDictionary[(blockFaces.Length/6) + i] = result;
+            }
+            
+            NumOfBlocks = blockFaces.Length/6 + blockFoliage.Length - 1;
         }
         public static bool IsNotSolid(byte Id){
             switch(Id){
                 case 0:
                     return true;
                 case 15:
+                    return true;
+                case 19:
+                    return true;
+                case 20:
+                    return true;
+                case 21:
                     return true;
                 default:
                     return false;
@@ -59,6 +85,12 @@ namespace VoxelTechDemo{
                 case 8:
                     return true;
                 case 15:
+                    return true;
+                case 19:
+                    return true;
+                case 20:
+                    return true;
+                case 21:
                     return true;
                 default:
                     return false;
@@ -99,6 +131,18 @@ namespace VoxelTechDemo{
                     return (0, 0, Light.lightMask);
                 default:
                     return (0, 0, 0);
+            }
+        }
+        public static bool IsFoliage(byte Id) {
+            switch (Id) {
+                case 19:
+                    return true;
+                case 20:
+                    return true;
+                case 21:
+                    return true;
+                default:
+                    return false;
             }
         }
     }

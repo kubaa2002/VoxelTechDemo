@@ -12,6 +12,7 @@ namespace VoxelTechDemo{
         public readonly World world;
         public VertexBuffer vertexBufferOpaque;
         public VertexBuffer vertexBufferTransparent;
+        public VertexBuffer vertexBufferFoliage;
         public bool IsGenerated = false;
         public Chunk((int x, int y, int z) coordinates, World world) {
             this.coordinates = coordinates;

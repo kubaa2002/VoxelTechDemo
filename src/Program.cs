@@ -45,6 +45,8 @@ namespace VoxelTechDemo {
         }
         protected override void Initialize() {
             InitializeVoxelRenderer(GraphicsDevice);
+            byte[] bytes = File.ReadAllBytes("Content/CustomEffect.mgfx");
+            effect = new(new Effect(GraphicsDevice, bytes), this);
             ChangeCubePreview(chosenBlock);
             UserInterface.Initialize(this, graphics);
             Directory.CreateDirectory("Save");
@@ -59,8 +61,6 @@ namespace VoxelTechDemo {
             base.Initialize();
         }
         protected override void LoadContent() {
-            byte[] bytes = File.ReadAllBytes("Content/CustomEffect.mgfx");
-            effect = new(new Effect(GraphicsDevice, bytes), this);
             spriteBatch = new SpriteBatch(GraphicsDevice);
             font = Content.Load<SpriteFont>("PublicPixel");
             blankTexture = new(GraphicsDevice, 1, 1);
@@ -110,7 +110,7 @@ namespace VoxelTechDemo {
                     world.SetBlock(player.LookedAtBlock, player.CurrentChunk, chosenBlock, player.currentSide, player.playerHitBox);
                 }
                 if (currentMouseState.ScrollWheelValue != lastMouseState.ScrollWheelValue) {
-                    chosenBlock = (byte)(((currentMouseState.ScrollWheelValue / 120 % 18 + 18) % 18) + 1);
+                    chosenBlock = (byte)(((currentMouseState.ScrollWheelValue / 120 % Blocks.NumOfBlocks + Blocks.NumOfBlocks) % Blocks.NumOfBlocks) + 1);
                     ChangeCubePreview(chosenBlock);
                 }
                 lastMouseState = currentMouseState;
@@ -121,6 +121,10 @@ namespace VoxelTechDemo {
             base.Update(gameTime);
         }
         protected override void Draw(GameTime gameTime) {
+            GraphicsDevice.DepthStencilState = DepthStencilState.Default;
+            GraphicsDevice.BlendState = BlendState.AlphaBlend;
+            GraphicsDevice.Indices = indexBuffer;
+            GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
             if (player.IsUnderWater) {
                 effect.ApplyUnderWaterSettings();
             }
@@ -131,14 +135,17 @@ namespace VoxelTechDemo {
             BoundingFrustum frustum = new(effect.viewProj);
 
             // Render solid blocks
-            DrawTerrain(frustum, true);
+            DrawTerrain(frustum, 0);
 
-            // Apply water animation settings
+            // Draw foliage
             GraphicsDevice.RasterizerState = RasterizerState.CullNone;
+            DrawTerrain(frustum, 2);
+            
+            // Apply water animation settings
             effect.UpdateAnimationFrame(gameTime.TotalGameTime);
 
             // Render fluids
-            DrawTerrain(frustum, false);
+            DrawTerrain(frustum, 1);
 
             // Return to normal settings
             GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
@@ -166,6 +173,10 @@ namespace VoxelTechDemo {
                 spriteBatch.Draw(blankTexture, new Rectangle((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f)), Color.White);
                 spriteBatch.End();
 
+                // Some settings have to be reset because sprite batch resets it
+                GraphicsDevice.Indices = indexBuffer;
+                GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
+                
                 DrawCubePreview(effect);
             }
             else {
@@ -174,7 +185,7 @@ namespace VoxelTechDemo {
 
             base.Draw(gameTime);
         }
-        private void DrawTerrain(BoundingFrustum frustum, bool opaque) {
+        private void DrawTerrain(BoundingFrustum frustum, int id) {
             //TODO: Make it so it doesn't recalculate world matrices every frame
             int chunkX = player.CurrentChunk.x;
             int chunkY = player.CurrentChunk.y;
@@ -189,7 +200,19 @@ namespace VoxelTechDemo {
                 effect.Apply(Matrix.CreateWorld(currentChunkCoords, Vector3.Forward, Vector3.Up));
                 for (int y = 0; y < World.MaxYChunk; y++) {
                     if (world.WorldMap.TryGetValue((x, y, z), out Chunk chunk)) {
-                        DrawChunk(opaque ? chunk.vertexBufferOpaque : chunk.vertexBufferTransparent);
+                        switch (id) {
+                            case 0:
+                                DrawChunk(chunk.vertexBufferOpaque);
+                                break;
+                            case 1:
+                                DrawChunk(chunk.vertexBufferTransparent);
+                                break;
+                            case 2:
+                                DrawChunk(chunk.vertexBufferFoliage);
+                                break;
+                            default:
+                                return;
+                        }
                     }
                 }
             }

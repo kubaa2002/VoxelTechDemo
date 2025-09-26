@@ -29,7 +29,9 @@ namespace VoxelTechDemo{
                 Vector3 currentRayPosition = camPosition+(forward*i);
                 currentRayPosition.Floor();
                 BoundingBox currentBlock = new(currentRayPosition,currentRayPosition+Vector3.One);
-                if(!Blocks.IsNotSolid(currentWorld.GetBlock((int)currentBlock.Min.X,(int)currentBlock.Min.Y,(int)currentBlock.Min.Z,CurrentChunk))){
+                byte blockId = currentWorld.GetBlock((int)currentBlock.Min.X, (int)currentBlock.Min.Y,
+                    (int)currentBlock.Min.Z, CurrentChunk);
+                if(blockId != 0 && !Blocks.IsFluid(blockId)){
                     LookedAtBlock = currentBlock.Min;
                     BlockFound = true;
                 }
