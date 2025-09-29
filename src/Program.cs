@@ -21,8 +21,9 @@ namespace VoxelTechDemo {
         private byte chosenBlock = 1;
         private Point WindowCenter;
         private Texture2D blankTexture;
-
+        
         public CustomEffect effect;
+        public BasicEffect basicEffect;
         public readonly World world = new(12345);
         public Player player;
 
@@ -50,6 +51,14 @@ namespace VoxelTechDemo {
             ChangeCubePreview(chosenBlock);
             UserInterface.Initialize(this, graphics);
             Directory.CreateDirectory("Save");
+            basicEffect = new BasicEffect(GraphicsDevice) {
+                VertexColorEnabled = true,
+                FogEnabled = FogEnabled,
+                FogStart = RenderDistance * 0.6f * ChunkSize,
+                FogEnd = RenderDistance * 1f * ChunkSize,
+                FogColor = Color.CornflowerBlue.ToVector3(),
+                Projection = effect.projectionMatrix,
+            };
 
             // Creating player and making sure that spawn terrain is generated
             player = new Player(world);
@@ -116,6 +125,7 @@ namespace VoxelTechDemo {
                 lastMouseState = currentMouseState;
                 Mouse.SetPosition(WindowCenter.X, WindowCenter.Y);
                 effect.UpdateViewMatrix(player);
+                basicEffect.View = effect.viewMatrix;
             }
             lastKeyboardState = keyboardState;
             base.Update(gameTime);
@@ -148,8 +158,14 @@ namespace VoxelTechDemo {
             DrawTerrain(frustum, 1);
 
             // Return to normal settings
-            GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
             effect.AnimationFrame.SetValue(0);
+            
+            if (CloudsEnabled) {
+                basicEffect.World = Matrix.CreateWorld(new Vector3((cloudOffset.x-player.CurrentChunk.x)*ChunkSize,-player.CurrentChunk.y * ChunkSize,(cloudOffset.z-player.CurrentChunk.z)*ChunkSize), Vector3.Forward, Vector3.Up);
+                basicEffect.CurrentTechnique.Passes[0].Apply();
+                UpdateAndDrawClouds(world, player.CurrentChunk.x, player.CurrentChunk.z, gameTime.TotalGameTime.TotalMinutes);
+            }
+            GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
 
             if (player.BlockFound) {
                 DrawCubeFrame(effect, player.LookedAtBlock);

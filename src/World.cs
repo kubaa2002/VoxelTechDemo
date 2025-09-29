@@ -9,7 +9,7 @@ namespace VoxelTechDemo{
     public class World{
         public readonly ConcurrentDictionary<(int,int,int),Chunk> WorldMap = new();
         public readonly HashSet<(int x, int z)> CurrentlyLoadedChunkLines = [];
-        private readonly long seed;
+        public readonly long seed;
         // MaxHeight needs to divisible by ChunkSize
         public const int MaxHeight = 512;
         public const int MaxYChunk = MaxHeight / ChunkSize;

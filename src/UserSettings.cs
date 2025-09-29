@@ -3,20 +3,19 @@ using System.IO;
 
 namespace VoxelTechDemo{
     static class UserSettings{
-        static byte renderDistance = 3;
-        static float mouseSensitivity = 0.005f;
-        static float fieldOfView = 45f;
-        static bool fogEnabled = true;
-        static bool frameRateUnlocked = false;
-        static bool fullscreen = true;
-        static bool dayCycle = true;
+        private static byte renderDistance = 3;
+        private static float mouseSensitivity = 0.005f;
+        private static float fieldOfView = 45f;
+        private static bool fogEnabled = true;
+        private static bool frameRateUnlocked = false;
+        private static bool fullscreen = true;
+        private static bool dayCycle = true;
+        private static bool cloudsEnabled = true;
 
-        static bool needUpdate = false;
+        private static bool needUpdate = false;
 
         public static byte RenderDistance{
-            get{
-                return renderDistance;
-            }
+            get => renderDistance;
             set{
                 if(value != renderDistance){
                     renderDistance = value;
@@ -25,9 +24,7 @@ namespace VoxelTechDemo{
             }
         }
         public static float MouseSensitivity{
-            get{
-                return mouseSensitivity;
-            }
+            get => mouseSensitivity;
             set{
                 if(value != mouseSensitivity){
                     mouseSensitivity = value;
@@ -36,9 +33,7 @@ namespace VoxelTechDemo{
             }
         }
         public static float FieldOfView{
-            get{
-                return fieldOfView;
-            }
+            get => fieldOfView;
             set{
                 if(value != fieldOfView){
                     fieldOfView = value;
@@ -47,9 +42,7 @@ namespace VoxelTechDemo{
             }
         }
         public static bool FogEnabled{
-            get{
-                return fogEnabled;
-            }
+            get => fogEnabled;
             set{
                 if(value != fogEnabled){
                     fogEnabled = value;
@@ -58,9 +51,7 @@ namespace VoxelTechDemo{
             }
         }
         public static bool FrameRateUnlocked{
-            get{
-                return frameRateUnlocked;
-            }
+            get => frameRateUnlocked;
             set{
                 if(value != frameRateUnlocked){
                     frameRateUnlocked = value;
@@ -68,11 +59,8 @@ namespace VoxelTechDemo{
                 }
             }
         }
-        public static bool Fullscreen
-        {
-            get{
-                return fullscreen; 
-            }
+        public static bool Fullscreen {
+            get => fullscreen;
             set{
                 if (value != fullscreen){
                     fullscreen = value;
@@ -81,9 +69,7 @@ namespace VoxelTechDemo{
             }
         }
         public static bool DayCycle {
-            get {
-                return dayCycle;
-            }
+            get => dayCycle;
             set {
                 if (value != dayCycle) {
                     dayCycle = value;
@@ -91,6 +77,17 @@ namespace VoxelTechDemo{
                 }
             }
         }
+
+        public static bool CloudsEnabled {
+            get => cloudsEnabled;
+            set {
+                if (value != cloudsEnabled) {
+                    cloudsEnabled = value;
+                    needUpdate = true;
+                }
+            }
+        }
+
         public static void LoadSettings(){
             if(File.Exists("Settings.txt")){
                 string[] lines = File.ReadAllLines("Settings.txt");
@@ -143,6 +140,11 @@ namespace VoxelTechDemo{
                         dayCycle = result;
                     }
                 }
+                if (variables.TryGetValue("CloudsEnabled", out value)) {
+                    if (bool.TryParse(value, out bool result)) {
+                        cloudsEnabled = result;
+                    }
+                }
             }
             else{
                 UpdateSettingsFile();
@@ -163,6 +165,7 @@ namespace VoxelTechDemo{
             writer.WriteLine($"FrameRateUnlocked={frameRateUnlocked}");
             writer.WriteLine($"Fullscreen={fullscreen}");
             writer.WriteLine($"DayCycle={dayCycle}");
+            writer.WriteLine($"CloudsEnabled={cloudsEnabled}");
         }
     }
 }

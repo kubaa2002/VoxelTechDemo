@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -133,19 +135,19 @@ namespace VoxelTechDemo{
 
             chunk.vertexBufferOpaque?.Dispose();
             if(solidVertices.Count != 0){
-                VertexBuffer vertexBufferOpaque = new(graphicsDevice,typeof(VertexPositionColorTexture),solidVertices.Count,BufferUsage.None);
+                VertexBuffer vertexBufferOpaque = new(graphicsDevice,typeof(VertexPositionColorTexture),solidVertices.Count,BufferUsage.WriteOnly);
                 vertexBufferOpaque.SetData(solidVertices.ToArray());
                 chunk.vertexBufferOpaque = vertexBufferOpaque;
             }
             chunk.vertexBufferTransparent?.Dispose();
             if(fluidVertices.Count != 0){
-                VertexBuffer vertexBufferTransparent = new(graphicsDevice,typeof(VertexPositionColorTexture),fluidVertices.Count,BufferUsage.None);
+                VertexBuffer vertexBufferTransparent = new(graphicsDevice,typeof(VertexPositionColorTexture),fluidVertices.Count,BufferUsage.WriteOnly);
                 vertexBufferTransparent.SetData(fluidVertices.ToArray());
                 chunk.vertexBufferTransparent = vertexBufferTransparent;
             }
             chunk.vertexBufferFoliage?.Dispose();
             if (foliageVertices.Count != 0) {
-                VertexBuffer vertexBufferFoliage = new(graphicsDevice,typeof(VertexPositionColorTexture),foliageVertices.Count,BufferUsage.None);
+                VertexBuffer vertexBufferFoliage = new(graphicsDevice,typeof(VertexPositionColorTexture),foliageVertices.Count,BufferUsage.WriteOnly);
                 vertexBufferFoliage.SetData(foliageVertices.ToArray());
                 chunk.vertexBufferFoliage = vertexBufferFoliage;
             }
@@ -158,7 +160,7 @@ namespace VoxelTechDemo{
                     indicesArray[currentBlock*6+i]=currentBlock*4+indicesOffset[i];
                 }       
             }
-            indexBuffer = new IndexBuffer(graphicsDevice, IndexElementSize.ThirtyTwoBits, indicesArray.Length, BufferUsage.None);
+            indexBuffer = new IndexBuffer(graphicsDevice, IndexElementSize.ThirtyTwoBits, indicesArray.Length, BufferUsage.WriteOnly);
             indexBuffer.SetData(indicesArray);
         }
         public static void DrawChunk(VertexBuffer buffer){
@@ -170,7 +172,7 @@ namespace VoxelTechDemo{
         static VertexBuffer cubeFrameVertex;
         static VertexBuffer cubePreviewVertex;
         static void SetupCubeFrame(){
-            cubeFrameVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 24, BufferUsage.None);
+            cubeFrameVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 24, BufferUsage.WriteOnly);
             Vector2[] cubeFrameTextureCoordinates = TextureDictionary[0];
             VertexPositionColorTexture[] cubeVertices = new VertexPositionColorTexture[24];
             for(int i=0;i<24;i++){
@@ -193,7 +195,7 @@ namespace VoxelTechDemo{
             Vector2[] textureCoordinates = TextureDictionary[id];
             VertexPositionColorTexture[] cubeVerticesPreview;
             if (Blocks.IsFoliage(id)) {
-                cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 8, BufferUsage.None);
+                cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 8, BufferUsage.WriteOnly);
                 cubeVerticesPreview = new VertexPositionColorTexture[8];
                 for (int i = 0; i < 8; i++) {
                     cubeVerticesPreview[i] = new VertexPositionColorTexture(
@@ -203,7 +205,7 @@ namespace VoxelTechDemo{
                 }
             }
             else {
-                cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 12, BufferUsage.None);
+                cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 12, BufferUsage.WriteOnly);
                 cubeVerticesPreview = new VertexPositionColorTexture[12];
                 for(int i=0;i<4;i++){
                     cubeVerticesPreview[i] = new VertexPositionColorTexture(new Vector3((offsetX>>i)&1,(offsetY>>i)&1,(offsetZ>>i)&1), Color.White, textureCoordinates[i]);
@@ -236,6 +238,50 @@ namespace VoxelTechDemo{
                 if (localIntersectionPoint.Z > 0.9999f) return BlockFace.Back;
             }
             return BlockFace.None;
+        }
+
+        private static bool cloudLock;
+        private static VertexBuffer cloudBuffer;
+        public static (int x, int z) cloudOffset;
+        public static void UpdateAndDrawClouds(World world, int offsetChunkX, int offsetChunkZ,double time) {
+            if (!cloudLock) {
+                cloudLock = true;
+                Task.Run(() => {
+                    List<VertexPositionColor> cloudVertices = [];
+                    for (int x = -ChunkSize * (UserSettings.RenderDistance - 2); x < ChunkSize * (UserSettings.RenderDistance-1); x++) {
+                        for (int z = -ChunkSize * (UserSettings.RenderDistance - 2); z < ChunkSize * (UserSettings.RenderDistance-1); z++) {
+                            double noiseValue = OpenSimplex2.Noise3_ImproveXY(world.seed, (double)(x+offsetChunkX*(ChunkSize/2))/100, (double)(z+offsetChunkZ*(ChunkSize/2))/100, time);
+                            if (-0.1f > noiseValue && noiseValue < 0.1f) {
+                                continue;
+                            }
+
+                            int value = (int)(255.0 * Math.Abs(noiseValue+0.1));
+                            Color color = new(value, value, value, value);
+                            for (int i = 12; i < 16; i++) {
+                                cloudVertices.Add(new  VertexPositionColor(new Vector3(
+                                    (x+((offsetX>>i)&1))*2,
+                                    250.5f+((offsetY>>i)&1),
+                                    (z+((offsetZ>>i)&1))*2),
+                                    color));
+                            }
+                        }
+                    }
+
+                    if (cloudVertices.Count > 0) {
+                        VertexBuffer newCloudBuffer = new(graphicsDevice, typeof(VertexPositionColor), cloudVertices.Count, BufferUsage.WriteOnly);
+                        newCloudBuffer.SetData(cloudVertices.ToArray());
+                        cloudBuffer?.Dispose();
+                        cloudBuffer = newCloudBuffer;
+                    }
+                    cloudOffset = (offsetChunkX,offsetChunkZ);
+                    cloudLock = false;
+                });
+            }
+
+            if (cloudBuffer != null) {
+                graphicsDevice.SetVertexBuffer(cloudBuffer);
+                graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, cloudBuffer.VertexCount/2);
+            }
         }
     }
 }

@@ -53,6 +53,8 @@ namespace VoxelTechDemo{
             spinButton.ValueChanged += (s, a) =>{
                 RenderDistance = (byte)spinButton.Value;
                 game.world.UpdateLoadedChunks(game.player.CurrentChunk.x, game.player.CurrentChunk.z);
+                game.basicEffect.FogStart = RenderDistance * 0.6f * VoxelRenderer.ChunkSize;
+                game.basicEffect.FogEnd = RenderDistance * 1f * VoxelRenderer.ChunkSize;
             };
             Grid.SetColumn(spinButton, 1);
             Grid.SetRow(spinButton, 1);
@@ -101,6 +103,7 @@ namespace VoxelTechDemo{
             };
             fogCheck.Click += (s, a) =>{
                 FogEnabled = !FogEnabled;
+                game.basicEffect.FogEnabled = FogEnabled;
             };
             Grid.SetColumn(fogCheck, 1);
             Grid.SetRow(fogCheck, 3);
@@ -124,7 +127,8 @@ namespace VoxelTechDemo{
             };
             FOVslider.ValueChanged += (s, a) =>{
                 FieldOfView = FOVslider.Value;
-                game.effect.projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView),game.GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f);
+                game.effect.UpdateProjMatrix(Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView),game.GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f),game.player);
+                game.basicEffect.Projection = game.effect.projectionMatrix;
             };
             Grid.SetColumn(FOVslider,1);
             Grid.SetRow(FOVslider,4);
@@ -205,6 +209,28 @@ namespace VoxelTechDemo{
             Grid.SetColumn(dayCycleCheck, 1);
             Grid.SetRow(dayCycleCheck, 6);
             grid.Widgets.Add(dayCycleCheck);
+
+            // Clouds button
+            Label cloudsLabel = new() {
+                Text = "Clouds Enabled:",
+                Width = 320,
+                Height = 60,
+                Font = ordinaryFontSystem.GetFont(32),
+            };
+            Grid.SetColumn(cloudsLabel, 0);
+            Grid.SetRow(cloudsLabel, 8);
+            grid.Widgets.Add(cloudsLabel);
+            
+            CheckButton cloudCheck = new() {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                IsChecked = CloudsEnabled
+            };
+            cloudCheck.Click += (s, a) => {
+                CloudsEnabled = !CloudsEnabled;
+            };
+            Grid.SetColumn(cloudCheck, 1);
+            Grid.SetRow(cloudCheck, 8);
+            grid.Widgets.Add(cloudCheck);
 
             mainPanel.Widgets.Add(grid);
 

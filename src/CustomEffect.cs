@@ -14,7 +14,7 @@ namespace VoxelTechDemo{
         public readonly EffectParameter CurrentSkyLightLevel;
 
         public Matrix projectionMatrix;
-        private Matrix viewMatrix;
+        public Matrix viewMatrix;
         public Matrix viewProj;
         private Matrix previewMatrix;
 
@@ -40,12 +40,6 @@ namespace VoxelTechDemo{
             Texture.SetValue(game.Content.Load<Texture2D>("Textures"));
             FogStart = RenderDistance*0.6f*ChunkSize;
             FogEnd = RenderDistance*0.8f*ChunkSize;
-            FogColor.SetValue(new Vector3(
-                //Cornflower Blue
-                100f / 255f,  // Red
-                149f / 255f,  // Green
-                237f / 255f   // Blue
-            ));
 
             projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView), GraphicsDevice.DisplayMode.AspectRatio, 0.1f, 10000f);
             previewMatrix = Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f, 0.5f, 0.5f), Vector3.Up);
@@ -56,6 +50,10 @@ namespace VoxelTechDemo{
             float translateX = aspectRatio-(float)x / GraphicsDevice.Viewport.Width * (aspectRatio + aspectRatio);
             float translateY = (float)y / GraphicsDevice.Viewport.Height * (scale + scale) - scale;
             return Matrix.CreateOrthographicOffCenter(translateX-aspectRatio,aspectRatio+translateX,translateY-scale,scale+translateY,1f, 10f);
+        }
+        public void UpdateProjMatrix(Matrix proj, Player player) {
+            projectionMatrix = proj;
+            UpdateViewMatrix(player);
         }
         public void UpdateViewMatrix(Player player) {
             viewMatrix = Matrix.CreateLookAt(player.camPosition, player.camPosition + player.forward, Vector3.Up);
@@ -91,7 +89,7 @@ namespace VoxelTechDemo{
         }
         public void ApplyNormalSettings(){
             GraphicsDevice.Clear(Color.CornflowerBlue);
-            FogColor.SetValue(new Vector3(100f/255f,149f/255f,237f/255f));
+            FogColor.SetValue(Color.CornflowerBlue.ToVector3());
             FogStart = RenderDistance*0.6f*ChunkSize;
             FogEnd = RenderDistance*0.8f*ChunkSize;
         }
