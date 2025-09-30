@@ -24,6 +24,7 @@ namespace VoxelTechDemo {
         
         public CustomEffect effect;
         public BasicEffect basicEffect;
+        public CloudEffect cloudEffect;
         public readonly World world = new(12345);
         public Player player;
 
@@ -46,8 +47,8 @@ namespace VoxelTechDemo {
         }
         protected override void Initialize() {
             InitializeVoxelRenderer(GraphicsDevice);
-            byte[] bytes = File.ReadAllBytes("Content/CustomEffect.mgfx");
-            effect = new(new Effect(GraphicsDevice, bytes), this);
+            effect = new(this);
+            cloudEffect = new CloudEffect(this);
             ChangeCubePreview(chosenBlock);
             UserInterface.Initialize(this, graphics);
             Directory.CreateDirectory("Save");
@@ -161,8 +162,9 @@ namespace VoxelTechDemo {
             effect.AnimationFrame.SetValue(0);
             
             if (CloudsEnabled) {
-                basicEffect.World = Matrix.CreateWorld(new Vector3((cloudOffset.x-player.CurrentChunk.x)*ChunkSize,-player.CurrentChunk.y * ChunkSize,(cloudOffset.z-player.CurrentChunk.z)*ChunkSize), Vector3.Forward, Vector3.Up);
-                basicEffect.CurrentTechnique.Passes[0].Apply();
+                //basicEffect.World = Matrix.CreateWorld(new Vector3((cloudOffset.x-player.CurrentChunk.x)*ChunkSize,-player.CurrentChunk.y * ChunkSize,(cloudOffset.z-player.CurrentChunk.z)*ChunkSize), Vector3.Forward, Vector3.Up);
+                //basicEffect.CurrentTechnique.Passes[0].Apply();
+                cloudEffect.Apply(effect, Matrix.CreateWorld(new Vector3((cloudOffset.x-player.CurrentChunk.x)*ChunkSize,-player.CurrentChunk.y * ChunkSize,(cloudOffset.z-player.CurrentChunk.z)*ChunkSize), Vector3.Forward, Vector3.Up));
                 UpdateAndDrawClouds(world, player.CurrentChunk.x, player.CurrentChunk.z, gameTime.TotalGameTime.TotalMinutes);
             }
             GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;

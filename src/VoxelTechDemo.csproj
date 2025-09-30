@@ -19,7 +19,10 @@
 	<None Update="Content/PublicPixel.ttf">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	</None>
-  <None Update="Content/CustomEffect.mgfx">
+    <None Update="Content/CustomEffect.mgfx">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	</None>
+	<None Update="Content/CloudEffect.mgfx">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	</None>
   </ItemGroup>
