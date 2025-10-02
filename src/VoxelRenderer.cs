@@ -28,6 +28,8 @@ namespace VoxelTechDemo{
             graphicsDevice=_graphicsDevice;
             SetupCubeFrame();
             GenerateIndexBuffer();
+            faceBuffer = new VertexBuffer(graphicsDevice, typeof(VertexPosition), faceVertices.Length, BufferUsage.WriteOnly);
+            faceBuffer.SetData(faceVertices);
         }
         public static void GenerateChunkMesh(Chunk chunk){
             //TODO: Try to combine multiple chunks into single region to reduce number of world matrices needed
@@ -243,32 +245,29 @@ namespace VoxelTechDemo{
         private static bool cloudLock;
         private static VertexBuffer cloudBuffer;
         public static (int x, int z) cloudOffset;
+        public const int cloudRes = 4;
         public static void UpdateAndDrawClouds(World world, int offsetChunkX, int offsetChunkZ,double time) {
             if (!cloudLock) {
                 cloudLock = true;
                 Task.Run(() => {
-                    List<VertexPositionColor> cloudVertices = [];
-                    for (int x = -ChunkSize * (UserSettings.RenderDistance - 2); x < ChunkSize * (UserSettings.RenderDistance-1); x++) {
-                        for (int z = -ChunkSize * (UserSettings.RenderDistance - 2); z < ChunkSize * (UserSettings.RenderDistance-1); z++) {
-                            double noiseValue = OpenSimplex2.Noise3_ImproveXY(world.seed, (double)(x+offsetChunkX*(ChunkSize/2))/100, (double)(z+offsetChunkZ*(ChunkSize/2))/100, time);
-                            if (-0.1f > noiseValue && noiseValue < 0.1f) {
+                    List<CloudInstance> cloudVertices = [];
+                    for (int x = -(ChunkSize/cloudRes) * UserSettings.RenderDistance; x < (ChunkSize/cloudRes) * (UserSettings.RenderDistance+1); x++) {
+                        for (int z = -(ChunkSize/cloudRes) * UserSettings.RenderDistance; z < (ChunkSize/cloudRes) * (UserSettings.RenderDistance+1); z++) {
+                            double noiseValue = OpenSimplex2.Noise3_ImproveXY(world.seed, (double)(x+offsetChunkX*(ChunkSize/cloudRes))/100, (double)(z+offsetChunkZ*(ChunkSize/cloudRes))/100, time);
+                            if (noiseValue < 0) {
                                 continue;
                             }
-
-                            int value = (int)(255.0 * Math.Abs(noiseValue+0.1));
-                            Color color = new(value, value, value, value);
-                            for (int i = 12; i < 16; i++) {
-                                cloudVertices.Add(new  VertexPositionColor(new Vector3(
-                                    (x+((offsetX>>i)&1))*2,
-                                    250.5f+((offsetY>>i)&1),
-                                    (z+((offsetZ>>i)&1))*2),
-                                    color));
-                            }
+                            
+                            cloudVertices.Add(new  CloudInstance(new Vector3(
+                                x,
+                                250.5f,
+                                z),
+                                (float)Math.Abs(noiseValue)));
                         }
                     }
 
                     if (cloudVertices.Count > 0) {
-                        VertexBuffer newCloudBuffer = new(graphicsDevice, typeof(VertexPositionColor), cloudVertices.Count, BufferUsage.WriteOnly);
+                        VertexBuffer newCloudBuffer = new(graphicsDevice, typeof(CloudInstance), cloudVertices.Count, BufferUsage.WriteOnly);
                         newCloudBuffer.SetData(cloudVertices.ToArray());
                         cloudBuffer?.Dispose();
                         cloudBuffer = newCloudBuffer;
@@ -279,8 +278,37 @@ namespace VoxelTechDemo{
             }
 
             if (cloudBuffer != null) {
-                graphicsDevice.SetVertexBuffer(cloudBuffer);
-                graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, cloudBuffer.VertexCount/2);
+                graphicsDevice.SetVertexBuffers(
+                    new VertexBufferBinding(faceBuffer, 0, 0),
+                    new VertexBufferBinding(cloudBuffer, 0, 1));
+                graphicsDevice.DrawInstancedPrimitives(PrimitiveType.TriangleList, 0, 0, 2, cloudBuffer.VertexCount);
+            }
+        }
+        
+        private static VertexBuffer faceBuffer;
+        private static readonly VertexPosition[] faceVertices = [
+            new (new Vector3(0,0,0)),
+            new (new Vector3(1,0,0)),
+            new (new Vector3(0,0,1)),
+            new (new Vector3(1,0,1)),
+        ];
+        struct CloudInstance : IVertexType
+        {
+            public Vector3 Offset;
+            public float   Color;
+
+            public static readonly VertexDeclaration VertexDeclaration = new(
+                new VertexElement(0,  VertexElementFormat.Vector3,
+                    VertexElementUsage.Position, 1),
+                
+                new VertexElement(12, VertexElementFormat.Single,
+                    VertexElementUsage.Color,    1));
+            
+            VertexDeclaration IVertexType.VertexDeclaration => VertexDeclaration;
+
+            public CloudInstance(Vector3 offset, float color) {
+                Offset = offset;
+                Color = color;
             }
         }
     }

@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using static VoxelTechDemo.UserSettings;
@@ -20,16 +21,14 @@ namespace VoxelTechDemo{
 
         float FogStart;
         public float FogEnd{
-            private get{
-                return fogValue;
-            }
             set{
                 fogValue = 1.0f / (FogStart - value);
             }
         }
         float fogValue;
-        
-        public CustomEffect(Effect clone, Game game):base(clone){
+
+        public CustomEffect(Game game) : this(new Effect(game.GraphicsDevice, File.ReadAllBytes("Content/CustomEffect.mgfx")), game){ }
+        private CustomEffect(Effect clone, Game game):base(clone){
             Texture = Parameters["Texture"];
             FogColor = Parameters["FogColor"];
             FogVector = Parameters["FogVector"];
@@ -92,6 +91,43 @@ namespace VoxelTechDemo{
             FogColor.SetValue(Color.CornflowerBlue.ToVector3());
             FogStart = RenderDistance*0.6f*ChunkSize;
             FogEnd = RenderDistance*0.8f*ChunkSize;
+        }
+    }
+
+    public class CloudEffect : Effect {
+        public readonly EffectParameter WorldViewProj;
+        readonly EffectParameter FogColor;
+        readonly EffectParameter FogVector;
+
+        public float FogStart;
+        public float FogEnd{
+            set{
+                fogValue = 1.0f / (FogStart - value);
+            }
+        }
+        private float fogValue;
+
+        public CloudEffect(Game game) : this(new(game.GraphicsDevice, File.ReadAllBytes("Content/CloudEffect.mgfx")), game) { }
+        private CloudEffect(Effect clone, Game game):base(clone){
+            WorldViewProj = Parameters["WorldViewProj"];
+            FogColor = Parameters["FogColor"];
+            FogVector = Parameters["FogVector"];
+            
+            FogColor.SetValue(Color.CornflowerBlue.ToVector3());
+            FogStart = RenderDistance * 0.6f * ChunkSize;
+            FogEnd = RenderDistance * 1f * ChunkSize;
+        }
+        public void Apply(CustomEffect effect, Matrix worldMatrix) {
+            worldMatrix = Matrix.CreateScale(new Vector3(cloudRes,1,cloudRes)) * worldMatrix;
+            WorldViewProj.SetValue(worldMatrix * effect.viewProj);
+            Matrix worldView = worldMatrix * effect.viewMatrix;
+            if (FogEnabled) {
+                FogVector.SetValue(new Vector4(worldView.M13,worldView.M23,worldView.M33,worldView.M43+FogStart)*fogValue);
+            }
+            else {
+                FogVector.SetValue(Vector4.Zero);
+            }
+            CurrentTechnique.Passes[0].Apply();
         }
     }
 }
