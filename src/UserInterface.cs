@@ -53,8 +53,8 @@ namespace VoxelTechDemo{
             spinButton.ValueChanged += (s, a) =>{
                 RenderDistance = (byte)spinButton.Value;
                 game.world.UpdateLoadedChunks(game.player.CurrentChunk.x, game.player.CurrentChunk.z);
-                game.basicEffect.FogStart = RenderDistance * 0.6f * VoxelRenderer.ChunkSize;
-                game.basicEffect.FogEnd = RenderDistance * 1f * VoxelRenderer.ChunkSize;
+                game.cloudEffect.FogStart = RenderDistance * 0.6f * VoxelRenderer.ChunkSize;
+                game.cloudEffect.FogEnd = RenderDistance * 1f * VoxelRenderer.ChunkSize;
             };
             Grid.SetColumn(spinButton, 1);
             Grid.SetRow(spinButton, 1);
@@ -103,7 +103,6 @@ namespace VoxelTechDemo{
             };
             fogCheck.Click += (s, a) =>{
                 FogEnabled = !FogEnabled;
-                game.basicEffect.FogEnabled = FogEnabled;
             };
             Grid.SetColumn(fogCheck, 1);
             Grid.SetRow(fogCheck, 3);
@@ -128,7 +127,6 @@ namespace VoxelTechDemo{
             FOVslider.ValueChanged += (s, a) =>{
                 FieldOfView = FOVslider.Value;
                 game.effect.UpdateProjMatrix(Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView),game.GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f),game.player);
-                game.basicEffect.Projection = game.effect.projectionMatrix;
             };
             Grid.SetColumn(FOVslider,1);
             Grid.SetRow(FOVslider,4);

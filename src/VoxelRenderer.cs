@@ -28,8 +28,8 @@ namespace VoxelTechDemo{
             graphicsDevice=_graphicsDevice;
             SetupCubeFrame();
             GenerateIndexBuffer();
-            cloudinstancetest = new VertexBuffer(graphicsDevice, typeof(VertexPosition), faceVertices.Length, BufferUsage.WriteOnly);
-            cloudinstancetest.SetData(faceVertices);
+            faceBuffer = new VertexBuffer(graphicsDevice, typeof(VertexPosition), faceVertices.Length, BufferUsage.WriteOnly);
+            faceBuffer.SetData(faceVertices);
         }
         public static void GenerateChunkMesh(Chunk chunk){
             //TODO: Try to combine multiple chunks into single region to reduce number of world matrices needed
@@ -257,13 +257,12 @@ namespace VoxelTechDemo{
                             if (noiseValue < 0) {
                                 continue;
                             }
-
-                            int value = (int)(255.0 * Math.Abs(noiseValue));
+                            
                             cloudVertices.Add(new  CloudInstance(new Vector3(
                                 x,
                                 250.5f,
                                 z),
-                                new Color(value, value, value, value)));
+                                (float)Math.Abs(noiseValue)));
                         }
                     }
 
@@ -280,13 +279,13 @@ namespace VoxelTechDemo{
 
             if (cloudBuffer != null) {
                 graphicsDevice.SetVertexBuffers(
-                    new VertexBufferBinding(cloudinstancetest, 0, 0),
+                    new VertexBufferBinding(faceBuffer, 0, 0),
                     new VertexBufferBinding(cloudBuffer, 0, 1));
                 graphicsDevice.DrawInstancedPrimitives(PrimitiveType.TriangleList, 0, 0, 2, cloudBuffer.VertexCount);
             }
         }
         
-        private static VertexBuffer cloudinstancetest;
+        private static VertexBuffer faceBuffer;
         private static readonly VertexPosition[] faceVertices = [
             new (new Vector3(0,0,0)),
             new (new Vector3(1,0,0)),
@@ -296,18 +295,18 @@ namespace VoxelTechDemo{
         struct CloudInstance : IVertexType
         {
             public Vector3 Offset;
-            public Color   Color;
+            public float   Color;
 
             public static readonly VertexDeclaration VertexDeclaration = new(
                 new VertexElement(0,  VertexElementFormat.Vector3,
                     VertexElementUsage.Position, 1),
                 
-                new VertexElement(12, VertexElementFormat.Color,
+                new VertexElement(12, VertexElementFormat.Single,
                     VertexElementUsage.Color,    1));
             
             VertexDeclaration IVertexType.VertexDeclaration => VertexDeclaration;
 
-            public CloudInstance(Vector3 offset, Color color) {
+            public CloudInstance(Vector3 offset, float color) {
                 Offset = offset;
                 Color = color;
             }

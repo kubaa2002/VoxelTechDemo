@@ -96,30 +96,37 @@ namespace VoxelTechDemo{
 
     public class CloudEffect : Effect {
         public readonly EffectParameter WorldViewProj;
-        private readonly EffectParameter Scale;
         readonly EffectParameter FogColor;
         readonly EffectParameter FogVector;
 
-        private float fogStart;
+        public float FogStart;
+        public float FogEnd{
+            set{
+                fogValue = 1.0f / (FogStart - value);
+            }
+        }
         private float fogValue;
 
         public CloudEffect(Game game) : this(new(game.GraphicsDevice, File.ReadAllBytes("Content/CloudEffect.mgfx")), game) { }
         private CloudEffect(Effect clone, Game game):base(clone){
             WorldViewProj = Parameters["WorldViewProj"];
-            Scale = Parameters["Scale"];
             FogColor = Parameters["FogColor"];
             FogVector = Parameters["FogVector"];
             
-            Scale.SetValue(cloudRes);
             FogColor.SetValue(Color.CornflowerBlue.ToVector3());
-            fogStart = RenderDistance * 0.6f * ChunkSize;
-            float fogEnd = RenderDistance * 1f * ChunkSize;
-            fogValue = 1.0f / (fogStart - fogEnd);
+            FogStart = RenderDistance * 0.6f * ChunkSize;
+            FogEnd = RenderDistance * 1f * ChunkSize;
         }
         public void Apply(CustomEffect effect, Matrix worldMatrix) {
+            worldMatrix = Matrix.CreateScale(new Vector3(cloudRes,1,cloudRes)) * worldMatrix;
             WorldViewProj.SetValue(worldMatrix * effect.viewProj);
             Matrix worldView = worldMatrix * effect.viewMatrix;
-            FogVector.SetValue(new Vector4(worldView.M13,worldView.M23,worldView.M33,worldView.M43+fogStart)*fogValue);
+            if (FogEnabled) {
+                FogVector.SetValue(new Vector4(worldView.M13,worldView.M23,worldView.M33,worldView.M43+FogStart)*fogValue);
+            }
+            else {
+                FogVector.SetValue(Vector4.Zero);
+            }
             CurrentTechnique.Passes[0].Apply();
         }
     }
