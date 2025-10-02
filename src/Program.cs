@@ -152,7 +152,7 @@ namespace VoxelTechDemo {
             effect.AnimationFrame.SetValue(0);
             
             if (CloudsEnabled) {
-                cloudEffect.Apply(effect, Matrix.CreateWorld(new Vector3(cloudOffset.x-player.CurrentChunk.x,-player.CurrentChunk.y,cloudOffset.z-player.CurrentChunk.z)*ChunkSize, Vector3.Forward, Vector3.Up));
+                cloudEffect.Apply(effect, Matrix.CreateWorld(new Vector3(CloudOffset.x-player.CurrentChunk.x,-player.CurrentChunk.y,CloudOffset.z-player.CurrentChunk.z)*ChunkSize, Vector3.Forward, Vector3.Up));
                 UpdateAndDrawClouds(world, player.CurrentChunk.x, player.CurrentChunk.z, gameTime.TotalGameTime.TotalMinutes);
             }
             GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;

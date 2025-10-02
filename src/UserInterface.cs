@@ -55,6 +55,7 @@ namespace VoxelTechDemo{
                 game.world.UpdateLoadedChunks(game.player.CurrentChunk.x, game.player.CurrentChunk.z);
                 game.cloudEffect.FogStart = RenderDistance * 0.6f * VoxelRenderer.ChunkSize;
                 game.cloudEffect.FogEnd = RenderDistance * 1f * VoxelRenderer.ChunkSize;
+                VoxelRenderer.CloudBufferUpdate = true;
             };
             Grid.SetColumn(spinButton, 1);
             Grid.SetRow(spinButton, 1);

@@ -118,7 +118,7 @@ namespace VoxelTechDemo{
             FogEnd = RenderDistance * 1f * ChunkSize;
         }
         public void Apply(CustomEffect effect, Matrix worldMatrix) {
-            worldMatrix = Matrix.CreateScale(new Vector3(cloudRes,1,cloudRes)) * worldMatrix;
+            worldMatrix = Matrix.CreateScale(new Vector3(CloudRes,1,CloudRes)) * worldMatrix;
             WorldViewProj.SetValue(worldMatrix * effect.viewProj);
             Matrix worldView = worldMatrix * effect.viewMatrix;
             if (FogEnabled) {
