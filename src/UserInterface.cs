@@ -8,266 +8,265 @@ using Myra;
 using Myra.Graphics2D.UI;
 using static VoxelTechDemo.UserSettings;
 
-namespace VoxelTechDemo{
-    static class UserInterface{
-        static public Desktop _desktop;
-        static public readonly FrameCounter frameCounter = new();
-        static public void Initialize(Game1 game, GraphicsDeviceManager _graphics){
-            FontSystem ordinaryFontSystem = new();
-            ordinaryFontSystem.AddFont(File.ReadAllBytes("Content/PublicPixel.ttf"));
-            MyraEnvironment.Game = game;
+namespace VoxelTechDemo;
+static class UserInterface{
+    static public Desktop _desktop;
+    static public readonly FrameCounter frameCounter = new();
+    static public void Initialize(Game1 game, GraphicsDeviceManager _graphics){
+        FontSystem ordinaryFontSystem = new();
+        ordinaryFontSystem.AddFont(File.ReadAllBytes("Content/PublicPixel.ttf"));
+        MyraEnvironment.Game = game;
 
-            VerticalStackPanel mainPanel = new(){
-                VerticalAlignment = VerticalAlignment.Stretch,
-                HorizontalAlignment = HorizontalAlignment.Stretch
-            };
-            Grid grid = new(){
-                RowSpacing = 8,
-                ColumnSpacing = 8,
-                VerticalAlignment = VerticalAlignment.Stretch,
-            };
+        VerticalStackPanel mainPanel = new(){
+            VerticalAlignment = VerticalAlignment.Stretch,
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+        Grid grid = new(){
+            RowSpacing = 8,
+            ColumnSpacing = 8,
+            VerticalAlignment = VerticalAlignment.Stretch,
+        };
 
-            grid.ColumnsProportions.Add(new Proportion(ProportionType.Fill));
-            grid.RowsProportions.Add(new Proportion(ProportionType.Fill));
- 
-            // Render distance option
-            Label textBox = new(){
-                Text = "Render Distance:",
-                Width = 320,
-                Height = 60,
-                Font = ordinaryFontSystem.GetFont(32)
-            };
-            Grid.SetColumn(textBox, 0);
-            Grid.SetRow(textBox, 1);
-            grid.Widgets.Add(textBox);
+        grid.ColumnsProportions.Add(new Proportion(ProportionType.Fill));
+        grid.RowsProportions.Add(new Proportion(ProportionType.Fill));
 
-            SpinButton spinButton = new(){
-                Width = 100,
-                Nullable = false,
-                Value = RenderDistance,
-                Integer = true,
-                Minimum = 1,
-                Maximum = 32,
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-            spinButton.ValueChanged += (s, a) =>{
-                RenderDistance = (byte)spinButton.Value;
-                game.world.UpdateLoadedChunks(game.player.CurrentChunk.x, game.player.CurrentChunk.z);
-                game.cloudEffect.FogStart = RenderDistance * 0.6f * VoxelRenderer.ChunkSize;
-                game.cloudEffect.FogEnd = RenderDistance * 1f * VoxelRenderer.ChunkSize;
-                VoxelRenderer.CloudBufferUpdate = true;
-            };
-            Grid.SetColumn(spinButton, 1);
-            Grid.SetRow(spinButton, 1);
-            grid.Widgets.Add(spinButton);
+        // Render distance option
+        Label textBox = new(){
+            Text = "Render Distance:",
+            Width = 320,
+            Height = 60,
+            Font = ordinaryFontSystem.GetFont(32)
+        };
+        Grid.SetColumn(textBox, 0);
+        Grid.SetRow(textBox, 1);
+        grid.Widgets.Add(textBox);
 
-            // Unlock framerate button
-            Label framerate = new(){
-                Text = "Unlock framerate:",
-                Width = 320,
-                Height = 60,
-                Font = ordinaryFontSystem.GetFont(32)
-            };
-            Grid.SetColumn(framerate, 0);
-            Grid.SetRow(framerate, 2);
-            grid.Widgets.Add(framerate);
+        SpinButton spinButton = new(){
+            Width = 100,
+            Nullable = false,
+            Value = RenderDistance,
+            Integer = true,
+            Minimum = 1,
+            Maximum = 32,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        spinButton.ValueChanged += (s, a) =>{
+            RenderDistance = (byte)spinButton.Value;
+            game.world.UpdateLoadedChunks(game.player.CurrentChunk.x, game.player.CurrentChunk.z);
+            game.cloudEffect.FogStart = RenderDistance * 0.6f * VoxelRenderer.ChunkSize;
+            game.cloudEffect.FogEnd = RenderDistance * 1f * VoxelRenderer.ChunkSize;
+            VoxelRenderer.CloudBufferUpdate = true;
+        };
+        Grid.SetColumn(spinButton, 1);
+        Grid.SetRow(spinButton, 1);
+        grid.Widgets.Add(spinButton);
 
-            CheckButton checkBox = new(){
-                HorizontalAlignment = HorizontalAlignment.Center,
-                IsChecked = FrameRateUnlocked
-            };
-            checkBox.Click += (s, a) =>{
-                //Unlockin Frame rate
-                _graphics.SynchronizeWithVerticalRetrace = !_graphics.SynchronizeWithVerticalRetrace;
-                game.IsFixedTimeStep = !game.IsFixedTimeStep;
-                _graphics.ApplyChanges();
-                FrameRateUnlocked = !FrameRateUnlocked;
-            };
-            Grid.SetColumn(checkBox, 1);
-            Grid.SetRow(checkBox, 2);
-            grid.Widgets.Add(checkBox);
+        // Unlock framerate button
+        Label framerate = new(){
+            Text = "Unlock framerate:",
+            Width = 320,
+            Height = 60,
+            Font = ordinaryFontSystem.GetFont(32)
+        };
+        Grid.SetColumn(framerate, 0);
+        Grid.SetRow(framerate, 2);
+        grid.Widgets.Add(framerate);
 
-            // Fog button
-            Label fog = new(){
-                Text = "Fog enabled:",
-                Width = 320,
-                Height = 60,
-                Font = ordinaryFontSystem.GetFont(32)
-            };
-            Grid.SetColumn(fog, 0);
-            Grid.SetRow(fog, 3);
-            grid.Widgets.Add(fog);
+        CheckButton checkBox = new(){
+            HorizontalAlignment = HorizontalAlignment.Center,
+            IsChecked = FrameRateUnlocked
+        };
+        checkBox.Click += (s, a) =>{
+            //Unlockin Frame rate
+            _graphics.SynchronizeWithVerticalRetrace = !_graphics.SynchronizeWithVerticalRetrace;
+            game.IsFixedTimeStep = !game.IsFixedTimeStep;
+            _graphics.ApplyChanges();
+            FrameRateUnlocked = !FrameRateUnlocked;
+        };
+        Grid.SetColumn(checkBox, 1);
+        Grid.SetRow(checkBox, 2);
+        grid.Widgets.Add(checkBox);
 
-            CheckButton fogCheck = new(){
-                HorizontalAlignment = HorizontalAlignment.Center,
-                IsChecked = FogEnabled
-            };
-            fogCheck.Click += (s, a) =>{
-                FogEnabled = !FogEnabled;
-            };
-            Grid.SetColumn(fogCheck, 1);
-            Grid.SetRow(fogCheck, 3);
-            grid.Widgets.Add(fogCheck);
+        // Fog button
+        Label fog = new(){
+            Text = "Fog enabled:",
+            Width = 320,
+            Height = 60,
+            Font = ordinaryFontSystem.GetFont(32)
+        };
+        Grid.SetColumn(fog, 0);
+        Grid.SetRow(fog, 3);
+        grid.Widgets.Add(fog);
 
-            // Field of view slider
-            Label FOV = new(){
-                Text = "Field of view:",
-                Width = 320,
-                Height = 60,
-                Font = ordinaryFontSystem.GetFont(32)
-            };
-            Grid.SetColumn(FOV,0);
-            Grid.SetRow(FOV,4);
-            grid.Widgets.Add(FOV);
+        CheckButton fogCheck = new(){
+            HorizontalAlignment = HorizontalAlignment.Center,
+            IsChecked = FogEnabled
+        };
+        fogCheck.Click += (s, a) =>{
+            FogEnabled = !FogEnabled;
+        };
+        Grid.SetColumn(fogCheck, 1);
+        Grid.SetRow(fogCheck, 3);
+        grid.Widgets.Add(fogCheck);
 
-            HorizontalSlider FOVslider = new(){
-                Minimum = 30,
-                Maximum = 120,
-                Value = FieldOfView
-            };
-            FOVslider.ValueChanged += (s, a) =>{
-                FieldOfView = FOVslider.Value;
-                game.effect.UpdateProjMatrix(Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView),game.GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f),game.player);
-            };
-            Grid.SetColumn(FOVslider,1);
-            Grid.SetRow(FOVslider,4);
-            grid.Widgets.Add(FOVslider);
+        // Field of view slider
+        Label FOV = new(){
+            Text = "Field of view:",
+            Width = 320,
+            Height = 60,
+            Font = ordinaryFontSystem.GetFont(32)
+        };
+        Grid.SetColumn(FOV,0);
+        Grid.SetRow(FOV,4);
+        grid.Widgets.Add(FOV);
 
-            // Mouse sensitivity slider
-            Label Mouse = new(){
-                Text = "Mouse sensitivity:",
-                Width = 320,
-                Height = 60,
-                Font = ordinaryFontSystem.GetFont(32)
-            };
-            Grid.SetColumn(Mouse,0);
-            Grid.SetRow(Mouse,5);
-            grid.Widgets.Add(Mouse);
+        HorizontalSlider FOVslider = new(){
+            Minimum = 30,
+            Maximum = 120,
+            Value = FieldOfView
+        };
+        FOVslider.ValueChanged += (s, a) =>{
+            FieldOfView = FOVslider.Value;
+            game.effect.UpdateProjMatrix(Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView),game.GraphicsDevice.DisplayMode.AspectRatio,0.1f, 10000f),game.player);
+        };
+        Grid.SetColumn(FOVslider,1);
+        Grid.SetRow(FOVslider,4);
+        grid.Widgets.Add(FOVslider);
 
-            HorizontalSlider MouseSlider = new(){
-                Minimum = 0.001f,
-                Maximum = 0.01f,
-                Value = MouseSensitivity
-            };
-            MouseSlider.ValueChanged += (s, a) =>{
-                MouseSensitivity = MouseSlider.Value;
-            };
-            Grid.SetColumn(MouseSlider,1);
-            Grid.SetRow(MouseSlider,5);
-            grid.Widgets.Add(MouseSlider);
+        // Mouse sensitivity slider
+        Label Mouse = new(){
+            Text = "Mouse sensitivity:",
+            Width = 320,
+            Height = 60,
+            Font = ordinaryFontSystem.GetFont(32)
+        };
+        Grid.SetColumn(Mouse,0);
+        Grid.SetRow(Mouse,5);
+        grid.Widgets.Add(Mouse);
+
+        HorizontalSlider MouseSlider = new(){
+            Minimum = 0.001f,
+            Maximum = 0.01f,
+            Value = MouseSensitivity
+        };
+        MouseSlider.ValueChanged += (s, a) =>{
+            MouseSensitivity = MouseSlider.Value;
+        };
+        Grid.SetColumn(MouseSlider,1);
+        Grid.SetRow(MouseSlider,5);
+        grid.Widgets.Add(MouseSlider);
 
 
-            // Sky light level slider
-            Label SkyLight = new() {
-                Text = "Sky light level:",
-                Width = 320,
-                Height = 60,
-                Font = ordinaryFontSystem.GetFont(32),
-                Visible = !DayCycle,
-            };
-            Grid.SetColumn(SkyLight, 0);
-            Grid.SetRow(SkyLight, 7);
-            grid.Widgets.Add(SkyLight);
+        // Sky light level slider
+        Label SkyLight = new() {
+            Text = "Sky light level:",
+            Width = 320,
+            Height = 60,
+            Font = ordinaryFontSystem.GetFont(32),
+            Visible = !DayCycle,
+        };
+        Grid.SetColumn(SkyLight, 0);
+        Grid.SetRow(SkyLight, 7);
+        grid.Widgets.Add(SkyLight);
 
-            HorizontalSlider SkyLightSlider = new() {
-                Minimum = 0,
-                Maximum = 1,
-                Value = 1,
-                Visible = !DayCycle,
-            };
-            SkyLightSlider.ValueChanged += (s, a) => {
+        HorizontalSlider SkyLightSlider = new() {
+            Minimum = 0,
+            Maximum = 1,
+            Value = 1,
+            Visible = !DayCycle,
+        };
+        SkyLightSlider.ValueChanged += (s, a) => {
+            game.effect.CurrentSkyLightLevel.SetValue(1 - SkyLightSlider.Value);
+        };
+        Grid.SetColumn(SkyLightSlider, 1);
+        Grid.SetRow(SkyLightSlider, 7);
+        grid.Widgets.Add(SkyLightSlider);
+        
+        // Day cycle button
+        Label dayCycle = new() {
+            Text = "Day cycle enabled:",
+            Width = 320,
+            Height = 60,
+            Font = ordinaryFontSystem.GetFont(32),
+        };
+        Grid.SetColumn(dayCycle, 0);
+        Grid.SetRow(dayCycle, 6);
+        grid.Widgets.Add(dayCycle);
+
+        CheckButton dayCycleCheck = new() {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            IsChecked = DayCycle
+        };
+        dayCycleCheck.Click += (s, a) => {
+            SkyLight.Visible = !SkyLight.Visible;
+            SkyLightSlider.Visible = !SkyLightSlider.Visible;
+            DayCycle = !DayCycle;
+            if (!DayCycle) {
                 game.effect.CurrentSkyLightLevel.SetValue(1 - SkyLightSlider.Value);
-            };
-            Grid.SetColumn(SkyLightSlider, 1);
-            Grid.SetRow(SkyLightSlider, 7);
-            grid.Widgets.Add(SkyLightSlider);
-            
-            // Day cycle button
-            Label dayCycle = new() {
-                Text = "Day cycle enabled:",
-                Width = 320,
-                Height = 60,
-                Font = ordinaryFontSystem.GetFont(32),
-            };
-            Grid.SetColumn(dayCycle, 0);
-            Grid.SetRow(dayCycle, 6);
-            grid.Widgets.Add(dayCycle);
+            }
+        };
+        Grid.SetColumn(dayCycleCheck, 1);
+        Grid.SetRow(dayCycleCheck, 6);
+        grid.Widgets.Add(dayCycleCheck);
 
-            CheckButton dayCycleCheck = new() {
+        // Clouds button
+        Label cloudsLabel = new() {
+            Text = "Clouds Enabled:",
+            Width = 320,
+            Height = 60,
+            Font = ordinaryFontSystem.GetFont(32),
+        };
+        Grid.SetColumn(cloudsLabel, 0);
+        Grid.SetRow(cloudsLabel, 8);
+        grid.Widgets.Add(cloudsLabel);
+        
+        CheckButton cloudCheck = new() {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            IsChecked = CloudsEnabled
+        };
+        cloudCheck.Click += (s, a) => {
+            CloudsEnabled = !CloudsEnabled;
+        };
+        Grid.SetColumn(cloudCheck, 1);
+        Grid.SetRow(cloudCheck, 8);
+        grid.Widgets.Add(cloudCheck);
+
+        mainPanel.Widgets.Add(grid);
+
+        // Exit Button
+        Button button = new(){
+            Content = new Label{
+                Text = "Exit",
                 HorizontalAlignment = HorizontalAlignment.Center,
-                IsChecked = DayCycle
-            };
-            dayCycleCheck.Click += (s, a) => {
-                SkyLight.Visible = !SkyLight.Visible;
-                SkyLightSlider.Visible = !SkyLightSlider.Visible;
-                DayCycle = !DayCycle;
-                if (!DayCycle) {
-                    game.effect.CurrentSkyLightLevel.SetValue(1 - SkyLightSlider.Value);
-                }
-            };
-            Grid.SetColumn(dayCycleCheck, 1);
-            Grid.SetRow(dayCycleCheck, 6);
-            grid.Widgets.Add(dayCycleCheck);
+                VerticalAlignment = VerticalAlignment.Center,
+                Font = ordinaryFontSystem.GetFont(64)
+            },
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Width = 270,
+            Height = 80
+        };
+        button.Click += (s, a) =>{
+            CheckSettingsFile();
+            game.Exit();
+        };
+        mainPanel.Widgets.Add(button);
 
-            // Clouds button
-            Label cloudsLabel = new() {
-                Text = "Clouds Enabled:",
-                Width = 320,
-                Height = 60,
-                Font = ordinaryFontSystem.GetFont(32),
-            };
-            Grid.SetColumn(cloudsLabel, 0);
-            Grid.SetRow(cloudsLabel, 8);
-            grid.Widgets.Add(cloudsLabel);
-            
-            CheckButton cloudCheck = new() {
-                HorizontalAlignment = HorizontalAlignment.Center,
-                IsChecked = CloudsEnabled
-            };
-            cloudCheck.Click += (s, a) => {
-                CloudsEnabled = !CloudsEnabled;
-            };
-            Grid.SetColumn(cloudCheck, 1);
-            Grid.SetRow(cloudCheck, 8);
-            grid.Widgets.Add(cloudCheck);
-
-            mainPanel.Widgets.Add(grid);
-
-            // Exit Button
-            Button button = new(){
-                Content = new Label{
-                    Text = "Exit",
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Font = ordinaryFontSystem.GetFont(64)
-                },
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Width = 270,
-                Height = 80
-            };
-            button.Click += (s, a) =>{
-                CheckSettingsFile();
-                game.Exit();
-            };
-            mainPanel.Widgets.Add(button);
-
-            // Add it to the desktop
-            _desktop = new Desktop{
-                Root = mainPanel
-            };
+        // Add it to the desktop
+        _desktop = new Desktop{
+            Root = mainPanel
+        };
+    }
+    public class FrameCounter {
+        private readonly Queue<double> _sampleBuffer = new();
+        public FrameCounter() {
+            for (int i = 0; i < 10; i++) {
+                _sampleBuffer.Enqueue(0);
+            }
         }
-        public class FrameCounter {
-            private readonly Queue<double> _sampleBuffer = new();
-            public FrameCounter() {
-                for (int i = 0; i < 10; i++) {
-                    _sampleBuffer.Enqueue(0);
-                }
-            }
-            public double GetFPS(double deltaTime) {
-                _sampleBuffer.Dequeue();
-                _sampleBuffer.Enqueue(deltaTime);
-                return Math.Round(1.0d / _sampleBuffer.Average(), 2);
-            }
+        public double GetFPS(double deltaTime) {
+            _sampleBuffer.Dequeue();
+            _sampleBuffer.Enqueue(deltaTime);
+            return Math.Round(1.0d / _sampleBuffer.Average(), 2);
         }
     }
 }
