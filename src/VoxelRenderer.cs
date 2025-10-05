@@ -96,10 +96,15 @@ public static class VoxelRenderer{
                         faces |= 32;
                     }
                     if (faces == 0) continue;
+
+                    byte rotation = 0;
+                    if (Blocks.CanRotate(blockId) && chunk.BlockStates.TryGetValue(currentBlock, out rotation)) {
+                        textureCoordinates = Blocks.RotateUV(textureCoordinates, rotation);
+                    }
                     
                     List<VertexPositionColorTexture> listRef = Blocks.IsNotSolid(blockId) ? fluidVertices : solidVertices;
                     for(int face=0;faces!=0;face++){
-                        if((faces&1u)!=0){
+                        if((faces&1u)!=0) {
                             for(int i=face*4;i<face*4+4;i++) {
                                 Color light = chunk.GetLightValues(currentBlock, face);
                                 listRef.Add(new VertexPositionColorTexture(new Vector3(
@@ -107,7 +112,7 @@ public static class VoxelRenderer{
                                     y+((offsetY>>i)&1)+currentChunkY,
                                     z+((offsetZ>>i)&1)),
                                     light,
-                                    textureCoordinates[i]));
+                                    textureCoordinates[(i+8*rotation)%24]));
                             }
                         }
                         faces>>=1;

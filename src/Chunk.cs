@@ -6,8 +6,9 @@ using static VoxelTechDemo.Light;
 
 namespace VoxelTechDemo;
 public class Chunk {
-    public byte[] blocks = new byte[ChunkSizeCubed];
-    public ushort[] blockLightValues = new ushort[ChunkSizeCubed];
+    public readonly byte[] blocks = new byte[ChunkSizeCubed];
+    public readonly ushort[] blockLightValues = new ushort[ChunkSizeCubed];
+    public Dictionary<int, byte> BlockStates = [];
     public readonly (int x, int y, int z) coordinates;
     public readonly World world;
     public VertexBuffer vertexBufferOpaque;

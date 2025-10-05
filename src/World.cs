@@ -47,9 +47,9 @@ public class World{
                 return;
             }
         }
-        SetBlock(coords, chunkCoordinate, id);
+        SetBlock(coords, chunkCoordinate, id, blockSide);
     }
-    public void SetBlock(Vector3 coords, (int x,int y,int z) chunkCoordinate,byte id){
+    public void SetBlock(Vector3 coords, (int x,int y,int z) chunkCoordinate,byte id, BlockFace blockSide){
         int x = (int)coords.X;
         int y = (int)coords.Y;
         int z = (int)coords.Z;
@@ -60,7 +60,24 @@ public class World{
         HashSet<Chunk> set = [
             chunk
         ];
-        chunk.blocks[x+(y*ChunkSize)+(z*ChunkSizeSquared)]=id;
+        int index = x + y * ChunkSize + z * ChunkSizeSquared;
+        if (Blocks.CanRotate(id)) {
+            switch (blockSide) {
+                case BlockFace.Right:
+                case BlockFace.Left:
+                    chunk.BlockStates[index] = 1;
+                    break;
+                case BlockFace.Front:
+                case BlockFace.Back:
+                    chunk.BlockStates[index] = 2;
+                    break;
+            }
+        }
+        
+        if (id == 0) {
+            chunk.BlockStates.Remove(index);
+        }
+        chunk.blocks[index]=id;
         chunk.UpdateLight(x, y, z, id, set);
         GenerateChunkMesh(chunk);
         if(x==0){

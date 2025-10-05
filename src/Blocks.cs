@@ -60,6 +60,53 @@ internal class Blocks {
         
         NumOfBlocks = blockFaces.Length/6 + blockFoliage.Length - 1;
     }
+    private static bool[] axisXRotation = [true,true,false,false,true,true];
+    private static bool[] axisZRotation = [false,false,false,false,true,true];
+    public static Vector2[] RotateUV(Vector2[] uv, int steps) {
+        Vector2[] result = new Vector2[uv.Length];
+        switch (steps) {
+            case 1:
+                for (int i = 0; i < uv.Length / 4; i++) {
+                    if (axisXRotation[i]) {
+                        Move90(result, uv, i * 4);
+                    }
+                    else {
+                        Move0(result, uv, i * 4);
+                    }
+                }
+                break;
+            case 2:
+                for (int i = 0; i < uv.Length / 4; i++) {
+                    if (axisZRotation[i]) {
+                        Move270(result, uv, i * 4);
+                    }
+                    else {
+                        Move0(result, uv, i * 4);
+                    }
+                }
+                break;
+        }
+        return result;
+    }
+
+    private static void Move90(Vector2[] result, Vector2[] original, int index) {
+        result[index] = original[index + 1];
+        result[index + 1] = original[index + 3];
+        result[index + 2] = original[index];
+        result[index + 3] = original[index + 2];
+    }
+    private static void Move270(Vector2[] result, Vector2[] original, int index) {
+        result[index] = original[index + 2];
+        result[index + 1] = original[index];
+        result[index + 2] = original[index + 3];
+        result[index + 3] = original[index + 1];
+    }
+    private static void Move0(Vector2[] result, Vector2[] original, int index) {
+        result[index] = original[index];
+        result[index + 1] = original[index + 1];
+        result[index + 2] = original[index + 2];
+        result[index + 3] = original[index + 3];
+    }
     public static bool IsNotSolid(byte Id){
         switch(Id){
             case 0:
@@ -140,6 +187,15 @@ internal class Blocks {
             case 20:
                 return true;
             case 21:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    public static bool CanRotate(byte id) {
+        switch (id) {
+            case 5:
                 return true;
             default:
                 return false;

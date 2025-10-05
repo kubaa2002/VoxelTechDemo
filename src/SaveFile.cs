@@ -10,15 +10,18 @@ static class SaveFile {
     // TODO: Don't save chunks that did not change or generated
     public static void SaveChunkLine(World world, int x, int z) {
         using BrotliStream writer = new(File.Create($"Save/{x},{z}"), CompressionLevel.Optimal);
+        Dictionary<int,byte>[] allDicts = new Dictionary<int, byte>[World.MaxYChunk];
         for (int y = 0; y < World.MaxYChunk; y++) {
             if (world.WorldMap.TryGetValue((x, y, z), out Chunk chunk)) {
                 writer.Write(chunk.blocks);
+                allDicts[y] = chunk.BlockStates;
             }
             else {
                 Console.WriteLine($"Failed to save chunk line {x}, {z}");
                 return;
             }
         }
+        writer.Write(JsonSerializer.SerializeToUtf8Bytes(allDicts));
     }
     public static bool TryLoadChunkLine(World world, int x, int z) {
         if (!File.Exists($"Save/{x},{z}")) {
@@ -45,9 +48,15 @@ static class SaveFile {
 
                 chunk.IsGenerated = true;
             }
-            catch {
-                Console.WriteLine($"Failed to read chunk at {x},{y},{z}");
+            catch(Exception e) {
+                Console.WriteLine($"Failed to read chunk at {x},{z} due to {e.Message}");
             }
+        }
+
+        Dictionary<int, byte>[] allDicts = JsonSerializer.Deserialize<Dictionary<int, byte>[]>(stream);
+        for (int y = 0; y < 8; y++) {
+            Chunk chunk = world.WorldMap[(x, y, z)];
+            chunk.BlockStates = allDicts[y];
         }
         Light.PropagateSkyLight(world.WorldMap[(x, World.MaxYChunk - 1, z)]);
         Light.PropagateLight(Light.RedLight, redLightQueue, null);

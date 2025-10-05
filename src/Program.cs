@@ -106,7 +106,7 @@ public class Game1 : Game {
             player.GetLookedAtBlock();
 
             if (currentMouseState.LeftButton == ButtonState.Pressed && lastMouseState.LeftButton == ButtonState.Released && player.BlockFound) {
-                world.SetBlock(player.LookedAtBlock, player.CurrentChunk, 0);
+                world.SetBlock(player.LookedAtBlock, player.CurrentChunk, 0, BlockFace.None);
             }
             if (currentMouseState.RightButton == ButtonState.Pressed && lastMouseState.RightButton == ButtonState.Released && player.BlockFound) {
                 world.SetBlock(player.LookedAtBlock, player.CurrentChunk, chosenBlock, player.currentSide, player.playerHitBox);
