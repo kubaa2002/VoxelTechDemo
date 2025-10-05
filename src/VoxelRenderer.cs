@@ -33,126 +33,102 @@ public static class VoxelRenderer{
         updateCloudBuffer();
     }
     public static void GenerateChunkMesh(Chunk chunk){
-        //TODO: Try to combine multiple chunks into single region to reduce number of world matrices needed
-        int CurrentChunkY = chunk.coordinates.y*ChunkSize;
+        // Check and assign chunk block arrays
+        (int cx, int cy, int cz) = chunk.coordinates;
+        byte[] blocks = chunk.blocks;
+        byte[] blocksNorth = chunk.world.WorldMap[(cx+1,cy,cz)].blocks;
+        byte[] blocksSouth = chunk.world.WorldMap[(cx-1,cy,cz)].blocks;
+        byte[] blocksWest = chunk.world.WorldMap[(cx,cy,cz+1)].blocks;
+        byte[] blocksEast = chunk.world.WorldMap[(cx,cy,cz-1)].blocks;
+        byte[] blocksUp = chunk.world.WorldMap.TryGetValue((cx,cy+1,cz), out Chunk chunkUp) ? chunkUp.blocks : null;
+        byte[] blocksDown = chunk.world.WorldMap.TryGetValue((cx,cy-1,cz), out Chunk chunkDown) ? chunkDown.blocks : null;
+        int currentChunkY = cy*ChunkSize;
+
+        // Check every block within a chunk if it needs to be added to the mesh
         List<VertexPositionColorTexture> solidVertices = [];
         List<VertexPositionColorTexture> fluidVertices = [];
         List<VertexPositionColorTexture> foliageVertices = [];
-        
-        byte[] blocks = chunk.blocks;
-
-        // Check and assign adjacent chunks blocks
-        byte[] blocksNorth = chunk.world.WorldMap[(chunk.coordinates.x+1,chunk.coordinates.y,chunk.coordinates.z)].blocks;
-        byte[] blocksSouth = chunk.world.WorldMap[(chunk.coordinates.x-1,chunk.coordinates.y,chunk.coordinates.z)].blocks;
-        byte[] blocksWest = chunk.world.WorldMap[(chunk.coordinates.x,chunk.coordinates.y,chunk.coordinates.z+1)].blocks;
-        byte[] blocksEast = chunk.world.WorldMap[(chunk.coordinates.x,chunk.coordinates.y,chunk.coordinates.z-1)].blocks;
-        byte[] blocksUp;
-        if(chunk.world.WorldMap.TryGetValue((chunk.coordinates.x,chunk.coordinates.y+1,chunk.coordinates.z), out Chunk chunkUp)){
-            blocksUp = chunkUp.blocks;
-        }
-        else{
-            blocksUp = null;
-        }
-        byte[] blocksDown;
-        if(chunk.world.WorldMap.TryGetValue((chunk.coordinates.x,chunk.coordinates.y-1,chunk.coordinates.z), out Chunk chunkDown)){
-            blocksDown = chunkDown.blocks;
-        }
-        else{
-            blocksDown = null;
-        }
-
-        // Check every block within a chunk if it needs to be meshed
-        int currentBlock = 0;
+        int currentBlock = -1;
         for(int z=0;z<ChunkSize;z++){
             for(int y=0;y<ChunkSize;y++){
                 for(int x=0;x<ChunkSize;x++){
-                    if(blocks[currentBlock]!=0){
-                        byte blockId = blocks[currentBlock];
-                        Vector2[] textureCoordinates = TextureDictionary[blockId];
-                        if (!Blocks.IsFoliage(blocks[currentBlock])) {
-                            uint faces = 0;
-
-                            //face x+
-                            if(x != (ChunkSize-1) ? (blockId != blocks[currentBlock+1] && Blocks.IsTransparent(blocks[currentBlock+1])) 
-                            : (blockId != blocksNorth[currentBlock-(ChunkSize-1)] && Blocks.IsTransparent(blocksNorth[currentBlock-(ChunkSize-1)]))){
-                                faces |= 1;
-                            }
-                            // Face x-
-                            if(x != 0 ? (blockId != blocks[currentBlock-1] && Blocks.IsTransparent(blocks[currentBlock-1])) 
-                            : (blockId != blocksSouth[currentBlock+(ChunkSize-1)] && Blocks.IsTransparent(blocksSouth[currentBlock+(ChunkSize-1)]))){
-                                faces |= 2;
-                            }
-                            // Face y+
-                            if (y != ChunkSize-1 ? (blockId!=blocks[currentBlock+ChunkSize] && Blocks.IsTransparent(blocks[currentBlock+ChunkSize]))
-                            : (blocksUp != null && blockId!=blocksUp[currentBlock-(ChunkSizeSquared-ChunkSize)] && Blocks.IsTransparent(blocksUp[currentBlock-(ChunkSizeSquared-ChunkSize)]))){
-                                faces |= 4;
-                            }
-                            // Face y-
-                            if (y != 0 ? (blockId!=blocks[currentBlock-ChunkSize] && Blocks.IsTransparent(blocks[currentBlock-ChunkSize]))
-                            : (blocksDown != null && blockId!=blocksDown[currentBlock+(ChunkSizeSquared-ChunkSize)] && Blocks.IsTransparent(blocksDown[currentBlock+(ChunkSizeSquared-ChunkSize)]))){
-                                faces |= 8;
-                            }
-                            // Face z+
-                            if(z != (ChunkSize-1) ? (blockId != blocks[currentBlock+ChunkSizeSquared] && Blocks.IsTransparent(blocks[currentBlock+ChunkSizeSquared])) 
-                            : (blockId != blocksWest[currentBlock-(ChunkSizeCubed-ChunkSizeSquared)] && Blocks.IsTransparent(blocksWest[currentBlock-(ChunkSizeCubed-ChunkSizeSquared)]))){
-                                faces |= 16;
-                            }
-                            // Face z-
-                            if(z != 0 ? (blockId != blocks[currentBlock-ChunkSizeSquared] && Blocks.IsTransparent(blocks[currentBlock-ChunkSizeSquared])) 
-                            : (blockId != blocksEast[currentBlock+(ChunkSizeCubed-ChunkSizeSquared)] && Blocks.IsTransparent(blocksEast[currentBlock+(ChunkSizeCubed-ChunkSizeSquared)]))){
-                                faces |= 32;
-                            }
-                            
-                            if(faces != 0){
-                                List<VertexPositionColorTexture> listRef = Blocks.IsNotSolid(blockId) ? fluidVertices : solidVertices;
-                                for(int face=0;faces!=0;face++){
-                                    if((faces&1u)!=0){
-                                        for(int i=face*4;i<face*4+4;i++){
-                                            listRef.Add(new VertexPositionColorTexture(new Vector3(
-                                                x+((offsetX>>i)&1),
-                                                y+((offsetY>>i)&1)+CurrentChunkY,
-                                                z+((offsetZ>>i)&1)),
-                                                chunk.GetLightValues(currentBlock, face),
-                                                textureCoordinates[i]));
-                                        }
-                                    }
-                                    faces>>=1;
-                                }
-                            }
-                        }
-                        else {
-                            for (int i = 0; i < 8; i++) {
-                                foliageVertices.Add(new VertexPositionColorTexture(new  Vector3(
-                                    x+((offsetSpriteX>>i)&1),
-                                    y+((offsetSpriteY>>i)&1)+CurrentChunkY,
-                                    z+((offsetSpriteZ>>i)&1)),
-                                    Light.ConvertLightValues(chunk.blockLightValues[currentBlock]),
-                                    textureCoordinates[i%4]));
-                            }
-                        }
-                    }
                     currentBlock++;
+                    byte blockId = blocks[currentBlock];
+                    if (blockId == 0) continue;
+                    Vector2[] textureCoordinates = TextureDictionary[blockId];
+                    
+                    if (Blocks.IsFoliage(blockId)) {
+                        Color light = Light.ConvertLightValues(chunk.blockLightValues[currentBlock]);
+                        for (int i = 0; i < 8; i++) {
+                            foliageVertices.Add(new VertexPositionColorTexture(new Vector3(
+                                x + ((offsetSpriteX >> i) & 1),
+                                y + ((offsetSpriteY >> i) & 1) + currentChunkY,
+                                z + ((offsetSpriteZ >> i) & 1)),
+                                light,
+                                textureCoordinates[i % 4]));
+                        }
+                        continue;
+                    }
+
+                    uint faces = 0;
+                    //face x+
+                    if (IsVisible(blockId, x != ChunkSize - 1 ? blocks[currentBlock + 1] : blocksNorth[currentBlock - (ChunkSize - 1)])) {
+                        faces |= 1;
+                    }
+                    // Face x-
+                    if (IsVisible(blockId, x != 0 ? blocks[currentBlock - 1] : blocksSouth[currentBlock + (ChunkSize - 1)])) {
+                        faces |= 2;
+                    }
+                    // Face y+
+                    if (IsVisible(blockId, y != ChunkSize - 1 ? blocks[currentBlock + ChunkSize] : (blocksUp != null ? blocksUp[currentBlock - (ChunkSizeSquared - ChunkSize)] : (byte)0))) {
+                        faces |= 4;
+                    }
+                    // Face y-
+                    if (IsVisible(blockId, y != 0 ? blocks[currentBlock - ChunkSize] : (blocksDown != null ? blocksDown[currentBlock + (ChunkSizeSquared - ChunkSize)] : (byte)0))) {
+                        faces |= 8;
+                    }
+                    // Face z+
+                    if (IsVisible(blockId, z != ChunkSize - 1 ? blocks[currentBlock + ChunkSizeSquared] : blocksWest[currentBlock - (ChunkSizeCubed - ChunkSizeSquared)])) {
+                        faces |= 16;
+                    }
+                    // Face z-
+                    if (IsVisible(blockId, z != 0 ? blocks[currentBlock - ChunkSizeSquared] : blocksEast[currentBlock + (ChunkSizeCubed - ChunkSizeSquared)])) {
+                        faces |= 32;
+                    }
+                    if (faces == 0) continue;
+                    
+                    List<VertexPositionColorTexture> listRef = Blocks.IsNotSolid(blockId) ? fluidVertices : solidVertices;
+                    for(int face=0;faces!=0;face++){
+                        if((faces&1u)!=0){
+                            for(int i=face*4;i<face*4+4;i++) {
+                                Color light = chunk.GetLightValues(currentBlock, face);
+                                listRef.Add(new VertexPositionColorTexture(new Vector3(
+                                    x+((offsetX>>i)&1),
+                                    y+((offsetY>>i)&1)+currentChunkY,
+                                    z+((offsetZ>>i)&1)),
+                                    light,
+                                    textureCoordinates[i]));
+                            }
+                        }
+                        faces>>=1;
+                    }
                 }
             }
         }
 
-        chunk.vertexBufferOpaque?.Dispose();
-        if(solidVertices.Count != 0){
-            VertexBuffer vertexBufferOpaque = new(graphicsDevice,typeof(VertexPositionColorTexture),solidVertices.Count,BufferUsage.WriteOnly);
-            vertexBufferOpaque.SetData(solidVertices.ToArray());
-            chunk.vertexBufferOpaque = vertexBufferOpaque;
-        }
-        chunk.vertexBufferTransparent?.Dispose();
-        if(fluidVertices.Count != 0){
-            VertexBuffer vertexBufferTransparent = new(graphicsDevice,typeof(VertexPositionColorTexture),fluidVertices.Count,BufferUsage.WriteOnly);
-            vertexBufferTransparent.SetData(fluidVertices.ToArray());
-            chunk.vertexBufferTransparent = vertexBufferTransparent;
-        }
-        chunk.vertexBufferFoliage?.Dispose();
-        if (foliageVertices.Count != 0) {
-            VertexBuffer vertexBufferFoliage = new(graphicsDevice,typeof(VertexPositionColorTexture),foliageVertices.Count,BufferUsage.WriteOnly);
-            vertexBufferFoliage.SetData(foliageVertices.ToArray());
-            chunk.vertexBufferFoliage = vertexBufferFoliage;
+        UpdateBuffer(ref chunk.vertexBufferOpaque, solidVertices);
+        UpdateBuffer(ref chunk.vertexBufferTransparent, fluidVertices);
+        UpdateBuffer(ref chunk.vertexBufferFoliage, foliageVertices);
+    }
+    private static bool IsVisible(byte id, byte anotherId) {
+        return id != anotherId && Blocks.IsTransparent(anotherId);
+    }
+    private static void UpdateBuffer(ref VertexBuffer vertexBuffer, List<VertexPositionColorTexture> vertices) {
+        vertexBuffer?.Dispose();
+        if (vertices.Count != 0) {
+            VertexBuffer newVertexBuffer = new(graphicsDevice,typeof(VertexPositionColorTexture),vertices.Count,BufferUsage.WriteOnly);
+            newVertexBuffer.SetData(vertices.ToArray());
+            vertexBuffer = newVertexBuffer;
         }
     }
     static void GenerateIndexBuffer(){
@@ -198,9 +174,9 @@ public static class VoxelRenderer{
         Vector2[] textureCoordinates = TextureDictionary[id];
         VertexPositionColorTexture[] cubeVerticesPreview;
         if (Blocks.IsFoliage(id)) {
-            cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 8, BufferUsage.WriteOnly);
-            cubeVerticesPreview = new VertexPositionColorTexture[8];
-            for (int i = 0; i < 8; i++) {
+            cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 4, BufferUsage.WriteOnly);
+            cubeVerticesPreview = new VertexPositionColorTexture[4];
+            for (int i = 0; i < 4; i++) {
                 cubeVerticesPreview[i] = new VertexPositionColorTexture(
                     new Vector3((offsetX>>i)&1,(offsetY>>i)&1,(offsetZ>>i)&1),
                     Color.White,
