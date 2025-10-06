@@ -164,7 +164,7 @@ public class Game1 : Game {
 
         //FPS counter and other UI
         if (!IsPaused) {
-            spriteBatch.Begin();
+            spriteBatch.Begin(samplerState: SamplerState.PointClamp);
             spriteBatch.DrawString(font, $"FPS:{UserInterface.frameCounter.GetFPS(gameTime.ElapsedGameTime.TotalSeconds)}", new(1, 3), Color.Black);
             spriteBatch.DrawString(font, $"X:{Math.Round((double)player.camPosition.X + (long)player.CurrentChunk.x * ChunkSize, 2)}", new(1, 23), Color.Black);
             spriteBatch.DrawString(font, $"Y:{Math.Round(player.camPosition.Y + player.CurrentChunk.y * ChunkSize - 1.7f, 2)}", new(1, 43), Color.Black);
@@ -177,14 +177,20 @@ public class Game1 : Game {
                 spriteBatch.DrawString(font, $"Sky level:{value >> Light.SkyLight}", new(1, 143), Color.Black);
             }
             spriteBatch.DrawString(font, "+", new Vector2(WindowCenter.X, WindowCenter.Y) - (font.MeasureString("+") / 2), Color.Black);
-            spriteBatch.Draw(blankTexture, new Rectangle((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f)), Color.White);
+            Rectangle rec = new Rectangle((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f));
+            spriteBatch.Draw(blankTexture, rec, Color.White);
+            if(Blocks.IsFoliage(chosenBlock)){
+                spriteBatch.Draw(effect.Texture.GetValueTexture2D(), rec, new Rectangle((int)(256*TextureDictionary[chosenBlock][3].X), (int)(256*TextureDictionary[chosenBlock][3].Y), 16,16), Color.White);
+            }
             spriteBatch.End();
 
             // Some settings have to be reset because sprite batch resets it
             GraphicsDevice.Indices = indexBuffer;
             GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
             
-            DrawCubePreview(effect);
+            if(!Blocks.IsFoliage(chosenBlock)){
+                DrawCubePreview(effect);
+            }
         }
         else {
             UserInterface._desktop.Render();

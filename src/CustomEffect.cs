@@ -7,7 +7,7 @@ using static VoxelTechDemo.VoxelRenderer;
 
 namespace VoxelTechDemo;
 public class CustomEffect : Effect{
-    readonly EffectParameter Texture;
+    public readonly EffectParameter Texture;
     readonly EffectParameter FogColor;
     readonly EffectParameter FogVector;
     readonly EffectParameter WorldViewProj;

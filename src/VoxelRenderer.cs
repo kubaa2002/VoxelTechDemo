@@ -7,7 +7,7 @@ using Microsoft.Xna.Framework.Graphics;
 namespace VoxelTechDemo;
 public static class VoxelRenderer{
     private static GraphicsDevice graphicsDevice;
-    private static readonly Dictionary<int,Vector2[]> TextureDictionary = new Blocks().TextureDictionary;
+    public static readonly Dictionary<int,Vector2[]> TextureDictionary = new Blocks().TextureDictionary;
     //z- z+ y- y+ x- x+
     const int offsetX = 0b1010_0101_1010_1010_0000_1111;
     const int offsetY = 0b1100_1100_0000_1111_1100_1100;
@@ -31,6 +31,7 @@ public static class VoxelRenderer{
         faceBuffer = new VertexBuffer(graphicsDevice, typeof(VertexPosition), faceVertices.Length, BufferUsage.WriteOnly);
         faceBuffer.SetData(faceVertices);
         updateCloudBuffer();
+        cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 12, BufferUsage.WriteOnly);
     }
     public static void GenerateChunkMesh(Chunk chunk){
         // Check and assign chunk block arrays
@@ -175,38 +176,25 @@ public static class VoxelRenderer{
         graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, 12);
     }
     public static void ChangeCubePreview(byte id){
-        cubePreviewVertex?.Dispose();
+        if (Blocks.IsFoliage(id)) return;
         Vector2[] textureCoordinates = TextureDictionary[id];
         VertexPositionColorTexture[] cubeVerticesPreview;
-        if (Blocks.IsFoliage(id)) {
-            cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 4, BufferUsage.WriteOnly);
-            cubeVerticesPreview = new VertexPositionColorTexture[4];
-            for (int i = 0; i < 4; i++) {
-                cubeVerticesPreview[i] = new VertexPositionColorTexture(
-                    new Vector3((offsetX>>i)&1,(offsetY>>i)&1,(offsetZ>>i)&1),
-                    Color.White,
-                    textureCoordinates[i%4]);
-            }
+        cubeVerticesPreview = new VertexPositionColorTexture[12];
+        for(int i=0;i<4;i++){
+            cubeVerticesPreview[i] = new VertexPositionColorTexture(new Vector3((offsetX>>i)&1,(offsetY>>i)&1,(offsetZ>>i)&1), Color.White, textureCoordinates[i]);
         }
-        else {
-            cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 12, BufferUsage.WriteOnly);
-            cubeVerticesPreview = new VertexPositionColorTexture[12];
-            for(int i=0;i<4;i++){
-                cubeVerticesPreview[i] = new VertexPositionColorTexture(new Vector3((offsetX>>i)&1,(offsetY>>i)&1,(offsetZ>>i)&1), Color.White, textureCoordinates[i]);
-            }
-            for(int i=8;i<12;i++){
-                cubeVerticesPreview[i-4] = new VertexPositionColorTexture(new Vector3((offsetX>>i)&1,(offsetY>>i)&1,(offsetZ>>i)&1), Color.White, textureCoordinates[i]);
-            }
-            for(int i=16;i<20;i++){
-                cubeVerticesPreview[i-8] = new VertexPositionColorTexture(new Vector3((offsetX>>i)&1,(offsetY>>i)&1,(offsetZ>>i)&1), Color.White, textureCoordinates[i]);
-            }
+        for(int i=8;i<12;i++){
+            cubeVerticesPreview[i-4] = new VertexPositionColorTexture(new Vector3((offsetX>>i)&1,(offsetY>>i)&1,(offsetZ>>i)&1), Color.White, textureCoordinates[i]);
+        }
+        for(int i=16;i<20;i++){
+            cubeVerticesPreview[i-8] = new VertexPositionColorTexture(new Vector3((offsetX>>i)&1,(offsetY>>i)&1,(offsetZ>>i)&1), Color.White, textureCoordinates[i]);
         }
         cubePreviewVertex.SetData(cubeVerticesPreview);
     }
     public static void DrawCubePreview(CustomEffect effect){
         effect.DrawBlockPreview();
         graphicsDevice.SetVertexBuffer(cubePreviewVertex);
-        graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, cubePreviewVertex.VertexCount/2);
+        graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, 6);
     }
     public enum BlockFace{Front,Back,Right,Left,Top,Bottom,None};
     public static BlockFace GetFace(Ray ray,BoundingBox box){
