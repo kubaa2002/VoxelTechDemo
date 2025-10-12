@@ -69,7 +69,8 @@ public class CustomEffect : Effect{
             CurrentSkyLightLevel.SetValue((float)(Math.Sin((totalTime.TotalSeconds) * Math.PI / 60) + 1) / 2);
         }
     }
-    public void Apply(Matrix worldMatrix){
+    public void Apply(Vector3 position) {
+        Matrix worldMatrix = Matrix.CreateWorld(position, Vector3.Forward, Vector3.Up);
         WorldViewProj.SetValue(worldMatrix * viewProj);
         Matrix worldView = worldMatrix * viewMatrix;
         if (FogEnabled){

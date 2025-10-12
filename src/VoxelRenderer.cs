@@ -171,15 +171,14 @@ public static class VoxelRenderer{
         cubeFrameVertex.SetData(cubeVertices);
     }
     public static void DrawCubeFrame(CustomEffect effect, Vector3 LookedAtBlock){
-        effect.Apply(Matrix.CreateWorld(LookedAtBlock, Vector3.Forward, Vector3.Up));
+        effect.Apply(LookedAtBlock);
         graphicsDevice.SetVertexBuffer(cubeFrameVertex);
         graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, 12);
     }
     public static void ChangeCubePreview(byte id){
         if (Blocks.IsFoliage(id)) return;
         Vector2[] textureCoordinates = TextureDictionary[id];
-        VertexPositionColorTexture[] cubeVerticesPreview;
-        cubeVerticesPreview = new VertexPositionColorTexture[12];
+        VertexPositionColorTexture[] cubeVerticesPreview = new VertexPositionColorTexture[12];
         for(int i=0;i<4;i++){
             cubeVerticesPreview[i] = new VertexPositionColorTexture(new Vector3((offsetX>>i)&1,(offsetY>>i)&1,(offsetZ>>i)&1), Color.White, textureCoordinates[i]);
         }

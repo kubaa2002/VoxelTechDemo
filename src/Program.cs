@@ -136,18 +136,12 @@ public class Game1 : Game {
 
         BoundingFrustum frustum = new(effect.viewProj);
 
-        // Render solid blocks
-        DrawTerrain(frustum, 0);
-
-        // Draw foliage
-        GraphicsDevice.RasterizerState = RasterizerState.CullNone;
-        DrawTerrain(frustum, 2);
+        // Render solid blocks and foliage
+        DrawTerrain(frustum, true);
         
-        // Apply water animation settings
+        // Render water
         effect.UpdateAnimationFrame(gameTime.TotalGameTime);
-
-        // Render fluids
-        DrawTerrain(frustum, 1);
+        DrawTerrain(frustum, false);
 
         // Return to normal settings
         effect.AnimationFrame.SetValue(0);
@@ -156,9 +150,9 @@ public class Game1 : Game {
             cloudEffect.Apply(effect, Matrix.CreateWorld(new Vector3(CloudOffset.x-player.CurrentChunk.x,-player.CurrentChunk.y,CloudOffset.z-player.CurrentChunk.z)*ChunkSize, Vector3.Forward, Vector3.Up));
             UpdateAndDrawClouds(world, player.CurrentChunk.x, player.CurrentChunk.z, gameTime.TotalGameTime.TotalMinutes);
         }
-        GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
 
         if (player.BlockFound) {
+            GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
             DrawCubeFrame(effect, player.LookedAtBlock);
         }
 
@@ -183,12 +177,11 @@ public class Game1 : Game {
                 spriteBatch.Draw(effect.Texture.GetValueTexture2D(), rec, new Rectangle((int)(256*TextureDictionary[chosenBlock][3].X), (int)(256*TextureDictionary[chosenBlock][3].Y), 16,16), Color.White);
             }
             spriteBatch.End();
-
-            // Some settings have to be reset because sprite batch resets it
-            GraphicsDevice.Indices = indexBuffer;
-            GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
             
             if(!Blocks.IsFoliage(chosenBlock)){
+                // Some settings have to be reset because sprite batch resets it
+                GraphicsDevice.Indices = indexBuffer;
+                GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
                 DrawCubePreview(effect);
             }
         }
@@ -198,8 +191,7 @@ public class Game1 : Game {
 
         base.Draw(gameTime);
     }
-    private void DrawTerrain(BoundingFrustum frustum, int id) {
-        //TODO: Make it so it doesn't recalculate world matrices every frame
+    private void DrawTerrain(BoundingFrustum frustum, bool opaque) {
         int chunkX = player.CurrentChunk.x;
         int chunkY = player.CurrentChunk.y;
         int chunkZ = player.CurrentChunk.z;
@@ -210,21 +202,17 @@ public class Game1 : Game {
             if (!frustum.Intersects(new BoundingBox(currentChunkCoords, currentChunkCoords + chunkLineSize))) {
                 continue;
             }
-            effect.Apply(Matrix.CreateWorld(currentChunkCoords, Vector3.Forward, Vector3.Up));
+            effect.Apply(currentChunkCoords);
             for (int y = 0; y < World.MaxYChunk; y++) {
                 if (world.WorldMap.TryGetValue((x, y, z), out Chunk chunk)) {
-                    switch (id) {
-                        case 0:
-                            DrawChunk(chunk.vertexBufferOpaque);
-                            break;
-                        case 1:
-                            DrawChunk(chunk.vertexBufferTransparent);
-                            break;
-                        case 2:
-                            DrawChunk(chunk.vertexBufferFoliage);
-                            break;
-                        default:
-                            return;
+                    if (opaque) {
+                        GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
+                        DrawChunk(chunk.vertexBufferOpaque);
+                        GraphicsDevice.RasterizerState = RasterizerState.CullNone;
+                        DrawChunk(chunk.vertexBufferFoliage);
+                    }
+                    else{
+                        DrawChunk(chunk.vertexBufferTransparent);
                     }
                 }
             }
