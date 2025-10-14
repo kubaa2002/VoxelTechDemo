@@ -11,19 +11,18 @@ public class CustomEffect : Effect{
     readonly EffectParameter FogColor;
     readonly EffectParameter FogVector;
     readonly EffectParameter WorldViewProj;
+    private readonly EffectParameter FaceRotations;
     public readonly EffectParameter AnimationFrame;
     public readonly EffectParameter CurrentSkyLightLevel;
 
-    public Matrix projectionMatrix;
+    private Matrix projectionMatrix;
     public Matrix viewMatrix;
     public Matrix viewProj;
     private Matrix previewMatrix;
 
     float FogStart;
     public float FogEnd{
-        set{
-            fogValue = 1.0f / (FogStart - value);
-        }
+        set => fogValue = 1.0f / (FogStart - value);
     }
     float fogValue;
 
@@ -35,6 +34,7 @@ public class CustomEffect : Effect{
         WorldViewProj = Parameters["WorldViewProj"];
         AnimationFrame = Parameters["AnimationFrame"];
         CurrentSkyLightLevel = Parameters["CurrentSkyLightLevel"];
+        FaceRotations = Parameters["Rotations"];
 
         Texture.SetValue(game.Content.Load<Texture2D>("Textures"));
         FogStart = RenderDistance*0.6f*ChunkSize;
@@ -43,6 +43,22 @@ public class CustomEffect : Effect{
         projectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView), GraphicsDevice.DisplayMode.AspectRatio, 0.1f, 10000f);
         previewMatrix = Matrix.CreateLookAt(new Vector3(3, 2, 3), new Vector3(0.5f, 0.5f, 0.5f), Vector3.Up);
         previewMatrix *= CreateBlockPreviewProj((int)(GraphicsDevice.Viewport.Width * 0.93f), (int)(GraphicsDevice.Viewport.Height * 0.9f), 5);
+        
+        Matrix[] faceRotMatrices = [
+            // x+
+            Matrix.CreateRotationZ(-MathHelper.PiOver2),
+            // x-
+            Matrix.CreateRotationZ(MathHelper.PiOver2)*Matrix.CreateRotationX(MathHelper.Pi),
+            // y+
+            Matrix.Identity,
+            // y-
+            Matrix.CreateRotationX(MathHelper.Pi),
+            // z+
+            Matrix.CreateRotationX(MathHelper.PiOver2)*Matrix.CreateRotationZ(-MathHelper.PiOver2),
+            // z-
+            Matrix.CreateRotationX(-MathHelper.PiOver2)*Matrix.CreateRotationZ(-MathHelper.PiOver2),
+        ];
+        FaceRotations.SetValue(faceRotMatrices);
     }
     private Matrix CreateBlockPreviewProj(int x,int y,float scale){
         float aspectRatio = GraphicsDevice.Viewport.AspectRatio * scale;
@@ -66,11 +82,10 @@ public class CustomEffect : Effect{
     public void UpdateAnimationFrame(TimeSpan totalTime) {
         AnimationFrame.SetValue((float)Math.Round(totalTime.TotalSeconds * 8 % 15) / 16);
         if (DayCycle) {
-            CurrentSkyLightLevel.SetValue((float)(Math.Sin((totalTime.TotalSeconds) * Math.PI / 60) + 1) / 2);
+            CurrentSkyLightLevel.SetValue((float)(Math.Sin(totalTime.TotalSeconds * Math.PI / 60) + 1) / 2);
         }
     }
-    public void Apply(Vector3 position) {
-        Matrix worldMatrix = Matrix.CreateWorld(position, Vector3.Forward, Vector3.Up);
+    public void Apply(Matrix worldMatrix) {
         WorldViewProj.SetValue(worldMatrix * viewProj);
         Matrix worldView = worldMatrix * viewMatrix;
         if (FogEnabled){
@@ -96,15 +111,13 @@ public class CustomEffect : Effect{
 }
 
 public class CloudEffect : Effect {
-    public readonly EffectParameter WorldViewProj;
+    readonly EffectParameter WorldViewProj;
     readonly EffectParameter FogColor;
     readonly EffectParameter FogVector;
 
     public float FogStart;
     public float FogEnd{
-        set{
-            fogValue = 1.0f / (FogStart - value);
-        }
+        set => fogValue = 1.0f / (FogStart - value);
     }
     private float fogValue;
 

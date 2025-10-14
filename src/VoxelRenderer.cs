@@ -8,14 +8,6 @@ namespace VoxelTechDemo;
 public static class VoxelRenderer{
     private static GraphicsDevice graphicsDevice;
     public static readonly Dictionary<int,Vector2[]> TextureDictionary = new Blocks().TextureDictionary;
-    //z- z+ y- y+ x- x+
-    const int offsetX = 0b1010_0101_1010_1010_0000_1111;
-    const int offsetY = 0b1100_1100_0000_1111_1100_1100;
-    const int offsetZ = 0b0000_1111_0011_1100_0101_1010;
-
-    private const int offsetSpriteX = 0b1010_1010;
-    private const int offsetSpriteY = 0b1100_1100;
-    private const int offsetSpriteZ = 0b0101_1010;
     
     //ChunkSize needs to be a power of 2. Works up to 64 (YShift = 6)
     public const int YShift = 6;
@@ -24,14 +16,45 @@ public static class VoxelRenderer{
     public const int ChunkSizeSquared = ChunkSize*ChunkSize;
     public const int ChunkSizeCubed = ChunkSize*ChunkSize*ChunkSize;
     public static IndexBuffer indexBuffer;
+    static VertexBuffer faceBuffer;
+    static VertexBuffer frameBuffer;
+    static VertexBuffer previewBuffer;
     public static void InitializeVoxelRenderer(GraphicsDevice _graphicsDevice){
         graphicsDevice=_graphicsDevice;
-        SetupCubeFrame();
-        GenerateIndexBuffer();
-        faceBuffer = new VertexBuffer(graphicsDevice, typeof(VertexPosition), faceVertices.Length, BufferUsage.WriteOnly);
+        
+        indexBuffer = new IndexBuffer(graphicsDevice, IndexElementSize.SixteenBits, 12, BufferUsage.WriteOnly);
+        indexBuffer.SetData((short[])[0,1,2,1,3,2,4,5,6,5,7,6]);
+        
+        VertexPositionTexture[] faceVertices = [
+            new (new Vector3(-0.5f,0.5f,-0.5f), new Vector2(0,0)),
+            new (new Vector3(0.5f,0.5f,-0.5f), new Vector2(0,1f/16f)),
+            new (new Vector3(-0.5f,0.5f,0.5f), new Vector2(1f/16f,0)),
+            new (new Vector3(0.5f,0.5f,0.5f), new Vector2(1f/16f,1f/16f)),
+ 
+            new(new Vector3(0,0,0), new Vector2(1f/16f,1f/16f)),
+            new(new Vector3(1,0,1), new Vector2(0,1f/16f)),
+            new(new Vector3(0,1,0), new Vector2(1f/16f,0)),
+            new(new Vector3(1,1,1), new Vector2(0,0)),
+            
+            new(new Vector3(1,0,0), new Vector2(1f/16f,1f/16f)),
+            new(new Vector3(0,0,1), new Vector2(0,1f/16f)),
+            new(new Vector3(1,1,0), new Vector2(1f/16f,0)),
+            new(new Vector3(0,1,1), new Vector2(0,0)),
+        ];
+        faceBuffer = new VertexBuffer(graphicsDevice, typeof(VertexPositionTexture), faceVertices.Length, BufferUsage.WriteOnly);
         faceBuffer.SetData(faceVertices);
+        
+        // cube frame setup
+        BlockFaceInstance[] cubeVertices = new BlockFaceInstance[6];
+        for(int i=0;i<6;i++){
+            cubeVertices[i] = new BlockFaceInstance(new Vector3(0.5f - 0.00125f,0.5f - 0.00125f,0.5f - 0.00125f),
+                TextureDictionary[0][i], new Vector2(i,0), Color.White);
+        }
+        frameBuffer = new VertexBuffer(graphicsDevice,typeof(BlockFaceInstance), 6, BufferUsage.WriteOnly);
+        frameBuffer.SetData(cubeVertices);
+        previewBuffer = new VertexBuffer(graphicsDevice,typeof(BlockFaceInstance), 3, BufferUsage.WriteOnly);
+        
         updateCloudBuffer();
-        cubePreviewVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 12, BufferUsage.WriteOnly);
     }
     public static void GenerateChunkMesh(Chunk chunk){
         // Check and assign chunk block arrays
@@ -46,9 +69,9 @@ public static class VoxelRenderer{
         int currentChunkY = cy*ChunkSize;
 
         // Check every block within a chunk if it needs to be added to the mesh
-        List<VertexPositionColorTexture> solidVertices = [];
-        List<VertexPositionColorTexture> fluidVertices = [];
-        List<VertexPositionColorTexture> foliageVertices = [];
+        List<BlockFaceInstance> solidInstances = [];
+        List<BlockFaceInstance> fluidInstances = [];
+        List<BlockFaceInstance> spriteInstances = [];
         int currentBlock = -1;
         for(int z=0;z<ChunkSize;z++){
             for(int y=0;y<ChunkSize;y++){
@@ -59,15 +82,10 @@ public static class VoxelRenderer{
                     Vector2[] textureCoordinates = TextureDictionary[blockId];
                     
                     if (Blocks.IsFoliage(blockId)) {
-                        Color light = Light.ConvertLightValues(chunk.blockLightValues[currentBlock]);
-                        for (int i = 0; i < 8; i++) {
-                            foliageVertices.Add(new VertexPositionColorTexture(new Vector3(
-                                x + ((offsetSpriteX >> i) & 1),
-                                y + ((offsetSpriteY >> i) & 1) + currentChunkY,
-                                z + ((offsetSpriteZ >> i) & 1)),
-                                light,
-                                textureCoordinates[i % 4]));
-                        }
+                        spriteInstances.Add(new BlockFaceInstance(
+                            new Vector3(x, y + currentChunkY, z),
+                            textureCoordinates[0], new Vector2(2,0), 
+                            Light.ConvertLightValues(chunk.blockLightValues[currentBlock])));
                         continue;
                     }
 
@@ -98,23 +116,28 @@ public static class VoxelRenderer{
                     }
                     if (faces == 0) continue;
 
-                    byte rotation = 0;
-                    if (Blocks.CanRotate(blockId) && chunk.BlockStates.TryGetValue(currentBlock, out rotation)) {
-                        textureCoordinates = Blocks.RotateUV(textureCoordinates, rotation);
+                    byte blockRotation = 0;
+                    int[] faceRotation = Blocks.NoRotation;
+                    if (Blocks.CanRotate(blockId)) {
+                        chunk.BlockStates.TryGetValue(currentBlock, out blockRotation);
+                        switch (blockRotation) {
+                            case 1:
+                                faceRotation = Blocks.AxisXRotation;
+                                break;
+                            case 2:
+                                faceRotation = Blocks.AxisZRotation;
+                                break;
+                        }
                     }
                     
-                    List<VertexPositionColorTexture> listRef = Blocks.IsNotSolid(blockId) ? fluidVertices : solidVertices;
+                    List<BlockFaceInstance> listRef = Blocks.IsNotSolid(blockId) ? fluidInstances : solidInstances;
                     for(int face=0;faces!=0;face++){
                         if((faces&1u)!=0) {
-                            for(int i=face*4;i<face*4+4;i++) {
-                                Color light = chunk.GetLightValues(currentBlock, face);
-                                listRef.Add(new VertexPositionColorTexture(new Vector3(
-                                    x+((offsetX>>i)&1),
-                                    y+((offsetY>>i)&1)+currentChunkY,
-                                    z+((offsetZ>>i)&1)),
-                                    light,
-                                    textureCoordinates[(i+8*rotation)%24]));
-                            }
+                            listRef.Add(new BlockFaceInstance(
+                                new Vector3(x,y + currentChunkY,z) + new Vector3(0.5f, 0.5f, 0.5f),
+                                textureCoordinates[(face+2*blockRotation)%6],
+                                new Vector2(face, faceRotation[face]),
+                                chunk.GetLightValues(currentBlock, face)));
                         }
                         faces>>=1;
                     }
@@ -122,78 +145,54 @@ public static class VoxelRenderer{
             }
         }
 
-        UpdateBuffer(ref chunk.vertexBufferOpaque, solidVertices);
-        UpdateBuffer(ref chunk.vertexBufferTransparent, fluidVertices);
-        UpdateBuffer(ref chunk.vertexBufferFoliage, foliageVertices);
+        UpdateBuffer(ref chunk.vertexBufferOpaque, solidInstances);
+        UpdateBuffer(ref chunk.vertexBufferTransparent, fluidInstances);
+        UpdateBuffer(ref chunk.vertexBufferFoliage, spriteInstances);
     }
     private static bool IsVisible(byte id, byte anotherId) {
         return id != anotherId && Blocks.IsTransparent(anotherId);
     }
-    private static void UpdateBuffer(ref VertexBuffer vertexBuffer, List<VertexPositionColorTexture> vertices) {
+    private static void UpdateBuffer<T>(ref VertexBuffer vertexBuffer, List<T> vertices) where T : struct {
         vertexBuffer?.Dispose();
         if (vertices.Count != 0) {
-            VertexBuffer newVertexBuffer = new(graphicsDevice,typeof(VertexPositionColorTexture),vertices.Count,BufferUsage.WriteOnly);
+            VertexBuffer newVertexBuffer = new(graphicsDevice,typeof(T),vertices.Count,BufferUsage.WriteOnly);
             newVertexBuffer.SetData(vertices.ToArray());
             vertexBuffer = newVertexBuffer;
         }
     }
-    static void GenerateIndexBuffer(){
-        byte[] indicesOffset = [0,1,2,1,3,2];
-        int[] indicesArray = new int[ChunkSizeCubed*36]; 
-        for (int currentBlock = 0;currentBlock<ChunkSizeCubed*6;currentBlock++){
-            for(int i=0;i<6;i++){
-                indicesArray[currentBlock*6+i]=currentBlock*4+indicesOffset[i];
-            }       
-        }
-        indexBuffer = new IndexBuffer(graphicsDevice, IndexElementSize.ThirtyTwoBits, indicesArray.Length, BufferUsage.WriteOnly);
-        indexBuffer.SetData(indicesArray);
-    }
     public static void DrawChunk(VertexBuffer buffer){
         if(buffer is not null && !buffer.IsDisposed){
-            graphicsDevice.SetVertexBuffer(buffer);
-            graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, buffer.VertexCount/2);
+            Draw(buffer, 0, 2);
         }
     }
-    static VertexBuffer cubeFrameVertex;
-    static VertexBuffer cubePreviewVertex;
-    static void SetupCubeFrame(){
-        cubeFrameVertex = new VertexBuffer(graphicsDevice,typeof(VertexPositionColorTexture), 24, BufferUsage.WriteOnly);
-        Vector2[] cubeFrameTextureCoordinates = TextureDictionary[0];
-        VertexPositionColorTexture[] cubeVertices = new VertexPositionColorTexture[24];
-        for(int i=0;i<24;i++){
-            cubeVertices[i] = new VertexPositionColorTexture(new Vector3(
-                1.0025f*((offsetX>>i)&1)-0.00125f,
-                1.0025f*((offsetY>>i)&1)-0.00125f,
-                1.0025f*((offsetZ>>i)&1)-0.00125f),
-                Color.White,
-                cubeFrameTextureCoordinates[i]);
+    public static void DrawSprites(VertexBuffer buffer) {
+        if(buffer is not null && !buffer.IsDisposed){
+            Draw(buffer,4,4);
         }
-        cubeFrameVertex.SetData(cubeVertices);
     }
-    public static void DrawCubeFrame(CustomEffect effect, Vector3 LookedAtBlock){
-        effect.Apply(LookedAtBlock);
-        graphicsDevice.SetVertexBuffer(cubeFrameVertex);
-        graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, 12);
+    public static void DrawCubeFrame(CustomEffect effect, Vector3 lookedAtBlock){
+        effect.Apply(Matrix.CreateScale(1.0025f) * Matrix.CreateWorld(lookedAtBlock, Vector3.Forward, Vector3.Up));
+        Draw(frameBuffer,0,2);
+    }
+    public static void DrawCubePreview(CustomEffect effect){
+        effect.DrawBlockPreview();
+        Draw(previewBuffer,0,2);
+    }
+    private static void Draw(VertexBuffer buffer, int baseVertex, int primitiveCount) {
+        graphicsDevice.SetVertexBuffers(
+            new VertexBufferBinding(faceBuffer, 0, 0),
+            new VertexBufferBinding(buffer, 0, 1));
+        graphicsDevice.DrawInstancedPrimitives(PrimitiveType.TriangleList, baseVertex, 0, primitiveCount, buffer.VertexCount);
     }
     public static void ChangeCubePreview(byte id){
         if (Blocks.IsFoliage(id)) return;
         Vector2[] textureCoordinates = TextureDictionary[id];
-        VertexPositionColorTexture[] cubeVerticesPreview = new VertexPositionColorTexture[12];
-        for(int i=0;i<4;i++){
-            cubeVerticesPreview[i] = new VertexPositionColorTexture(new Vector3((offsetX>>i)&1,(offsetY>>i)&1,(offsetZ>>i)&1), Color.White, textureCoordinates[i]);
-        }
-        for(int i=8;i<12;i++){
-            cubeVerticesPreview[i-4] = new VertexPositionColorTexture(new Vector3((offsetX>>i)&1,(offsetY>>i)&1,(offsetZ>>i)&1), Color.White, textureCoordinates[i]);
-        }
-        for(int i=16;i<20;i++){
-            cubeVerticesPreview[i-8] = new VertexPositionColorTexture(new Vector3((offsetX>>i)&1,(offsetY>>i)&1,(offsetZ>>i)&1), Color.White, textureCoordinates[i]);
-        }
-        cubePreviewVertex.SetData(cubeVerticesPreview);
-    }
-    public static void DrawCubePreview(CustomEffect effect){
-        effect.DrawBlockPreview();
-        graphicsDevice.SetVertexBuffer(cubePreviewVertex);
-        graphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, 6);
+        BlockFaceInstance[] cubeVerticesPreview = [
+            new (new Vector3(0.5f,0.5f,0.5f), textureCoordinates[0], new Vector2(0,0), Color.White),
+            new (new Vector3(0.5f,0.5f,0.5f), textureCoordinates[2], new Vector2(2,0), Color.White),
+            new (new Vector3(0.5f,0.5f,0.5f), textureCoordinates[4], new Vector2(4,0), Color.White),
+        ];
+        previewBuffer.SetData(cubeVerticesPreview);
     }
     public enum BlockFace{Front,Back,Right,Left,Top,Bottom,None};
     public static BlockFace GetFace(Ray ray,BoundingBox box){
@@ -239,7 +238,7 @@ public static class VoxelRenderer{
                             continue;
                         }
 
-                        cloudInstancesArray[index].Offset = new Vector3(x, 250.5f, z);
+                        cloudInstancesArray[index].Offset = new Vector3(x, 250f, z);
                         cloudInstancesArray[index].Color = (float)noiseValue;
                         index++;
                     }
@@ -259,30 +258,34 @@ public static class VoxelRenderer{
             new VertexBufferBinding(cloudBuffer, 0, 1));
         graphicsDevice.DrawInstancedPrimitives(PrimitiveType.TriangleList, 0, 0, 2, cloudIndex);
     }
-    
-    private static VertexBuffer faceBuffer;
-    private static readonly VertexPosition[] faceVertices = [
-        new (new Vector3(0,0,0)),
-        new (new Vector3(1,0,0)),
-        new (new Vector3(0,0,1)),
-        new (new Vector3(1,0,1)),
-    ];
-    struct CloudInstance : IVertexType {
-        public Vector3 Offset;
-        public float   Color;
+    struct CloudInstance(Vector3 offset, float color) : IVertexType {
+        public Vector3 Offset = offset;
+        public float Color = color;
 
-        public static readonly VertexDeclaration VertexDeclaration = new(
+        static readonly VertexDeclaration VertexDeclaration = new(
             new VertexElement(0,  VertexElementFormat.Vector3,
                 VertexElementUsage.Position, 1),
-            
             new VertexElement(12, VertexElementFormat.Single,
                 VertexElementUsage.Color,    1));
         
         VertexDeclaration IVertexType.VertexDeclaration => VertexDeclaration;
+    }
+    struct BlockFaceInstance(Vector3 offset, Vector2 texCoords, Vector2 rotation, Color color) : IVertexType {
+        public Vector3 Offset = offset;
+        public Vector2 TexCoords = texCoords;
+        public Vector2 Rotation = rotation;
+        public Color Color = color;
 
-        public CloudInstance(Vector3 offset, float color) {
-            Offset = offset;
-            Color = color;
-        }
+        static readonly VertexDeclaration VertexDeclaration = new(
+            new VertexElement(0, VertexElementFormat.Vector3,
+                VertexElementUsage.Position, 1),
+            new VertexElement(12, VertexElementFormat.Vector2, 
+                VertexElementUsage.TextureCoordinate, 1),
+            new VertexElement(20, VertexElementFormat.Vector2, 
+                VertexElementUsage.Normal, 1),
+            new VertexElement(28, VertexElementFormat.Color,
+                VertexElementUsage.Color, 1));
+        
+        VertexDeclaration IVertexType.VertexDeclaration => VertexDeclaration;
     }
 }

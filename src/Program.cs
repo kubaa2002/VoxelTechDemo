@@ -174,7 +174,7 @@ public class Game1 : Game {
             Rectangle rec = new Rectangle((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f));
             spriteBatch.Draw(blankTexture, rec, Color.White);
             if(Blocks.IsFoliage(chosenBlock)){
-                spriteBatch.Draw(effect.Texture.GetValueTexture2D(), rec, new Rectangle((int)(256*TextureDictionary[chosenBlock][3].X), (int)(256*TextureDictionary[chosenBlock][3].Y), 16,16), Color.White);
+                spriteBatch.Draw(effect.Texture.GetValueTexture2D(), rec, new Rectangle((int)(256*TextureDictionary[chosenBlock][0].X), (int)(256*TextureDictionary[chosenBlock][0].Y), 16,16), Color.White);
             }
             spriteBatch.End();
             
@@ -202,14 +202,14 @@ public class Game1 : Game {
             if (!frustum.Intersects(new BoundingBox(currentChunkCoords, currentChunkCoords + chunkLineSize))) {
                 continue;
             }
-            effect.Apply(currentChunkCoords);
+            effect.Apply(Matrix.CreateWorld(currentChunkCoords, Vector3.Forward, Vector3.Up));
             for (int y = 0; y < World.MaxYChunk; y++) {
                 if (world.WorldMap.TryGetValue((x, y, z), out Chunk chunk)) {
                     if (opaque) {
                         GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
                         DrawChunk(chunk.vertexBufferOpaque);
                         GraphicsDevice.RasterizerState = RasterizerState.CullNone;
-                        DrawChunk(chunk.vertexBufferFoliage);
+                        DrawSprites(chunk.vertexBufferFoliage);
                     }
                     else{
                         DrawChunk(chunk.vertexBufferTransparent);

@@ -3,15 +3,19 @@ sampler2D Texture;
 float4 FogVector;
 float3 FogColor;
 float4x4 WorldViewProj;
+float4x4 Rotations[6];
 float AnimationFrame;
 float CurrentSkyLightLevel;
 
 // Vertex shader input
 struct VSInput
 {
-    float4 Position : POSITION;
-    float4 Light    : COLOR0;
-    float2 TexCoord : TEXCOORD;
+    float4 Position : POSITION0;
+    float2 TexCoord : TEXCOORD0;
+    float3 IPosition : POSITION1;
+    float4 ILight    : COLOR1;
+    float2 ITexCoord : TEXCOORD1;
+    float2 IRotation  : NORMAL1;
 };
 
 // Vertex shader output
@@ -28,10 +32,17 @@ VSOutput VSCustomEffect(VSInput vin)
 {
     VSOutput vout;
     
-    vout.PositionPS = mul(vin.Position, WorldViewProj);
-    vout.FogFactor = saturate(dot(vin.Position, FogVector));
-    vout.TexCoord = float2(vin.TexCoord.x, vin.TexCoord.y + AnimationFrame);
-    vout.Diffuse = float4(max(vin.Light.xyz,vin.Light.w - CurrentSkyLightLevel), 1);
+    float4 Pos = float4(mul(vin.Position, Rotations[int(vin.IRotation.x)]).xyz + vin.IPosition, 1.0);
+    vout.PositionPS = mul(Pos, WorldViewProj);
+    vout.FogFactor = saturate(dot(Pos, FogVector));
+    float2 TexCoord;
+    if(vin.IRotation.y == 0.0) TexCoord = vin.TexCoord;
+    else if(vin.IRotation.y == 1.0) TexCoord = float2(vin.TexCoord.y, 1.0/16.0 - vin.TexCoord.x);
+    else if(vin.IRotation.y == 2.0) TexCoord = float2(1.0/16.0 - vin.TexCoord.x, 1.0/16.0 - vin.TexCoord.y);
+    else if(vin.IRotation.y == 3.0) TexCoord = float2(1.0/16.0 - vin.TexCoord.y, vin.TexCoord.x);
+    TexCoord = TexCoord + vin.ITexCoord;
+    vout.TexCoord = float2(TexCoord.x, TexCoord.y + AnimationFrame);
+    vout.Diffuse = float4(max(vin.ILight.xyz,vin.ILight.w - CurrentSkyLightLevel), 1);
 
     return vout;
 }

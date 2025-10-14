@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace VoxelTechDemo;
 internal class Blocks {
     public static int NumOfBlocks = 0;
-    public Dictionary<int, Vector2[]> TextureDictionary = [];
+    public readonly Dictionary<int, Vector2[]> TextureDictionary = [];
     public Blocks(){
         byte[] blockFaces = [
             240,240,240,240,240,240,    // 0  - Cube Frame (Air)
@@ -34,10 +34,7 @@ internal class Blocks {
             for(int j=0;j<6;j++){
                 int x=blockFaces[i*6+j]%16;
                 int y=blockFaces[i*6+j]/16;
-                result[j*4]=new Vector2(0.0625f*(x+1),0.0625f*(y+1));
-                result[j*4+1]=new Vector2(0.0625f*x,0.0625f*(y+1));
-                result[j*4+2]=new Vector2(0.0625f*(x+1),0.0625f*y);
-                result[j*4+3]=new Vector2(0.0625f*x,0.0625f*y);
+                result[j]=new Vector2(0.0625f*x,0.0625f*y);
             }
             TextureDictionary[i]=result;
         }
@@ -48,33 +45,19 @@ internal class Blocks {
             98,
         ];
         for (int i = 0; i < blockFoliage.Length; i++) {
-            Vector2[] result= new Vector2[4];
+            Vector2[] result= new Vector2[1];
             int x=blockFoliage[i]%16;
             int y=blockFoliage[i]/16;
-            result[0]=new Vector2(0.0625f*(x+1),0.0625f*(y+1));
-            result[1]=new Vector2(0.0625f*x,0.0625f*(y+1));
-            result[2]=new Vector2(0.0625f*(x+1),0.0625f*y);
-            result[3]=new Vector2(0.0625f*x,0.0625f*y);
+            result[0]=new Vector2(0.0625f*x,0.0625f*y);
             TextureDictionary[(blockFaces.Length/6) + i] = result;
         }
         
         NumOfBlocks = blockFaces.Length/6 + blockFoliage.Length - 1;
     }
-    private static bool[] axisXRotation = [true,true,false,false,true,true];
-    private static bool[] axisZRotation = [false,false,false,false,true,true];
-    public static Vector2[] RotateUV(Vector2[] uv, int steps) {
-        Vector2[] result = new Vector2[uv.Length];
-        bool[] rotation = steps == 1 ?  axisXRotation : axisZRotation;
-        for (int i = 0; i < uv.Length / 4; i++) {
-            if (rotation[i]) {
-                Move90(result, uv, i * 4);
-            }
-            else {
-                Move0(result, uv, i * 4);
-            }
-        }
-        return result;
-    }
+
+    public static readonly int[] NoRotation = [0, 0, 0, 0, 0, 0];
+    public static readonly int[] AxisXRotation = [1,1,0,0,1,1];
+    public static readonly int[] AxisZRotation = [1,1,1,1,0,0];
     private static void Move90(Vector2[] result, Vector2[] original, int index) {
         result[index] = original[index + 1];
         result[index + 1] = original[index + 3];
