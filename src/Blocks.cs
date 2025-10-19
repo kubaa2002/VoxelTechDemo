@@ -58,18 +58,6 @@ internal class Blocks {
     public static readonly int[] NoRotation = [0, 0, 0, 0, 0, 0];
     public static readonly int[] AxisXRotation = [1,1,0,0,1,1];
     public static readonly int[] AxisZRotation = [1,1,1,1,0,0];
-    private static void Move90(Vector2[] result, Vector2[] original, int index) {
-        result[index] = original[index + 1];
-        result[index + 1] = original[index + 3];
-        result[index + 2] = original[index];
-        result[index + 3] = original[index + 2];
-    }
-    private static void Move0(Vector2[] result, Vector2[] original, int index) {
-        result[index] = original[index];
-        result[index + 1] = original[index + 1];
-        result[index + 2] = original[index + 2];
-        result[index + 3] = original[index + 3];
-    }
     public static bool IsNotSolid(byte Id){
         switch(Id){
             case 0:

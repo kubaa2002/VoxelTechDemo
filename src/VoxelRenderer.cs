@@ -16,21 +16,25 @@ public static class VoxelRenderer{
     public const int ChunkSizeSquared = ChunkSize*ChunkSize;
     public const int ChunkSizeCubed = ChunkSize*ChunkSize*ChunkSize;
     public static IndexBuffer indexBuffer;
-    static VertexBuffer faceBuffer;
-    static VertexBuffer frameBuffer;
-    static VertexBuffer previewBuffer;
+    private static VertexBuffer faceBuffer;
+    private static VertexBuffer spriteBuffer;
+    private static VertexBuffer frameBuffer;
+    private static VertexBuffer previewBuffer;
     public static void InitializeVoxelRenderer(GraphicsDevice _graphicsDevice){
         graphicsDevice=_graphicsDevice;
         
         indexBuffer = new IndexBuffer(graphicsDevice, IndexElementSize.SixteenBits, 12, BufferUsage.WriteOnly);
         indexBuffer.SetData((short[])[0,1,2,1,3,2,4,5,6,5,7,6]);
-        
+
         VertexPositionTexture[] faceVertices = [
-            new (new Vector3(-0.5f,0.5f,-0.5f), new Vector2(0,0)),
-            new (new Vector3(0.5f,0.5f,-0.5f), new Vector2(0,1f/16f)),
-            new (new Vector3(-0.5f,0.5f,0.5f), new Vector2(1f/16f,0)),
-            new (new Vector3(0.5f,0.5f,0.5f), new Vector2(1f/16f,1f/16f)),
- 
+            new(new Vector3(-0.5f, 0.5f, -0.5f), new Vector2(0, 0)),
+            new(new Vector3(0.5f, 0.5f, -0.5f), new Vector2(0, 1f / 16f)),
+            new(new Vector3(-0.5f, 0.5f, 0.5f), new Vector2(1f / 16f, 0)),
+            new(new Vector3(0.5f, 0.5f, 0.5f), new Vector2(1f / 16f, 1f / 16f)),
+        ];
+        faceBuffer = new VertexBuffer(graphicsDevice, typeof(VertexPositionTexture), faceVertices.Length, BufferUsage.WriteOnly);
+        faceBuffer.SetData(faceVertices);
+        VertexPositionTexture[] spriteVertices = [
             new(new Vector3(0,0,0), new Vector2(1f/16f,1f/16f)),
             new(new Vector3(1,0,1), new Vector2(0,1f/16f)),
             new(new Vector3(0,1,0), new Vector2(1f/16f,0)),
@@ -41,8 +45,8 @@ public static class VoxelRenderer{
             new(new Vector3(1,1,0), new Vector2(1f/16f,0)),
             new(new Vector3(0,1,1), new Vector2(0,0)),
         ];
-        faceBuffer = new VertexBuffer(graphicsDevice, typeof(VertexPositionTexture), faceVertices.Length, BufferUsage.WriteOnly);
-        faceBuffer.SetData(faceVertices);
+        spriteBuffer = new(graphicsDevice, typeof(VertexPositionTexture),  spriteVertices.Length, BufferUsage.WriteOnly);
+        spriteBuffer.SetData(spriteVertices);
         
         // cube frame setup
         BlockFaceInstance[] cubeVertices = new BlockFaceInstance[6];
@@ -162,27 +166,30 @@ public static class VoxelRenderer{
     }
     public static void DrawChunk(VertexBuffer buffer){
         if(buffer is not null && !buffer.IsDisposed){
-            Draw(buffer, 0, 2);
-        }
-    }
-    public static void DrawSprites(VertexBuffer buffer) {
-        if(buffer is not null && !buffer.IsDisposed){
-            Draw(buffer,4,4);
+            Draw(buffer);
         }
     }
     public static void DrawCubeFrame(CustomEffect effect, Vector3 lookedAtBlock){
         effect.Apply(Matrix.CreateScale(1.0025f) * Matrix.CreateWorld(lookedAtBlock, Vector3.Forward, Vector3.Up));
-        Draw(frameBuffer,0,2);
+        Draw(frameBuffer);
     }
     public static void DrawCubePreview(CustomEffect effect){
         effect.DrawBlockPreview();
-        Draw(previewBuffer,0,2);
+        Draw(previewBuffer);
     }
-    private static void Draw(VertexBuffer buffer, int baseVertex, int primitiveCount) {
+    private static void Draw(VertexBuffer buffer) {
         graphicsDevice.SetVertexBuffers(
             new VertexBufferBinding(faceBuffer, 0, 0),
             new VertexBufferBinding(buffer, 0, 1));
-        graphicsDevice.DrawInstancedPrimitives(PrimitiveType.TriangleList, baseVertex, 0, primitiveCount, buffer.VertexCount);
+        graphicsDevice.DrawInstancedPrimitives(PrimitiveType.TriangleList, 0, 0, 2, buffer.VertexCount);
+    }
+    public static void DrawSprites(VertexBuffer buffer) {
+        if(buffer is not null && !buffer.IsDisposed){
+            graphicsDevice.SetVertexBuffers(
+                new VertexBufferBinding(spriteBuffer, 0, 0),
+                new VertexBufferBinding(buffer, 0, 1));
+            graphicsDevice.DrawInstancedPrimitives(PrimitiveType.TriangleList, 0, 0, 4, buffer.VertexCount);
+        }
     }
     public static void ChangeCubePreview(byte id){
         if (Blocks.IsFoliage(id)) return;
