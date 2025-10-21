@@ -160,7 +160,7 @@ public static class VoxelRenderer{
         vertexBuffer?.Dispose();
         if (vertices.Count != 0) {
             VertexBuffer newVertexBuffer = new(graphicsDevice,typeof(T),vertices.Count,BufferUsage.WriteOnly);
-            newVertexBuffer.SetData(vertices.ToArray());
+            newVertexBuffer.SetData(0,vertices.GetInternalArray(),0,vertices.Count,0);
             vertexBuffer = newVertexBuffer;
         }
     }
