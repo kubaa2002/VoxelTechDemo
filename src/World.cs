@@ -76,6 +76,9 @@ public class World{
         
         if (id == 0) {
             chunk.BlockStates.Remove(index);
+            if (Blocks.IsFoliage(GetBlock(x, y + 1, z, chunkCoordinate))) {
+                SetBlockWithoutUpdating(x,y+1,z,chunkCoordinate,0);
+            }
         }
         chunk.blocks[index]=id;
         chunk.UpdateLight(x, y, z, id, set);
