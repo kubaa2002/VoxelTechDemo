@@ -43,7 +43,7 @@ public class World{
             }
         }
         else {
-            if (Blocks.IsFoliage(GetBlock((int)coords.X,(int)coords.Y - 1,(int)coords.Z,chunkCoordinate))) {
+            if (Blocks.IsNotSolid(GetBlock((int)coords.X, (int)coords.Y - 1, (int)coords.Z, chunkCoordinate))) {
                 return;
             }
         }
