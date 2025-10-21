@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using static VoxelTechDemo.VoxelRenderer;
 
 namespace VoxelTechDemo;
-internal static class Light {
+public static class Light {
     private const int bitsPerLight = 4;
     public const int lightMask = (1 << bitsPerLight) - 1;
 

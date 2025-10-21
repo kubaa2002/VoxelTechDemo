@@ -8,7 +8,7 @@ using static VoxelTechDemo.UserSettings;
 
 namespace VoxelTechDemo;
 public class Game1 : Game {
-    private readonly GraphicsDeviceManager graphics;
+    public readonly GraphicsDeviceManager graphics;
     private SpriteBatch spriteBatch;
     private SpriteFont font;
     private float yaw = MathHelper.PiOver2, pitch;

@@ -32,7 +32,8 @@ static class SaveFile {
         Queue<(int, Chunk, int)> greenLightQueue = [];
         Queue<(int, Chunk, int)> blueLightQueue = [];
         for (int y = 0; y < World.MaxYChunk; y++) {
-            Chunk chunk = world.WorldMap[(x, y, z)];
+            world.WorldMap.TryAdd((x, y, z),new((x,y,z),world));
+            Chunk chunk = world.WorldMap[(x,y,z)];
             byte[] blocks = chunk.blocks;
             try {
                 stream.ReadExactly(blocks);

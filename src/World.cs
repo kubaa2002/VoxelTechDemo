@@ -133,18 +133,19 @@ public class World{
         return 0;
     }
     public void GenerateChunkLine(int x,int z){
-        for(int y=0;y<MaxYChunk;y++){
-            WorldMap.TryAdd((x,y,z),new((x,y,z),this));
-        }
-
         if (!SaveFile.TryLoadChunkLine(this, x, z)) {
             GenerateTerrain(x,z);
         }
+        Light.PropagateSkyLight(WorldMap[(x,MaxYChunk-1,z)]);
+        for (int i=0;i<MaxYChunk;i++){
+            WorldMap[(x,i,z)].IsGenerated = true;
+        }
     }
-    private void GenerateTerrain(int chunkX,int chunkZ){
+    public void GenerateTerrain(int chunkX,int chunkZ){
         Chunk[] chunks = new Chunk[MaxYChunk];
-        for(int y=0;y<MaxYChunk;y++){
-            chunks[y]=WorldMap[(chunkX,y,chunkZ)];
+        for(int y=0;y<MaxYChunk;y++) {
+            WorldMap.TryAdd((chunkX,y,chunkZ),new((chunkX, y, chunkZ), this));
+            chunks[y] = WorldMap[(chunkX,y,chunkZ)];
         }
         for(int x=0;x<ChunkSize;x++){
             for(int z=0;z<ChunkSize;z++){
@@ -239,10 +240,6 @@ public class World{
                     }
                 }
             }
-        }
-        Light.PropagateSkyLight(chunks[^1]);
-        for (int i=0;i<MaxYChunk;i++){
-            chunks[i].IsGenerated = true;
         }
     }
     // TOFIX: On big x and z coordinates (int.MaxValue/64) trees don't spawn
