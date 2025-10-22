@@ -15,8 +15,8 @@ public class MeshBenchmark {
         VoxelRenderer.InitializeVoxelRenderer(game.GraphicsDevice);
         for (int x = -4; x <= 4; x++) {
             for (int z = -4; z <= 4; z++) {
-                worldMesh.GenerateChunkLine(x,z);
-                worldLight.GenerateChunkLine(x,z);
+                worldMesh.GenerateTerrain(x,z);
+                worldLight.GenerateTerrain(x,z);
             }
         }
     }
@@ -39,7 +39,9 @@ public class MeshBenchmark {
         for (int x = -3; x <= 3; x++) {
             for (int z = -3; z <= 3; z++) {
                 for (int y = 0; y < 8; y++) {
-                    VoxelRenderer.GenerateChunkMesh(worldMesh.WorldMap[(x,y,z)]);
+                    if (worldMesh.WorldMap.TryGetValue((x, y, z), out Chunk chunk)) {
+                        VoxelRenderer.GenerateChunkMesh(chunk);
+                    }
                 }
             }
         }
@@ -58,7 +60,11 @@ public class MeshBenchmark {
     public void LightProp() {
         for (int x = -3; x <= 3; x++) {
             for (int z = -3; z <= 3; z++) {
-                Light.PropagateSkyLight(worldLight.WorldMap[(x,World.MaxYChunk-1,z)]);
+                int y = World.MaxYChunk - 1;
+                while (!worldLight.WorldMap.ContainsKey((x, y, z))) {
+                    y--;
+                }
+                Light.PropagateSkyLight(worldLight.WorldMap[(x,y,z)]);
             }
         }
     }

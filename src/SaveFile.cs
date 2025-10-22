@@ -7,37 +7,55 @@ using Microsoft.Xna.Framework;
 
 namespace VoxelTechDemo;
 static class SaveFile {
-    // TODO: Don't save chunks that did not change or generated
+    private struct SavedChunk(Chunk chunk) {
+        public readonly byte[] Blocks = chunk.blocks;
+        public readonly Dictionary<int, byte> BlockStates = chunk.BlockStates;
+        public readonly int Y = chunk.coordinates.y;
+    }
+    // TODO: Don't save chunks that did not change
     public static void SaveChunkLine(World world, int x, int z) {
         using BrotliStream writer = new(File.Create($"Save/{x},{z}"), CompressionLevel.Optimal);
-        Dictionary<int,byte>[] allDicts = new Dictionary<int, byte>[World.MaxYChunk];
+        List<SavedChunk> chunks = [];
         for (int y = 0; y < World.MaxYChunk; y++) {
             if (world.WorldMap.TryGetValue((x, y, z), out Chunk chunk)) {
-                writer.Write(chunk.blocks);
-                allDicts[y] = chunk.BlockStates;
-            }
-            else {
-                Console.WriteLine($"Failed to save chunk line {x}, {z}");
-                return;
+                chunks.Add(new SavedChunk(chunk));
             }
         }
-        writer.Write(JsonSerializer.SerializeToUtf8Bytes(allDicts));
+
+        
+        writer.Write([(byte)chunks.Count]);
+        Dictionary<int,Dictionary<int, byte>> dict = [];
+        foreach (SavedChunk chunk in chunks) {
+            writer.Write([(byte)chunk.Y]);
+            writer.Write(chunk.Blocks);
+            dict[chunk.Y] = chunk.BlockStates;
+        }
+        writer.Write(JsonSerializer.SerializeToUtf8Bytes(dict));
     }
-    public static bool TryLoadChunkLine(World world, int x, int z) {
+    public static Chunk TryLoadChunkLine(World world, int x, int z) {
         if (!File.Exists($"Save/{x},{z}")) {
-            return false;
+            return null;
         }
         using BrotliStream stream = new(File.OpenRead($"Save/{x},{z}"), CompressionMode.Decompress);
         Queue<(int, Chunk, int)> redLightQueue = [];
         Queue<(int, Chunk, int)> greenLightQueue = [];
         Queue<(int, Chunk, int)> blueLightQueue = [];
-        for (int y = 0; y < World.MaxYChunk; y++) {
-            world.WorldMap.TryAdd((x, y, z),new((x,y,z),world));
-            Chunk chunk = world.WorldMap[(x,y,z)];
+        
+        int maxY = 0;
+        Chunk maxYChunk = null;
+        int count = stream.ReadByte();
+        for (int i = 0; i < count; i++) {
+            int y = stream.ReadByte();
+            world.WorldMap.TryAdd((x, y, z), new Chunk((x, y, z), world));
+            Chunk chunk = world.WorldMap[(x, y, z)];
             byte[] blocks = chunk.blocks;
+            if (y > maxY) {
+                maxY = y;
+                maxYChunk = chunk;
+            }
             try {
                 stream.ReadExactly(blocks);
-
+                
                 for (int index = 0; index < blocks.Length; index++) {
                     if (Blocks.IsLightEminiting(blocks[index])) {
                         (int red, int green, int blue) = Blocks.ReturnBlockLightValues(blocks[index]);
@@ -50,21 +68,21 @@ static class SaveFile {
                 chunk.IsGenerated = true;
             }
             catch(Exception e) {
-                Console.WriteLine($"Failed to read chunk at {x},{z} due to {e.Message}");
+                Console.WriteLine($"Failed to read chunk at {x},{y},{z} due to {e.Message}");
             }
         }
-
-        Dictionary<int, byte>[] allDicts = JsonSerializer.Deserialize<Dictionary<int, byte>[]>(stream);
-        for (int y = 0; y < 8; y++) {
-            Chunk chunk = world.WorldMap[(x, y, z)];
-            chunk.BlockStates = allDicts[y];
+        
+        Dictionary<int,Dictionary<int, byte>> dict = JsonSerializer.Deserialize<Dictionary<int,Dictionary<int, byte>>>(stream);
+        foreach (KeyValuePair<int, Dictionary<int, byte>> pair in dict) {
+            if (world.WorldMap.TryGetValue((x, pair.Key, z), out Chunk chunk)) {
+                chunk.BlockStates = pair.Value;
+            }
         }
-        Light.PropagateSkyLight(world.WorldMap[(x, World.MaxYChunk - 1, z)]);
         Light.PropagateLight(Light.RedLight, redLightQueue, null);
         Light.PropagateLight(Light.GreenLight, greenLightQueue, null);
         Light.PropagateLight(Light.BlueLight, blueLightQueue, null);
 
-        return true;
+        return maxYChunk;
     }
     private struct PlayerSaveFile {
         public float X { get; set; }

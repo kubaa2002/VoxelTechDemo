@@ -5,3 +5,4 @@ obj/
 .idea/
 Settings.txt
 BenchmarkDotNet.Artifacts
+Save

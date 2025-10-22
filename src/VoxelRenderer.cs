@@ -64,10 +64,10 @@ public static class VoxelRenderer{
         // Check and assign chunk block arrays
         (int cx, int cy, int cz) = chunk.coordinates;
         byte[] blocks = chunk.blocks;
-        byte[] blocksNorth = chunk.world.WorldMap[(cx+1,cy,cz)].blocks;
-        byte[] blocksSouth = chunk.world.WorldMap[(cx-1,cy,cz)].blocks;
-        byte[] blocksWest = chunk.world.WorldMap[(cx,cy,cz+1)].blocks;
-        byte[] blocksEast = chunk.world.WorldMap[(cx,cy,cz-1)].blocks;
+        byte[] blocksNorth = chunk.world.WorldMap.TryGetValue((cx+1,cy,cz), out Chunk chunkNorth) ? chunkNorth.blocks : null;
+        byte[] blocksSouth = chunk.world.WorldMap.TryGetValue((cx-1,cy,cz), out Chunk chunkSouth) ? chunkSouth.blocks : null;
+        byte[] blocksWest = chunk.world.WorldMap.TryGetValue((cx,cy,cz+1), out Chunk chunkWest) ? chunkWest.blocks : null;
+        byte[] blocksEast = chunk.world.WorldMap.TryGetValue((cx,cy,cz-1), out Chunk chunkEast) ? chunkEast.blocks : null;
         byte[] blocksUp = chunk.world.WorldMap.TryGetValue((cx,cy+1,cz), out Chunk chunkUp) ? chunkUp.blocks : null;
         byte[] blocksDown = chunk.world.WorldMap.TryGetValue((cx,cy-1,cz), out Chunk chunkDown) ? chunkDown.blocks : null;
         int currentChunkY = cy*ChunkSize;
@@ -95,11 +95,11 @@ public static class VoxelRenderer{
 
                     uint faces = 0;
                     //face x+
-                    if (IsVisible(blockId, x != ChunkSize - 1 ? blocks[currentBlock + 1] : blocksNorth[currentBlock - (ChunkSize - 1)])) {
+                    if (IsVisible(blockId, x != ChunkSize - 1 ? blocks[currentBlock + 1] : blocksNorth != null ? blocksNorth[currentBlock - (ChunkSize - 1)] : (byte)0)) {
                         faces |= 1;
                     }
                     // Face x-
-                    if (IsVisible(blockId, x != 0 ? blocks[currentBlock - 1] : blocksSouth[currentBlock + (ChunkSize - 1)])) {
+                    if (IsVisible(blockId, x != 0 ? blocks[currentBlock - 1] : blocksSouth != null ? blocksSouth[currentBlock + (ChunkSize - 1)] : (byte)0)) {
                         faces |= 2;
                     }
                     // Face y+
@@ -111,11 +111,11 @@ public static class VoxelRenderer{
                         faces |= 8;
                     }
                     // Face z+
-                    if (IsVisible(blockId, z != ChunkSize - 1 ? blocks[currentBlock + ChunkSizeSquared] : blocksWest[currentBlock - (ChunkSizeCubed - ChunkSizeSquared)])) {
+                    if (IsVisible(blockId, z != ChunkSize - 1 ? blocks[currentBlock + ChunkSizeSquared] : blocksWest != null ? blocksWest[currentBlock - (ChunkSizeCubed - ChunkSizeSquared)] : (byte)0)) {
                         faces |= 16;
                     }
                     // Face z-
-                    if (IsVisible(blockId, z != 0 ? blocks[currentBlock - ChunkSizeSquared] : blocksEast[currentBlock + (ChunkSizeCubed - ChunkSizeSquared)])) {
+                    if (IsVisible(blockId, z != 0 ? blocks[currentBlock - ChunkSizeSquared] : blocksEast != null ? blocksEast[currentBlock + (ChunkSizeCubed - ChunkSizeSquared)] : (byte)0)) {
                         faces |= 32;
                     }
                     if (faces == 0) continue;

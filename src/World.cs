@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using static VoxelTechDemo.VoxelRenderer;
@@ -54,9 +55,8 @@ public class World{
         int y = (int)coords.Y;
         int z = (int)coords.Z;
         NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
-        if(!WorldMap.TryGetValue(chunkCoordinate, out Chunk chunk)){
-            return;
-        }
+        Chunk chunk = TryGetOrCreateChunk(chunkCoordinate);
+        if (chunk == null) return;
         HashSet<Chunk> set = [
             chunk
         ];
@@ -119,10 +119,8 @@ public class World{
     }
     private void SetBlockWithoutUpdating(int x,int y,int z,(int x,int y,int z) chunkCoordinate,byte id){
         NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
-        if(!WorldMap.TryGetValue(chunkCoordinate,out Chunk chunk)){
-            WorldMap.TryAdd(chunkCoordinate,new(chunkCoordinate,this));
-            chunk = WorldMap[chunkCoordinate];
-        }
+        Chunk chunk = TryGetOrCreateChunk(chunkCoordinate);
+        if (chunk == null) return;
         chunk.blocks[x+y*ChunkSize+z*ChunkSizeSquared]=id;
     }
     public byte GetBlock(int x,int y,int z, (int x,int y,int z) chunkCoordinate){
@@ -132,25 +130,44 @@ public class World{
         }
         return 0;
     }
-    public void GenerateChunkLine(int x,int z){
-        if (!SaveFile.TryLoadChunkLine(this, x, z)) {
-            GenerateTerrain(x,z);
+    private Chunk TryGetOrCreateChunk((int x, int y, int z) chunkCoordinate) {
+        if (chunkCoordinate.y >= MaxYChunk) {
+            return null;
         }
-        Light.PropagateSkyLight(WorldMap[(x,MaxYChunk-1,z)]);
-        for (int i=0;i<MaxYChunk;i++){
+        if(!WorldMap.TryGetValue(chunkCoordinate,out Chunk chunk)){
+            WorldMap.TryAdd(chunkCoordinate,new(chunkCoordinate,this));
+            chunk = WorldMap[chunkCoordinate];
+            Array.Fill(chunk.blockLightValues, (ushort)(Light.lightMask << Light.SkyLight));
+        }
+
+        return chunk;
+    }
+    public void GenerateChunkLine(int x,int z){
+         Chunk chunk = SaveFile.TryLoadChunkLine(this, x, z) ?? GenerateTerrain(x,z);
+
+         Light.PropagateSkyLight(chunk);
+        for (int i=0;i<chunk.coordinates.y;i++){
             WorldMap[(x,i,z)].IsGenerated = true;
         }
     }
-    public void GenerateTerrain(int chunkX,int chunkZ){
-        Chunk[] chunks = new Chunk[MaxYChunk];
-        for(int y=0;y<MaxYChunk;y++) {
+    public Chunk GenerateTerrain(int chunkX,int chunkZ){
+        int[] yLevels = new int[ChunkSizeSquared];
+        for (int x = 0; x < ChunkSize; x++) {
+            for (int z = 0; z < ChunkSize; z++) {
+                yLevels[x+z*ChunkSize] = 50+(int)MountainNoise((double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z);
+            }
+        }
+
+        int highestChunk = yLevels.Max()/ChunkSize;
+        Chunk[] chunks = new Chunk[highestChunk+1];
+        for(int y=0;y<=highestChunk;y++) {
             WorldMap.TryAdd((chunkX,y,chunkZ),new((chunkX, y, chunkZ), this));
             chunks[y] = WorldMap[(chunkX,y,chunkZ)];
         }
         for(int x=0;x<ChunkSize;x++){
             for(int z=0;z<ChunkSize;z++){
                 // If yLevel below 0 needs to be generated, MountainNoise needs to floored before casting to int
-                int yLevel = 50+(int)MountainNoise((double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z);
+                int yLevel = yLevels[x+z*ChunkSize];
                 int blockPosition = x+yLevel%ChunkSize*ChunkSize+z*ChunkSizeSquared;
                 byte[] chunkBlocks = chunks[yLevel/ChunkSize].blocks;
                 // Water level
@@ -241,6 +258,8 @@ public class World{
                 }
             }
         }
+
+        return chunks[^1];
     }
     // TOFIX: On big x and z coordinates (int.MaxValue/64) trees don't spawn
     // TOFIX: When tree spawns on chunks corner some leaves will not be in the mesh
@@ -336,7 +355,9 @@ public class World{
                 GenerateChunkLine(x, z - 1);
             }
             for (int y = 0; y < MaxYChunk; y++) {
-                GenerateChunkMesh(WorldMap[(x, y, z)]);
+                if (WorldMap.TryGetValue((x, y, z), out chunk)) {
+                    GenerateChunkMesh(chunk);
+                }
             }
         });
     }
