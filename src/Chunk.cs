@@ -95,6 +95,6 @@ public class Chunk {
                 }
                 break;
         }
-        return Color.White;
+        return ConvertLightValues(lightMask << SkyLight);
     }
 }

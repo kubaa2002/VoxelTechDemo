@@ -176,6 +176,7 @@ static class UserInterface{
             Visible = !DayCycle,
         };
         SkyLightSlider.ValueChanged += (s, a) => {
+            game.effect.timeOfDay = (float)(Math.Sin(SkyLightSlider.Value * MathHelper.Pi - MathHelper.PiOver2) + 1) / 2;
             game.effect.CurrentSkyLightLevel.SetValue(1 - SkyLightSlider.Value);
         };
         Grid.SetColumn(SkyLightSlider, 1);
@@ -202,6 +203,7 @@ static class UserInterface{
             SkyLightSlider.Visible = !SkyLightSlider.Visible;
             DayCycle = !DayCycle;
             if (!DayCycle) {
+                game.effect.timeOfDay = (float)(Math.Sin(SkyLightSlider.Value * MathHelper.Pi - MathHelper.PiOver2) + 1) / 2;
                 game.effect.CurrentSkyLightLevel.SetValue(1 - SkyLightSlider.Value);
             }
         };

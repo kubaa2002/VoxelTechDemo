@@ -25,6 +25,7 @@ public class CustomEffect : Effect{
         set => fogValue = 1.0f / (FogStart - value);
     }
     float fogValue;
+    public float timeOfDay = 1;
 
     public CustomEffect(Game game) : this(new Effect(game.GraphicsDevice, File.ReadAllBytes("Content/CustomEffect.mgfx")), game){ }
     private CustomEffect(Effect clone, Game game):base(clone){
@@ -82,7 +83,8 @@ public class CustomEffect : Effect{
     public void UpdateAnimationFrame(TimeSpan totalTime) {
         AnimationFrame.SetValue((float)Math.Round(totalTime.TotalSeconds * 8 % 15) / 16);
         if (DayCycle) {
-            CurrentSkyLightLevel.SetValue((float)(Math.Sin(totalTime.TotalSeconds * Math.PI / 60) + 1) / 2);
+            timeOfDay = (float)(Math.Sin(totalTime.TotalSeconds * Math.PI / 60) + 1) / 2;
+            CurrentSkyLightLevel.SetValue(1 - timeOfDay);
         }
     }
     public void Apply(Matrix worldMatrix) {
@@ -97,14 +99,14 @@ public class CustomEffect : Effect{
         CurrentTechnique.Passes[0].Apply();
     }
     public void ApplyUnderWaterSettings(){
-        GraphicsDevice.Clear(new Color(new Vector3(0.3f, 0.3f, 0.7f)));
-        FogColor.SetValue(new Vector3(0.3f,0.3f,0.7f));
+        GraphicsDevice.Clear(new Color(new Vector3(0.3f, 0.3f, 0.7f) * timeOfDay));
+        FogColor.SetValue(new Vector3(0.3f,0.3f,0.7f) * timeOfDay);
         FogStart = -RenderDistance*0.2f*ChunkSize;
         FogEnd = RenderDistance*0.2f*ChunkSize;
     }
     public void ApplyNormalSettings(){
-        GraphicsDevice.Clear(Color.CornflowerBlue);
-        FogColor.SetValue(Color.CornflowerBlue.ToVector3());
+        GraphicsDevice.Clear(Color.CornflowerBlue * timeOfDay);
+        FogColor.SetValue((Color.CornflowerBlue * timeOfDay).ToVector3());
         FogStart = RenderDistance*0.6f*ChunkSize;
         FogEnd = RenderDistance*0.8f*ChunkSize;
     }
