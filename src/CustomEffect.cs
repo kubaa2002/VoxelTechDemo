@@ -129,11 +129,11 @@ public class CloudEffect : Effect {
         FogColor = Parameters["FogColor"];
         FogVector = Parameters["FogVector"];
         
-        FogColor.SetValue(Color.CornflowerBlue.ToVector3());
         FogStart = RenderDistance * 0.6f * ChunkSize;
         FogEnd = RenderDistance * 1f * ChunkSize;
     }
     public void Apply(CustomEffect effect, Matrix worldMatrix) {
+        FogColor.SetValue((Color.CornflowerBlue * effect.timeOfDay).ToVector3());
         worldMatrix = Matrix.CreateScale(new Vector3(CloudRes,1,CloudRes)) * worldMatrix;
         WorldViewProj.SetValue(worldMatrix * effect.viewProj);
         Matrix worldView = worldMatrix * effect.viewMatrix;

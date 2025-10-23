@@ -148,7 +148,7 @@ public class Game1 : Game {
         
         if (CloudsEnabled) {
             cloudEffect.Apply(effect, Matrix.CreateWorld(new Vector3(CloudOffset.x-player.CurrentChunk.x,-player.CurrentChunk.y,CloudOffset.z-player.CurrentChunk.z)*ChunkSize, Vector3.Forward, Vector3.Up));
-            UpdateAndDrawClouds(world, player.CurrentChunk.x, player.CurrentChunk.z, gameTime.TotalGameTime.TotalMinutes);
+            UpdateAndDrawClouds(world, player.CurrentChunk.x, player.CurrentChunk.z, gameTime.TotalGameTime.TotalMinutes, effect.timeOfDay);
         }
 
         if (player.BlockFound) {

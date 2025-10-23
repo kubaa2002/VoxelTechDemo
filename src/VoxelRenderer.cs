@@ -228,7 +228,7 @@ public static class VoxelRenderer{
         cloudInstancesArray = new CloudInstance[(int)Math.Pow((ChunkSize/CloudRes)*(UserSettings.RenderDistance*2+1),2)];
         cloudBuffer = new DynamicVertexBuffer(graphicsDevice, typeof(CloudInstance), cloudInstancesArray.Length, BufferUsage.WriteOnly);
     }
-    public static void UpdateAndDrawClouds(World world, int offsetChunkX, int offsetChunkZ,double time) {
+    public static void UpdateAndDrawClouds(World world, int offsetChunkX, int offsetChunkZ,double time, float timeOfDay) {
         if (!cloudLock) {
             cloudLock = true;
             if (CloudBufferUpdate) {
@@ -246,7 +246,7 @@ public static class VoxelRenderer{
                         }
 
                         cloudInstancesArray[index].Offset = new Vector3(x, 250f, z);
-                        cloudInstancesArray[index].Color = (float)noiseValue;
+                        cloudInstancesArray[index].Color = (float)noiseValue * timeOfDay;
                         index++;
                     }
                 }
