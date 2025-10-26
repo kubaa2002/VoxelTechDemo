@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using static VoxelTechDemo.VoxelRenderer;
@@ -10,13 +9,10 @@ namespace VoxelTechDemo;
 public class World{
     public readonly ConcurrentDictionary<(int,int,int),Chunk> WorldMap = new();
     public readonly HashSet<(int x, int z)> CurrentlyLoadedChunkLines = [];
-    public readonly long seed;
+    
     // MaxHeight needs to divisible by ChunkSize
     public const int MaxHeight = 512;
     public const int MaxYChunk = MaxHeight / ChunkSize;
-    public World(long seed) {
-        this.seed = seed;
-    }
     public void SetBlock(Vector3 coords,(int, int, int) chunkCoordinate, byte id, BlockFace blockSide, BoundingBox playerHitBox){
         switch(blockSide){
             case BlockFace.Right:
@@ -117,7 +113,7 @@ public class World{
             GenerateChunkMesh(value);
         }
     }
-    private void SetBlockWithoutUpdating(int x,int y,int z,(int x,int y,int z) chunkCoordinate,byte id){
+    public void SetBlockWithoutUpdating(int x,int y,int z,(int x,int y,int z) chunkCoordinate,byte id){
         NormalizeChunkCoordinates(ref x,ref y,ref z,ref chunkCoordinate);
         Chunk chunk = TryGetOrCreateChunk(chunkCoordinate);
         if (chunk == null) return;
@@ -143,158 +139,12 @@ public class World{
         return chunk;
     }
     public void GenerateChunkLine(int x,int z){
-         Chunk chunk = SaveFile.TryLoadChunkLine(this, x, z) ?? GenerateTerrain(x,z);
+         Chunk chunk = SaveFile.TryLoadChunkLine(this, x, z) ?? TerrainGen.GenerateTerrain(this,x,z);
 
          Light.PropagateSkyLight(chunk);
         for (int i=0;i<chunk.coordinates.y;i++){
             WorldMap[(x,i,z)].IsGenerated = true;
         }
-    }
-    public Chunk GenerateTerrain(int chunkX,int chunkZ){
-        int[] yLevels = new int[ChunkSizeSquared];
-        for (int x = 0; x < ChunkSize; x++) {
-            for (int z = 0; z < ChunkSize; z++) {
-                yLevels[x+z*ChunkSize] = 50+(int)MountainNoise((double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z);
-            }
-        }
-
-        int highestChunk = yLevels.Max()/ChunkSize;
-        Chunk[] chunks = new Chunk[highestChunk+1];
-        for(int y=0;y<=highestChunk;y++) {
-            WorldMap.TryAdd((chunkX,y,chunkZ),new((chunkX, y, chunkZ), this));
-            chunks[y] = WorldMap[(chunkX,y,chunkZ)];
-        }
-        for(int x=0;x<ChunkSize;x++){
-            for(int z=0;z<ChunkSize;z++){
-                // If yLevel below 0 needs to be generated, MountainNoise needs to floored before casting to int
-                int yLevel = yLevels[x+z*ChunkSize];
-                int blockPosition = x+yLevel%ChunkSize*ChunkSize+z*ChunkSizeSquared;
-                byte[] chunkBlocks = chunks[yLevel/ChunkSize].blocks;
-                // Water level
-                if(yLevel < 63){
-                    for(int y=63;y>yLevel;y--){
-                        if(y%ChunkSize==ChunkSize-1){
-                            chunkBlocks = chunks[y/ChunkSize].blocks;
-                            blockPosition = x+ChunkSizeSquared-ChunkSize+z*ChunkSizeSquared;
-                        }
-                        chunkBlocks[blockPosition]=15;
-                        blockPosition-=ChunkSize;
-                    }
-                }
-                // Dirt level
-                int stoneNoise = (int)(OpenSimplex2.Noise2(seed,(double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z)*5f);
-                stoneNoise += (int)(OpenSimplex2.Noise2(seed,((double)chunkX*ChunkSize+x)/100,((double)chunkZ*ChunkSize+z)/100)*20f);
-                for(int y=yLevel;y>=yLevel-2;y--){
-                    if(y%ChunkSize==ChunkSize-1){
-                        chunkBlocks = chunks[y/ChunkSize].blocks;
-                        blockPosition = x+ChunkSizeSquared-ChunkSize+z*ChunkSizeSquared;
-                    }
-                    if(y == yLevel){
-                        if(y>=65){
-                            if(y>=238+stoneNoise){
-                                if(y>=258+stoneNoise){
-                                    // Snow
-                                    chunkBlocks[blockPosition]=13;
-                                }
-                                else{
-                                    // Stone
-                                    chunkBlocks[blockPosition]=3;
-                                }
-                            }
-                            else{
-                                // Grass
-                                chunkBlocks[blockPosition]=1;
-                            }
-                        }
-                        else{
-                            if(yLevel<62){
-                                // Gravel
-                                chunkBlocks[blockPosition]=11;
-                            }
-                            else{
-                                // Sand
-                                chunkBlocks[blockPosition]=12;
-                            }
-                        }
-                    }
-                    else{
-                        if(y>=238+stoneNoise){
-                            // Stone
-                            chunkBlocks[blockPosition]=3;
-                        }
-                        else{
-                            // Dirt
-                            chunkBlocks[blockPosition]=2;
-                        }
-                    }
-                    blockPosition-=ChunkSize;
-                }
-                // Stone level
-                for(int y=yLevel-3;y>=0;y--){
-                    if(y%ChunkSize==ChunkSize-1){
-                        chunkBlocks = chunks[y/ChunkSize].blocks;
-                        blockPosition += ChunkSizeSquared;
-                    }
-                    chunkBlocks[blockPosition]=3;
-                    blockPosition-=ChunkSize;
-                }
-                double foliageNoise = OpenSimplex2.Noise2(seed, (double)chunkX * ChunkSize + x,
-                    (double)chunkZ * ChunkSize + z);
-                
-                if(foliageNoise > 0.9f + 0.0004f*yLevel && yLevel>=65){
-                    CreateTree(x,yLevel%ChunkSize,z, chunks[yLevel/ChunkSize]);
-                }
-                
-                if (foliageNoise < -0.5f && yLevel >= 65) {
-                    if (GetBlock(x,yLevel,z,(chunkX,0,chunkZ)) == 1) {
-                        if (foliageNoise > -0.525f) {
-                            SetBlockWithoutUpdating(x, yLevel + 1, z, (chunkX, 0, chunkZ),
-                                foliageNoise > -0.5125f ? (byte)20 : (byte)21);
-                        }
-                        else {
-                            SetBlockWithoutUpdating(x,yLevel+1,z,(chunkX,0,chunkZ),19);
-                        }
-                    }
-                }
-            }
-        }
-
-        return chunks[^1];
-    }
-    // TOFIX: On big x and z coordinates (int.MaxValue/64) trees don't spawn
-    // TOFIX: When tree spawns on chunks corner some leaves will not be in the mesh
-    private void CreateTree(int x,int y, int z, Chunk chunk){
-        for(int tempy=4;tempy<=5;tempy++){
-            for(int tempx=-2;tempx<=2;tempx++){
-                for(int tempz=-2;tempz<=2;tempz++){
-                    if(!((tempx == -2 || tempx == 2)&&(tempz == -2 || tempz == 2))){
-                        if(GetBlock(x+tempx,y+tempy,z+tempz,chunk.coordinates)==0){
-                            SetBlockWithoutUpdating(x+tempx,y+tempy,z+tempz,chunk.coordinates,7);
-                        }
-                    }
-                }
-            }
-        }
-        for(int tempy=6;tempy<=7;tempy++){
-            for(int tempx=-1;tempx<=1;tempx++){
-                for(int tempz=-1;tempz<=1;tempz++){
-                    if(!((tempx == -1 || tempx == 1)&&(tempz == -1 || tempz == 1))){
-                        if(GetBlock(x+tempx,y+tempy,z+tempz,chunk.coordinates)==0){
-                            SetBlockWithoutUpdating(x+tempx,y+tempy,z+tempz,chunk.coordinates,7);
-                        }
-                    }
-                }
-            }
-        }
-        for(int i=1;i<=6;i++){
-            SetBlockWithoutUpdating(x,y+i,z,chunk.coordinates,5);
-        }
-        SetBlockWithoutUpdating(x,y,z,chunk.coordinates,2);
-    }
-    public double MountainNoise(double x,double z){
-        return Math.Pow(OpenSimplex2.Noise2(seed,x/2000,z/2000)*15
-                    + OpenSimplex2.Noise2(seed,x/400,z/400)*4
-                    + OpenSimplex2.Noise2(seed,x/100,z/100),2);
     }
     private static void NormalizeChunkCoordinates(ref int x,ref int y,ref int z,ref (int x,int y,int z) chunkCoordinate){
         if (x > ChunkSize - 1 || x < 0) {
@@ -363,7 +213,7 @@ public class World{
     }
     private void UnloadChunkLine(int x, int z) {
         CurrentlyLoadedChunkLines.Remove((x, z));
-        SaveFile.SaveChunkLine(this, x, z);
+        //SaveFile.SaveChunkLine(this, x, z);
         for (int y = 0; y < MaxYChunk; y++) {
             if (!WorldMap.Remove((x, y, z), out Chunk chunk)) {
                 continue;

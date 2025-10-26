@@ -240,7 +240,7 @@ public static class VoxelRenderer{
                 int index = 0;
                 for (int x = -(ChunkSize/CloudRes) * renderDistance; x < (ChunkSize/CloudRes) * (renderDistance+1); x++) {
                     for (int z = -(ChunkSize/CloudRes) * renderDistance; z < (ChunkSize/CloudRes) * (renderDistance+1); z++) {
-                        double noiseValue = OpenSimplex2.Noise3_ImproveXY(world.seed, (double)(x+offsetChunkX*(ChunkSize/CloudRes))/100, (double)(z+offsetChunkZ*(ChunkSize/CloudRes))/100, time);
+                        double noiseValue = OpenSimplex2.Noise3_ImproveXY(TerrainGen.seed, (double)(x+offsetChunkX*(ChunkSize/CloudRes))/100, (double)(z+offsetChunkZ*(ChunkSize/CloudRes))/100, time);
                         if (noiseValue < 0) {
                             continue;
                         }

@@ -18,7 +18,7 @@ public class Player{
     public Player(World world){
         currentWorld = world;
         if (!SaveFile.GetPlayerPosition(this) || camPosition == Vector3.Zero)
-            camPosition = new Vector3(35.5f, 53+(int)Math.Floor(currentWorld.MountainNoise(35+CurrentChunk.x*ChunkSize,35+CurrentChunk.z*ChunkSize)), 35.5f);
+            camPosition = new Vector3(35.5f, 3+(int)Math.Floor(TerrainGen.TerrainNoise(35+CurrentChunk.x*ChunkSize,35+CurrentChunk.z*ChunkSize)), 35.5f);
         playerHitBox = new BoundingBox(Vector3.Zero,Vector3.Zero);
         ResetHitBox();
     }
