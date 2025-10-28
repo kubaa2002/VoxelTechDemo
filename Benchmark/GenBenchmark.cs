@@ -3,9 +3,9 @@ using VoxelTechDemo;
 
 [MemoryDiagnoser]
 public class MeshBenchmark {
-    private World worldTerrain = new(123);
-    private World worldMesh = new(123);
-    private World worldLight = new(123);
+    private World worldTerrain = new();
+    private World worldMesh = new();
+    private World worldLight = new();
     private Game1 game;
     
     [GlobalSetup]
@@ -15,8 +15,8 @@ public class MeshBenchmark {
         VoxelRenderer.InitializeVoxelRenderer(game.GraphicsDevice);
         for (int x = -4; x <= 4; x++) {
             for (int z = -4; z <= 4; z++) {
-                worldMesh.GenerateTerrain(x,z);
-                worldLight.GenerateTerrain(x,z);
+                VoxelTechDemo.TerrainGen.GenerateTerrain(worldLight,x,z);
+                VoxelTechDemo.TerrainGen.GenerateTerrain(worldMesh,x,z);
             }
         }
     }
@@ -51,7 +51,7 @@ public class MeshBenchmark {
     public void TerrainGen() {
         for (int x = -3; x <= 3; x++) {
             for (int z = -3; z <= 3; z++) {
-                worldTerrain.GenerateTerrain(x,z);
+                VoxelTechDemo.TerrainGen.GenerateTerrain(worldTerrain,x,z);
             }
         }
     }

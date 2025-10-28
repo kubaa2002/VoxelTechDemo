@@ -21,7 +21,7 @@ public class Game1 : Game {
     
     public CustomEffect effect;
     public CloudEffect cloudEffect;
-    public readonly World world = new(12345);
+    public readonly World world = new();
     public Player player;
 
     static void Main(string[] args) {
