@@ -10,6 +10,7 @@ public static class TerrainGen {
         int[] yLevels = new int[ChunkSizeSquared];
         for (int x = 0; x < ChunkSize; x++) {
             for (int z = 0; z < ChunkSize; z++) {
+                // If yLevel below 0 needs to be generated, noise needs to floored before casting to int
                 yLevels[x+z*ChunkSize] = (int)TerrainNoise((double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z);
             }
         }
@@ -22,13 +23,12 @@ public static class TerrainGen {
         }
         for(int x=0;x<ChunkSize;x++){
             for(int z=0;z<ChunkSize;z++){
-                // If yLevel below 0 needs to be generated, MountainNoise needs to floored before casting to int
                 int yLevel = yLevels[x+z*ChunkSize];
-                double Temperature = OpenSimplex2.Noise2(seed, (double)(chunkX * ChunkSize + x)/1000, (double)(chunkZ * ChunkSize + z)/1000);
-                Temperature += OpenSimplex2.Noise2(seed, (double)(chunkX * ChunkSize + x)/10, (double)(chunkZ * ChunkSize + z)/10)/100;
-                if (Temperature < -0.4f) TundraBiome(world,yLevel,x,z,chunks,chunkX,chunkZ);
-                else if (Temperature > 0.4f) DesertBiome(world, yLevel, x, z, chunks, chunkX, chunkZ);
-                else PlainsBiome(world,yLevel,x,z,chunks,chunkX,chunkZ);
+                double temperature = OpenSimplex2.Noise2(seed, (double)(chunkX * ChunkSize + x)/1000, (double)(chunkZ * ChunkSize + z)/1000);
+                temperature += OpenSimplex2.Noise2(seed, (double)(chunkX * ChunkSize + x)/10, (double)(chunkZ * ChunkSize + z)/10)/100;
+                if (temperature < -0.4f) TundraBiome(world, yLevel, x, z, chunks, chunkX, chunkZ);
+                else if (temperature > 0.4f) DesertBiome(world, yLevel, x, z, chunks, chunkX, chunkZ);
+                else PlainsBiome(world, yLevel, x, z, chunks, chunkX, chunkZ);
             }
         }
 
@@ -51,35 +51,23 @@ public static class TerrainGen {
             }
         }
         // Dirt level
-        for(int y=yLevel;y>=yLevel-2;y--){
+        for(int y=yLevel;y>=yLevel-1;y--){
             if(y%ChunkSize==ChunkSize-1){
                 chunkBlocks = chunks[y/ChunkSize].blocks;
                 blockPosition = x+ChunkSizeSquared-ChunkSize+z*ChunkSizeSquared;
             }
-            if(y == yLevel){
-                if(y>=65){
-                    // Ice
-                    chunkBlocks[blockPosition]=13;
-                }
-                else{
-                    if(yLevel<62){
-                        // Gravel
-                        chunkBlocks[blockPosition]=11;
-                    }
-                    else{
-                        // Sand
-                        chunkBlocks[blockPosition]=13;
-                    }
-                }
+            if(yLevel<62){
+                // Gravel
+                chunkBlocks[blockPosition]=11;
             }
             else{
-                // Ice
+                // Snow
                 chunkBlocks[blockPosition]=13;
             }
             blockPosition-=ChunkSize;
         }
         // Stone level
-        for(int y=yLevel-3;y>=0;y--){
+        for(int y=yLevel-2;y>=0;y--){
             if(y%ChunkSize==ChunkSize-1){
                 chunkBlocks = chunks[y/ChunkSize].blocks;
                 blockPosition += ChunkSizeSquared;
@@ -140,7 +128,7 @@ public static class TerrainGen {
                     }
                 }
                 else{
-                    if(yLevel<62){
+                    if(yLevel<60){
                         // Gravel
                         chunkBlocks[blockPosition]=11;
                     }
@@ -174,7 +162,7 @@ public static class TerrainGen {
         double foliageNoise = OpenSimplex2.Noise2(seed, (double)chunkX * ChunkSize + x,
             (double)chunkZ * ChunkSize + z);
         
-        if(foliageNoise > 0.9f + 0.0004f*yLevel && yLevel>=65){
+        if(foliageNoise > 0.9f + 0.0004f*yLevel && world.GetBlock(x,yLevel,z,(chunkX,0,chunkZ)) == 1) {
             CreateTree(world, x,yLevel%ChunkSize,z, chunks[yLevel/ChunkSize]);
         }
         
@@ -217,20 +205,14 @@ public static class TerrainGen {
             }
 
             if (y == yLevel) {
-                if (y >= 65) {
-                    if (y >= 238 + stoneNoise) {
-                        if(y>=258+stoneNoise){
-                            // Snow
-                            chunkBlocks[blockPosition]=13;
-                        }
-                        else{
-                            // Stone
-                            chunkBlocks[blockPosition]=3;
-                        }
+                if (y >= 238 + stoneNoise) {
+                    if(y>=258+stoneNoise){
+                        // Snow
+                        chunkBlocks[blockPosition]=13;
                     }
-                    else {
-                        // Sand
-                        chunkBlocks[blockPosition] = 12;
+                    else{
+                        // Stone
+                        chunkBlocks[blockPosition]=3;
                     }
                 }
                 else {
@@ -245,7 +227,7 @@ public static class TerrainGen {
                 }
             }
             else {
-                if (y >= 238 + stoneNoise) {
+                if (yLevel >= 238 + stoneNoise) {
                     // Stone
                     chunkBlocks[blockPosition] = 3;
                 }
@@ -281,9 +263,8 @@ public static class TerrainGen {
             world.SetBlockWithoutUpdating(x, yLevel + 1, z, (chunkX, 0, chunkZ), 27);
         }
     }
-
-    // TOFIX: On big x and z coordinates (int.MaxValue/64) trees don't spawn
-    // TOFIX: When tree spawns on chunks corner some leaves will not be in the mesh
+    // TODO: On big x and z coordinates (int.MaxValue/64) trees don't spawn
+    // TODO: When tree spawns on chunks corner some leaves will not be in the mesh
     private static void CreateTree(World world, int x,int y, int z, Chunk chunk){
         for(int tempy=4;tempy<=5;tempy++){
             for(int tempx=-2;tempx<=2;tempx++){
