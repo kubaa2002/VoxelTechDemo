@@ -24,7 +24,11 @@ public static class Light {
         PropagateLight(bytesOffset, lightQueue, Set);
     }
     public static void PropagateSkyLight(Chunk startChunk) {
-        Queue<(int, Chunk, int)> lightQueue = [];
+        Queue<(int, Chunk, int)> lightQueue = new (ChunkSizeSquared);
+        Chunk[] chunks = new Chunk[startChunk.coordinates.y];
+        for (int y = 0; y < startChunk.coordinates.y; y++) {
+            startChunk.world.WorldMap.TryGetValue((startChunk.coordinates.x, y, startChunk.coordinates.z), out chunks[y]);
+        }
         for (int x = 0; x < ChunkSize; x++) {
             for (int z = 0; z < ChunkSize; z++) {
                 int index = x + (ChunkSize - 1) * ChunkSize + z * ChunkSizeSquared;
@@ -32,15 +36,23 @@ public static class Light {
                 while (Blocks.IsTransparent(currentChunk.blocks[index])) {
                     currentChunk.blockLightValues[index] |= lightMask << SkyLight;
                     if ((index >> YShift) % ChunkSize == 0) {
-                        if (!currentChunk.world.WorldMap.TryGetValue((currentChunk.coordinates.x, currentChunk.coordinates.y - 1, currentChunk.coordinates.z), out currentChunk)) break;
-                        index += ChunkSizeSquared - ChunkSize;
+                        currentChunk = chunks[currentChunk.coordinates.y - 1];
+                        if (currentChunk is null) break;
+                        index += ChunkSizeSquared;
                     }
-                    else {
-                        index -= ChunkSize;
-                    }
+                    index -= ChunkSize;
                 }
-                if (currentChunk is not null)
-                    lightQueue.Enqueue((index, currentChunk, lightMask - 1));
+                if (currentChunk is null) {
+                    continue;
+                }
+                
+                if ((index>>YShift)%ChunkSize == ChunkSize - 1) {
+                    if (currentChunk.coordinates.y + 1 >= startChunk.coordinates.y) continue;
+                    currentChunk = chunks[currentChunk.coordinates.y + 1];
+                    if (currentChunk is null) continue;
+                    index -= ChunkSizeSquared;
+                }
+                lightQueue.Enqueue((index + ChunkSize, currentChunk, lightMask - 1));
             }
         }
         PropagateLight(SkyLight, lightQueue, null);
