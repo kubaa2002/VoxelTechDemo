@@ -220,9 +220,9 @@ public class Game1 : Game {
     }
     public new void Exit() {
         foreach ((int x, int z) in world.CurrentlyLoadedChunkLines) {
-            //SaveFile.SaveChunkLine(world, x, z);
+            SaveFile.SaveChunkLine(world, x, z);
         }
-        //SaveFile.SavePlayer(player);
+        SaveFile.SavePlayer(player);
         
         base.Exit();
     }

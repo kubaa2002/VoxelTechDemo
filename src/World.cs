@@ -213,7 +213,7 @@ public class World{
     }
     private void UnloadChunkLine(int x, int z) {
         CurrentlyLoadedChunkLines.Remove((x, z));
-        //SaveFile.SaveChunkLine(this, x, z);
+        SaveFile.SaveChunkLine(this, x, z);
         for (int y = 0; y < MaxYChunk; y++) {
             if (!WorldMap.Remove((x, y, z), out Chunk chunk)) {
                 continue;
