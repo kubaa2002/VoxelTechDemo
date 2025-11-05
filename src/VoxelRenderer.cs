@@ -103,11 +103,11 @@ public static class VoxelRenderer{
                         faces |= 2;
                     }
                     // Face y+
-                    if (IsVisible(blockId, y != ChunkSize - 1 ? blocks[currentBlock + ChunkSize] : (blocksUp != null ? blocksUp[currentBlock - (ChunkSizeSquared - ChunkSize)] : (byte)0))) {
+                    if (IsVisible(blockId, y != ChunkSize - 1 ? blocks[currentBlock + ChunkSize] : blocksUp != null ? blocksUp[currentBlock - (ChunkSizeSquared - ChunkSize)] : (byte)0)) {
                         faces |= 4;
                     }
                     // Face y-
-                    if (IsVisible(blockId, y != 0 ? blocks[currentBlock - ChunkSize] : (blocksDown != null ? blocksDown[currentBlock + (ChunkSizeSquared - ChunkSize)] : (byte)0))) {
+                    if (IsVisible(blockId, y != 0 ? blocks[currentBlock - ChunkSize] : blocksDown != null ? blocksDown[currentBlock + (ChunkSizeSquared - ChunkSize)] : (byte)0)) {
                         faces |= 8;
                     }
                     // Face z+

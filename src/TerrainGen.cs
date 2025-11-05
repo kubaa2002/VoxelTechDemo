@@ -1,6 +1,6 @@
-using System;
 using static VoxelTechDemo.VoxelRenderer;
 using System.Linq;
+using Microsoft.Xna.Framework;
 
 namespace VoxelTechDemo;
 
@@ -24,8 +24,8 @@ public static class TerrainGen {
         for(int x=0;x<ChunkSize;x++){
             for(int z=0;z<ChunkSize;z++){
                 int yLevel = yLevels[x+z*ChunkSize];
-                double temperature = OpenSimplex2.Noise2(seed, (double)(chunkX * ChunkSize + x)/1000, (double)(chunkZ * ChunkSize + z)/1000);
-                temperature += OpenSimplex2.Noise2(seed, (double)(chunkX * ChunkSize + x)/10, (double)(chunkZ * ChunkSize + z)/10)/100;
+                double temperature = OpenSimplex2.Noise2(seed+1, (double)(chunkX * ChunkSize + x)/1000, (double)(chunkZ * ChunkSize + z)/1000);
+                temperature += OpenSimplex2.Noise2(seed+1, (double)(chunkX * ChunkSize + x)/10, (double)(chunkZ * ChunkSize + z)/10)/100;
                 if (temperature < -0.4f) TundraBiome(world, yLevel, x, z, chunks, chunkX, chunkZ);
                 else if (temperature > 0.4f) DesertBiome(world, yLevel, x, z, chunks, chunkX, chunkZ);
                 else PlainsBiome(world, yLevel, x, z, chunks, chunkX, chunkZ);
@@ -104,7 +104,7 @@ public static class TerrainGen {
         }
         // Dirt level
         int stoneNoise = (int)(OpenSimplex2.Noise2(seed,(double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z)*5f);
-        stoneNoise += (int)(OpenSimplex2.Noise2(seed,((double)chunkX*ChunkSize+x)/100,((double)chunkZ*ChunkSize+z)/100)*20f);
+        stoneNoise += (int)(OpenSimplex2.Noise2(seed,((double)chunkX*ChunkSize+x)/400,((double)chunkZ*ChunkSize+z)/400)*20f);
         for(int y=yLevel;y>=yLevel-2;y--){
             if(y%ChunkSize==ChunkSize-1){
                 chunkBlocks = chunks[y/ChunkSize].blocks;
@@ -112,8 +112,8 @@ public static class TerrainGen {
             }
             if(y == yLevel){
                 if(y>=65){
-                    if(y>=238+stoneNoise){
-                        if(y>=258+stoneNoise){
+                    if(y>=158+stoneNoise){
+                        if(y>=178+stoneNoise){
                             // Snow
                             chunkBlocks[blockPosition]=13;
                         }
@@ -139,7 +139,7 @@ public static class TerrainGen {
                 }
             }
             else{
-                if(y>=238+stoneNoise){
+                if(y>=158+stoneNoise){
                     // Stone
                     chunkBlocks[blockPosition]=3;
                 }
@@ -196,8 +196,8 @@ public static class TerrainGen {
         // Dirt level
         int stoneNoise =
             (int)(OpenSimplex2.Noise2(seed, (double)chunkX * ChunkSize + x, (double)chunkZ * ChunkSize + z) * 5f);
-        stoneNoise += (int)(OpenSimplex2.Noise2(seed, ((double)chunkX * ChunkSize + x) / 100,
-            ((double)chunkZ * ChunkSize + z) / 100) * 20f);
+        stoneNoise += (int)(OpenSimplex2.Noise2(seed, ((double)chunkX * ChunkSize + x) / 400,
+            ((double)chunkZ * ChunkSize + z) / 400) * 20f);
         for (int y = yLevel; y >= yLevel - 2; y--) {
             if (y % ChunkSize == ChunkSize - 1) {
                 chunkBlocks = chunks[y / ChunkSize].blocks;
@@ -205,8 +205,8 @@ public static class TerrainGen {
             }
 
             if (y == yLevel) {
-                if (y >= 238 + stoneNoise) {
-                    if(y>=258+stoneNoise){
+                if (y >= 158 + stoneNoise) {
+                    if(y>= 188 + stoneNoise){
                         // Snow
                         chunkBlocks[blockPosition]=13;
                     }
@@ -227,7 +227,7 @@ public static class TerrainGen {
                 }
             }
             else {
-                if (yLevel >= 238 + stoneNoise) {
+                if (yLevel >= 158 + stoneNoise) {
                     // Stone
                     chunkBlocks[blockPosition] = 3;
                 }
@@ -254,12 +254,12 @@ public static class TerrainGen {
         double foliageNoise = OpenSimplex2.Noise2(seed, (double)chunkX * ChunkSize + x,
             (double)chunkZ * ChunkSize + z);
 
-        if (foliageNoise > 0.9f + 0.0004f * yLevel && yLevel >= 63 && world.GetBlock(x, yLevel, z, (chunkX, 0, chunkZ)) == 12) {
+        if (foliageNoise > 0.98f && yLevel >= 63 && world.GetBlock(x, yLevel, z, (chunkX, 0, chunkZ)) == 12) {
             for (int y = 1; y <= 3; y++) {
                 world.SetBlockWithoutUpdating(x,yLevel+y,z,(chunkX,0,chunkZ),28);
             }
         }
-        if (foliageNoise < -0.9f && yLevel >= 63 && world.GetBlock(x, yLevel, z, (chunkX, 0, chunkZ)) == 12) {
+        if (foliageNoise < -0.95f && yLevel >= 63 && world.GetBlock(x, yLevel, z, (chunkX, 0, chunkZ)) == 12) {
             world.SetBlockWithoutUpdating(x, yLevel + 1, z, (chunkX, 0, chunkZ), 27);
         }
     }
@@ -323,10 +323,12 @@ public static class TerrainGen {
     }
     public static double TerrainNoise(double x,double z) {
         double result = 0;
-        result += OpenSimplex2.Noise2(seed, x / 2000, z / 2000) * 15;
-        result += OpenSimplex2.Noise2(seed, x / 400, z / 400) * 4;
-        result += OpenSimplex2.Noise2(seed, x / 100, z / 100);
-        result = Math.Pow(result, 2);
-        return 50+result;
+        double bigNoise = OpenSimplex2.Noise2(seed, x / 1000, z / 1000);
+        if (bigNoise > 0.8) result += MathHelper.Lerp(90,200, (float)(bigNoise-0.8) * 5);
+        else if (bigNoise > -0.5) result += MathHelper.Hermite(70,1,90,1,(float)(bigNoise+0.5)*(1f/1.3f));
+        else result += MathHelper.Lerp(50,70,(float)(bigNoise+1)*2);
+        result += OpenSimplex2.Noise2(seed, x / 400, z / 400) * 15;
+        result += OpenSimplex2.Noise2(seed, x / 100, z / 100) * 4;
+        return result;
     }
 }

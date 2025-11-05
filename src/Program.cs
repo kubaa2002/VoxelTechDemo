@@ -164,14 +164,14 @@ public class Game1 : Game {
             spriteBatch.DrawString(font, $"Y:{Math.Round(player.camPosition.Y + player.CurrentChunk.y * ChunkSize - 1.7f, 2)}", new(1, 43), Color.Black);
             spriteBatch.DrawString(font, $"Z:{Math.Round((double)player.camPosition.Z + (long)player.CurrentChunk.z * ChunkSize, 2)}", new(1, 63), Color.Black);
             if (world.WorldMap.TryGetValue(player.CurrentChunk, out Chunk chunk)) {
-                ushort value = chunk.blockLightValues[((int)player.camPosition.X) + (((int)player.camPosition.Y) * ChunkSize) + ((int)player.camPosition.Z * ChunkSizeSquared)];
+                ushort value = chunk.blockLightValues[((int)player.camPosition.X) + (int)player.camPosition.Y * ChunkSize + (int)player.camPosition.Z * ChunkSizeSquared];
                 spriteBatch.DrawString(font, $"Red level:{value & Light.lightMask}", new(1, 83), Color.Black);
                 spriteBatch.DrawString(font, $"Green level:{(value >> Light.GreenLight) & Light.lightMask}", new(1, 103), Color.Black);
                 spriteBatch.DrawString(font, $"Blue level:{(value >> Light.BlueLight) & Light.lightMask}", new(1, 123), Color.Black);
                 spriteBatch.DrawString(font, $"Sky level:{value >> Light.SkyLight}", new(1, 143), Color.Black);
             }
             spriteBatch.DrawString(font, "+", new Vector2(WindowCenter.X, WindowCenter.Y) - (font.MeasureString("+") / 2), Color.Black);
-            Rectangle rec = new Rectangle((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f));
+            Rectangle rec = new((int)(GraphicsDevice.Viewport.Width * 0.885f), (int)(GraphicsDevice.Viewport.Height * 0.82f), (int)(GraphicsDevice.Viewport.Width * 0.09f), (int)(GraphicsDevice.Viewport.Height * 0.16f));
             spriteBatch.Draw(blankTexture, rec, Color.White);
             if(Blocks.IsFoliage(chosenBlock)){
                 spriteBatch.Draw(effect.Texture.GetValueTexture2D(), rec, new Rectangle((int)(256*TextureDictionary[chosenBlock][0].X), (int)(256*TextureDictionary[chosenBlock][0].Y), 16,16), Color.White);

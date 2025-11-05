@@ -45,8 +45,8 @@ public class Chunk {
                 if (currentBlock % ChunkSize != ChunkSize - 1) {
                     return ConvertLightValues(blockLightValues[currentBlock + 1]);
                 }
-                else if (world.WorldMap.TryGetValue((coordinates.x + 1, coordinates.y, coordinates.z), out Chunk adjecentChunk)) {
-                    return ConvertLightValues(adjecentChunk.blockLightValues[-ChunkSize + 1 + currentBlock]);
+                if (world.WorldMap.TryGetValue((coordinates.x + 1, coordinates.y, coordinates.z), out Chunk adjacentChunk)) {
+                    return ConvertLightValues(adjacentChunk.blockLightValues[-ChunkSize + 1 + currentBlock]);
                 }
                 break;
             // x-
@@ -54,8 +54,8 @@ public class Chunk {
                 if (currentBlock % ChunkSize != 0) {
                     return ConvertLightValues(blockLightValues[currentBlock - 1]);
                 }
-                else if (world.WorldMap.TryGetValue((coordinates.x - 1, coordinates.y, coordinates.z), out Chunk adjecentChunk)) {
-                    return ConvertLightValues(adjecentChunk.blockLightValues[ChunkSize - 1 + currentBlock]);
+                if (world.WorldMap.TryGetValue((coordinates.x - 1, coordinates.y, coordinates.z), out adjacentChunk)) {
+                    return ConvertLightValues(adjacentChunk.blockLightValues[ChunkSize - 1 + currentBlock]);
                 }
                 break;
             // y+
@@ -63,7 +63,7 @@ public class Chunk {
                 if (currentBlock / ChunkSize % ChunkSize != ChunkSize - 1) {
                     return ConvertLightValues(blockLightValues[currentBlock + ChunkSize]);
                 }
-                else if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y + 1, coordinates.z), out Chunk adjacentChunk)) {
+                if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y + 1, coordinates.z), out adjacentChunk)) {
                     return ConvertLightValues(adjacentChunk.blockLightValues[-ChunkSize * (ChunkSize - 1) + currentBlock]);
                 }
                 break;
@@ -72,7 +72,7 @@ public class Chunk {
                 if (currentBlock / ChunkSize % ChunkSize != 0) {
                     return ConvertLightValues(blockLightValues[currentBlock - ChunkSize]);
                 }
-                else if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y - 1, coordinates.z), out Chunk adjacentChunk)) {
+                if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y - 1, coordinates.z), out adjacentChunk)) {
                     return ConvertLightValues(adjacentChunk.blockLightValues[ChunkSize * (ChunkSize - 1) + currentBlock]);
                 }
                 break;
@@ -81,7 +81,7 @@ public class Chunk {
                 if (currentBlock / ChunkSizeSquared != ChunkSize - 1) {
                     return ConvertLightValues(blockLightValues[currentBlock + ChunkSizeSquared]);
                 }
-                else if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y, coordinates.z + 1), out Chunk adjacentChunk)) {
+                if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y, coordinates.z + 1), out adjacentChunk)) {
                     return ConvertLightValues(adjacentChunk.blockLightValues[-ChunkSizeSquared * (ChunkSize - 1) + currentBlock]);
                 }
                 break;
@@ -90,7 +90,7 @@ public class Chunk {
                 if (currentBlock / ChunkSizeSquared != 0) {
                     return ConvertLightValues(blockLightValues[currentBlock - ChunkSizeSquared]);
                 }
-                else if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y, coordinates.z - 1), out Chunk adjacentChunk)) {
+                if (world.WorldMap.TryGetValue((coordinates.x, coordinates.y, coordinates.z - 1), out adjacentChunk)) {
                     return ConvertLightValues(adjacentChunk.blockLightValues[ChunkSizeSquared * (ChunkSize - 1) + currentBlock]);
                 }
                 break;
