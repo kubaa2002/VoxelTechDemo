@@ -125,10 +125,10 @@ public static class VoxelRenderer{
                     if (Blocks.CanRotate(blockId)) {
                         chunk.BlockStates.TryGetValue(currentBlock, out blockRotation);
                         switch (blockRotation) {
-                            case 1:
+                            case 2:
                                 faceRotation = Blocks.AxisXRotation;
                                 break;
-                            case 2:
+                            case 4:
                                 faceRotation = Blocks.AxisZRotation;
                                 break;
                         }
@@ -139,7 +139,7 @@ public static class VoxelRenderer{
                         if((faces&1u)!=0) {
                             listRef.Add(new BlockFaceInstance(
                                 new Vector3(x,y + currentChunkY,z) + new Vector3(0.5f, 0.5f, 0.5f),
-                                textureCoordinates[(face+2*blockRotation)%6],
+                                textureCoordinates[(face+blockRotation)%6],
                                 new Vector2(face, faceRotation[face]),
                                 chunk.GetLightValues(currentBlock, face)));
                         }
@@ -159,9 +159,8 @@ public static class VoxelRenderer{
     private static void UpdateBuffer<T>(ref VertexBuffer vertexBuffer, List<T> vertices) where T : struct {
         vertexBuffer?.Dispose();
         if (vertices.Count != 0) {
-            VertexBuffer newVertexBuffer = new(graphicsDevice,typeof(T),vertices.Count,BufferUsage.WriteOnly);
-            newVertexBuffer.SetData(0,vertices.GetInternalArray(),0,vertices.Count,0);
-            vertexBuffer = newVertexBuffer;
+            vertexBuffer = new VertexBuffer(graphicsDevice,typeof(T),vertices.Count,BufferUsage.WriteOnly);
+            vertexBuffer.SetData(0,vertices.GetInternalArray(),0,vertices.Count,0);
         }
     }
     public static void DrawChunk(VertexBuffer buffer){
@@ -201,18 +200,18 @@ public static class VoxelRenderer{
         ];
         previewBuffer.SetData(cubeVerticesPreview);
     }
-    public enum BlockFace{Front,Back,Right,Left,Top,Bottom,None};
+    public enum BlockFace{East,West,South,North,Up,Down,None};
     public static BlockFace GetFace(Ray ray,BoundingBox box){
         float? distance = ray.Intersects(box);
         if(distance.HasValue){
             Vector3 localIntersectionPoint = ray.Position + ray.Direction*distance.Value - box.Min;
 
-            if (localIntersectionPoint.X < 0.0001f) return BlockFace.Right;
-            if (localIntersectionPoint.X > 0.9999f) return BlockFace.Left;
-            if (localIntersectionPoint.Y < 0.0001f) return BlockFace.Bottom;
-            if (localIntersectionPoint.Y > 0.9999f) return BlockFace.Top;
-            if (localIntersectionPoint.Z < 0.0001f) return BlockFace.Front;
-            if (localIntersectionPoint.Z > 0.9999f) return BlockFace.Back;
+            if (localIntersectionPoint.X < 0.0001f) return BlockFace.South;
+            if (localIntersectionPoint.X > 0.9999f) return BlockFace.North;
+            if (localIntersectionPoint.Y < 0.0001f) return BlockFace.Down;
+            if (localIntersectionPoint.Y > 0.9999f) return BlockFace.Up;
+            if (localIntersectionPoint.Z < 0.0001f) return BlockFace.East;
+            if (localIntersectionPoint.Z > 0.9999f) return BlockFace.West;
         }
         return BlockFace.None;
     }
@@ -228,7 +227,7 @@ public static class VoxelRenderer{
         cloudInstancesArray = new CloudInstance[(int)Math.Pow((ChunkSize/CloudRes)*(UserSettings.RenderDistance*2+1),2)];
         cloudBuffer = new DynamicVertexBuffer(graphicsDevice, typeof(CloudInstance), cloudInstancesArray.Length, BufferUsage.WriteOnly);
     }
-    public static void UpdateAndDrawClouds(World world, int offsetChunkX, int offsetChunkZ,double time, float timeOfDay) {
+    public static void UpdateAndDrawClouds(int offsetChunkX, int offsetChunkZ,double time, float timeOfDay) {
         if (!cloudLock) {
             cloudLock = true;
             if (CloudBufferUpdate) {

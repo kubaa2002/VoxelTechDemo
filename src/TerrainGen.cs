@@ -128,7 +128,7 @@ public static class TerrainGen {
                     }
                 }
                 else{
-                    if(yLevel<60){
+                    if(yLevel<62){
                         // Gravel
                         chunkBlocks[blockPosition]=11;
                     }

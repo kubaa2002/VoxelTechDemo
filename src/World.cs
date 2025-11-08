@@ -15,22 +15,22 @@ public class World{
     public const int MaxYChunk = MaxHeight / ChunkSize;
     public void SetBlock(Vector3 coords,(int, int, int) chunkCoordinate, byte id, BlockFace blockSide, BoundingBox playerHitBox){
         switch(blockSide){
-            case BlockFace.Right:
+            case BlockFace.South:
                 coords.X -= 1;
                 break;
-            case BlockFace.Left:
+            case BlockFace.North:
                 coords.X += 1;
                 break;
-            case BlockFace.Bottom:
+            case BlockFace.Down:
                 coords.Y -= 1;
                 break;
-            case BlockFace.Top:
+            case BlockFace.Up:
                 coords.Y += 1;
                 break;
-            case BlockFace.Front:
+            case BlockFace.East:
                 coords.Z -= 1;
                 break;
-            case BlockFace.Back:
+            case BlockFace.West:
                 coords.Z += 1;
                 break;
         }
@@ -59,13 +59,13 @@ public class World{
         int index = x + y * ChunkSize + z * ChunkSizeSquared;
         if (Blocks.CanRotate(id)) {
             switch (blockSide) {
-                case BlockFace.Right:
-                case BlockFace.Left:
-                    chunk.BlockStates[index] = 1;
-                    break;
-                case BlockFace.Front:
-                case BlockFace.Back:
+                case BlockFace.South:
+                case BlockFace.North:
                     chunk.BlockStates[index] = 2;
+                    break;
+                case BlockFace.East:
+                case BlockFace.West:
+                    chunk.BlockStates[index] = 4;
                     break;
             }
         }

@@ -37,27 +37,27 @@ public class Player{
             }
             for(int j=0;j<2;j++){
                 switch(GetFace(ray,currentBlock)){
-                    case BlockFace.Front:
+                    case BlockFace.East:
                         currentBlock.Min.Z--;
                         currentBlock.Max.Z--;
                         break;
-                    case BlockFace.Back:
+                    case BlockFace.West:
                         currentBlock.Min.Z++;
                         currentBlock.Max.Z++;
                         break;
-                    case BlockFace.Right:
+                    case BlockFace.South:
                         currentBlock.Min.X--;
                         currentBlock.Max.X--;
                         break;
-                    case BlockFace.Left:
+                    case BlockFace.North:
                         currentBlock.Min.X++;
                         currentBlock.Max.X++;
                         break;
-                    case BlockFace.Top:
+                    case BlockFace.Up:
                         currentBlock.Min.Y++;
                         currentBlock.Max.Y++;
                         break;
-                    case BlockFace.Bottom:
+                    case BlockFace.Down:
                         currentBlock.Min.Y--;
                         currentBlock.Max.Y--;
                         break;
