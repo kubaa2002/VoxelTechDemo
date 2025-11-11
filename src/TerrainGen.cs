@@ -3,9 +3,8 @@ using System.Linq;
 using Microsoft.Xna.Framework;
 
 namespace VoxelTechDemo;
-
 public static class TerrainGen {
-    public static long seed = 12345;
+    public const long Seed = 12345;
     public static Chunk GenerateTerrain(World world, int chunkX,int chunkZ){
         int[] yLevels = new int[ChunkSizeSquared];
         for (int x = 0; x < ChunkSize; x++) {
@@ -24,8 +23,8 @@ public static class TerrainGen {
         for(int x=0;x<ChunkSize;x++){
             for(int z=0;z<ChunkSize;z++){
                 int yLevel = yLevels[x+z*ChunkSize];
-                double temperature = OpenSimplex2.Noise2(seed+1, (double)(chunkX * ChunkSize + x)/1000, (double)(chunkZ * ChunkSize + z)/1000);
-                temperature += OpenSimplex2.Noise2(seed+1, (double)(chunkX * ChunkSize + x)/10, (double)(chunkZ * ChunkSize + z)/10)/100;
+                double temperature = OpenSimplex2.Noise2(Seed+1, (double)(chunkX * ChunkSize + x)/1000, (double)(chunkZ * ChunkSize + z)/1000);
+                temperature += OpenSimplex2.Noise2(Seed+1, (double)(chunkX * ChunkSize + x)/10, (double)(chunkZ * ChunkSize + z)/10)/100;
                 if (temperature < -0.4f) TundraBiome(world, yLevel, x, z, chunks, chunkX, chunkZ);
                 else if (temperature > 0.4f) DesertBiome(world, yLevel, x, z, chunks, chunkX, chunkZ);
                 else PlainsBiome(world, yLevel, x, z, chunks, chunkX, chunkZ);
@@ -40,50 +39,27 @@ public static class TerrainGen {
         byte[] chunkBlocks = chunks[yLevel/ChunkSize].blocks;
        
         // Water level
-        if(yLevel < 63){
-            chunkBlocks = chunks[0].blocks;
-            blockPosition = x+ChunkSizeSquared-ChunkSize+z*ChunkSizeSquared;
-            chunkBlocks[blockPosition] = 22;
-            blockPosition -= ChunkSize;
-            for(int y=62;y>yLevel;y--){
-                chunkBlocks[blockPosition]=15;
-                blockPosition-=ChunkSize;
-            }
+        if(yLevel < 63) {
+            FillWater(yLevel, blockPosition, chunks);
+            chunkBlocks[blockPosition | YMask] = 22;
         }
         // Dirt level
         for(int y=yLevel;y>=yLevel-1;y--){
-            if(y%ChunkSize==ChunkSize-1){
-                chunkBlocks = chunks[y/ChunkSize].blocks;
-                blockPosition = x+ChunkSizeSquared-ChunkSize+z*ChunkSizeSquared;
-            }
-            if(yLevel<62){
-                // Gravel
-                chunkBlocks[blockPosition]=11;
-            }
-            else{
-                // Snow
-                chunkBlocks[blockPosition]=13;
-            }
-            blockPosition-=ChunkSize;
+            PlaceBlock(y, ref blockPosition, ref chunkBlocks, chunks, yLevel<63 
+                ? (byte)11 // Gravel
+                : (byte)13); // Snow
         }
         // Stone level
-        for(int y=yLevel-2;y>=0;y--){
-            if(y%ChunkSize==ChunkSize-1){
-                chunkBlocks = chunks[y/ChunkSize].blocks;
-                blockPosition += ChunkSizeSquared;
-            }
-            chunkBlocks[blockPosition]=3;
-            blockPosition-=ChunkSize;
-        }
+        FillStone(yLevel-2, blockPosition, chunks);
         
-        double foliageNoise = OpenSimplex2.Noise2(seed, (double)chunkX * ChunkSize + x,
+        float foliageNoise = OpenSimplex2.Noise2(Seed, (double)chunkX * ChunkSize + x,
             (double)chunkZ * ChunkSize + z);
         
         if(foliageNoise > 0.9f + 0.0004f*yLevel && yLevel>=65){
             CreateSpruceTree(world, x,yLevel%ChunkSize,z, chunks[yLevel/ChunkSize]);
         }
         
-        if (foliageNoise < -0.5f && yLevel >= 65) {
+        if (foliageNoise < -0.5f && yLevel >= 63) {
             if (world.GetBlock(x,yLevel,z,(chunkX,0,chunkZ)) == 13) {
                 world.SetBlockWithoutUpdating(x,yLevel+1,z,(chunkX,0,chunkZ),23);
             }
@@ -95,71 +71,31 @@ public static class TerrainGen {
        
         // Water level
         if(yLevel < 63){
-            chunkBlocks = chunks[0].blocks;
-            blockPosition = x+ChunkSizeSquared-ChunkSize+z*ChunkSizeSquared;
-            for(int y=63;y>yLevel;y--){
-                chunkBlocks[blockPosition]=15;
-                blockPosition-=ChunkSize;
-            }
+            FillWater(yLevel, blockPosition, chunks);
         }
         // Dirt level
-        int stoneNoise = (int)(OpenSimplex2.Noise2(seed,(double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z)*5f);
-        stoneNoise += (int)(OpenSimplex2.Noise2(seed,((double)chunkX*ChunkSize+x)/400,((double)chunkZ*ChunkSize+z)/400)*20f);
-        for(int y=yLevel;y>=yLevel-2;y--){
-            if(y%ChunkSize==ChunkSize-1){
-                chunkBlocks = chunks[y/ChunkSize].blocks;
-                blockPosition = x+ChunkSizeSquared-ChunkSize+z*ChunkSizeSquared;
-            }
-            if(y == yLevel){
-                if(y>=65){
-                    if(y>=158+stoneNoise){
-                        if(y>=178+stoneNoise){
-                            // Snow
-                            chunkBlocks[blockPosition]=13;
-                        }
-                        else{
-                            // Stone
-                            chunkBlocks[blockPosition]=3;
-                        }
-                    }
-                    else{
-                        // Grass
-                        chunkBlocks[blockPosition]=1;
-                    }
-                }
-                else{
-                    if(yLevel<62){
-                        // Gravel
-                        chunkBlocks[blockPosition]=11;
-                    }
-                    else{
-                        // Sand
-                        chunkBlocks[blockPosition]=12;
-                    }
-                }
-            }
-            else{
-                if(y>=158+stoneNoise){
-                    // Stone
-                    chunkBlocks[blockPosition]=3;
-                }
-                else{
-                    // Dirt
-                    chunkBlocks[blockPosition]=2;
-                }
-            }
-            blockPosition-=ChunkSize;
+        int stoneNoise = (int)(OpenSimplex2.Noise2(Seed,(double)chunkX*ChunkSize+x,(double)chunkZ*ChunkSize+z)*5f);
+        stoneNoise += (int)(OpenSimplex2.Noise2(Seed,((double)chunkX*ChunkSize+x)/400,((double)chunkZ*ChunkSize+z)/400)*20f);
+        
+        PlaceBlock(yLevel, ref blockPosition, ref chunkBlocks, chunks, yLevel >= 65 
+            ? yLevel >= 158 + stoneNoise
+                ? yLevel >= 178 + stoneNoise 
+                    ? (byte)13 // Snow
+                    : (byte)3 // Stone
+                : (byte)1 // Grass
+            : yLevel < 62 
+                ? (byte)11 // Gravel
+                : (byte)12); // Sand
+
+        for(int y=yLevel-1;y>=yLevel-2;y--){
+            PlaceBlock(y, ref blockPosition, ref chunkBlocks, chunks, y>=158+stoneNoise ? 
+                (byte)3 // Stone
+                : (byte)2); // Dirt
         }
         // Stone level
-        for(int y=yLevel-3;y>=0;y--){
-            if(y%ChunkSize==ChunkSize-1){
-                chunkBlocks = chunks[y/ChunkSize].blocks;
-                blockPosition += ChunkSizeSquared;
-            }
-            chunkBlocks[blockPosition]=3;
-            blockPosition-=ChunkSize;
-        }
-        double foliageNoise = OpenSimplex2.Noise2(seed, (double)chunkX * ChunkSize + x,
+        FillStone(yLevel-3, blockPosition, chunks);
+        
+        float foliageNoise = OpenSimplex2.Noise2(Seed, (double)chunkX * ChunkSize + x,
             (double)chunkZ * ChunkSize + z);
         
         if(foliageNoise > 0.9f + 0.0004f*yLevel && world.GetBlock(x,yLevel,z,(chunkX,0,chunkZ)) == 1) {
@@ -185,73 +121,28 @@ public static class TerrainGen {
 
         // Water level
         if (yLevel < 63) {
-            chunkBlocks = chunks[0].blocks;
-            blockPosition = x + ChunkSizeSquared - ChunkSize + z * ChunkSizeSquared;
-            for (int y = 63; y > yLevel; y--) {
-                chunkBlocks[blockPosition] = 15;
-                blockPosition -= ChunkSize;
-            }
+            FillWater(yLevel, blockPosition, chunks);
         }
 
         // Dirt level
         int stoneNoise =
-            (int)(OpenSimplex2.Noise2(seed, (double)chunkX * ChunkSize + x, (double)chunkZ * ChunkSize + z) * 5f);
-        stoneNoise += (int)(OpenSimplex2.Noise2(seed, ((double)chunkX * ChunkSize + x) / 400,
+            (int)(OpenSimplex2.Noise2(Seed, (double)chunkX * ChunkSize + x, (double)chunkZ * ChunkSize + z) * 5f);
+        stoneNoise += (int)(OpenSimplex2.Noise2(Seed, ((double)chunkX * ChunkSize + x) / 400,
             ((double)chunkZ * ChunkSize + z) / 400) * 20f);
         for (int y = yLevel; y >= yLevel - 2; y--) {
-            if (y % ChunkSize == ChunkSize - 1) {
-                chunkBlocks = chunks[y / ChunkSize].blocks;
-                blockPosition = x + ChunkSizeSquared - ChunkSize + z * ChunkSizeSquared;
-            }
-
-            if (y == yLevel) {
-                if (y >= 158 + stoneNoise) {
-                    if(y>= 188 + stoneNoise){
-                        // Snow
-                        chunkBlocks[blockPosition]=13;
-                    }
-                    else{
-                        // Stone
-                        chunkBlocks[blockPosition]=3;
-                    }
-                }
-                else {
-                    if (yLevel < 62) {
-                        // Gravel
-                        chunkBlocks[blockPosition] = 11;
-                    }
-                    else {
-                        // Sand
-                        chunkBlocks[blockPosition] = 12;
-                    }
-                }
-            }
-            else {
-                if (yLevel >= 158 + stoneNoise) {
-                    // Stone
-                    chunkBlocks[blockPosition] = 3;
-                }
-                else {
-                    // Sand
-                    chunkBlocks[blockPosition] = 12;
-                }
-            }
-
-            blockPosition -= ChunkSize;
+            PlaceBlock(y, ref blockPosition, ref chunkBlocks, chunks, y >= 158 + stoneNoise?
+                y>= 188 + stoneNoise 
+                    ? (byte)13 // Snow
+                    : (byte)3 // Stone
+                : yLevel < 62 
+                    ? (byte)11 // Gravel
+                    : (byte)12); // Sand
         }
 
         // Stone level
-        for (int y = yLevel - 3; y >= 0; y--) {
-            if (y % ChunkSize == ChunkSize - 1) {
-                chunkBlocks = chunks[y / ChunkSize].blocks;
-                blockPosition += ChunkSizeSquared;
-            }
+        FillStone(yLevel-3, blockPosition, chunks);
 
-            chunkBlocks[blockPosition] = 3;
-            blockPosition -= ChunkSize;
-        }
-
-        double foliageNoise = OpenSimplex2.Noise2(seed, (double)chunkX * ChunkSize + x,
+        float foliageNoise = OpenSimplex2.Noise2(Seed, (double)chunkX * ChunkSize + x,
             (double)chunkZ * ChunkSize + z);
 
         if (foliageNoise > 0.98f && yLevel >= 63 && world.GetBlock(x, yLevel, z, (chunkX, 0, chunkZ)) == 12) {
@@ -261,6 +152,31 @@ public static class TerrainGen {
         }
         if (foliageNoise < -0.95f && yLevel >= 63 && world.GetBlock(x, yLevel, z, (chunkX, 0, chunkZ)) == 12) {
             world.SetBlockWithoutUpdating(x, yLevel + 1, z, (chunkX, 0, chunkZ), 27);
+        }
+    }
+    private static void FillWater(int yLevel, int blockPosition, Chunk[] chunks) {
+        byte[] chunkBlocks = chunks[0].blocks;
+        blockPosition |= YMask;
+        for (int y = 63; y > yLevel; y--) {
+            chunkBlocks[blockPosition] = 15;
+            blockPosition -= ChunkSize;
+        }
+    }
+    private static void PlaceBlock(int y, ref int blockPosition, ref byte[] blocks, Chunk[] chunks, byte id) {
+        blocks[blockPosition] = id;
+        if ((blockPosition&YMask) == 0) {
+            blocks = chunks[y / ChunkSize - 1].blocks;
+            blockPosition |= YMask;
+        }
+        else blockPosition -= ChunkSize;
+    }
+    private static void FillStone(int yLevel, int blockPosition, Chunk[] chunks) {
+        for (int yChunk = yLevel / ChunkSize; yChunk >= 0; yChunk--) {
+            byte[] chunkBlocks = chunks[yChunk].blocks;
+            for (int y = blockPosition; y >= (blockPosition&~YMask); y-=ChunkSize) {
+                chunkBlocks[y] = 3;
+            }
+            blockPosition |= YMask;
         }
     }
     // TODO: On big x and z coordinates (int.MaxValue/64) trees don't spawn
@@ -321,14 +237,13 @@ public static class TerrainGen {
             world.SetBlockWithoutUpdating(x,y+i,z,chunk.coordinates,24);
         }
     }
-    public static double TerrainNoise(double x,double z) {
-        double result = 0;
-        double bigNoise = OpenSimplex2.Noise2(seed, x / 1000, z / 1000);
-        if (bigNoise > 0.8) result += MathHelper.Lerp(90,200, (float)(bigNoise-0.8) * 5);
-        else if (bigNoise > -0.5) result += MathHelper.Hermite(70,1,90,1,(float)(bigNoise+0.5)*(1f/1.3f));
-        else result += MathHelper.Lerp(50,70,(float)(bigNoise+1)*2);
-        result += OpenSimplex2.Noise2(seed, x / 400, z / 400) * 15;
-        result += OpenSimplex2.Noise2(seed, x / 100, z / 100) * 4;
+    public static float TerrainNoise(double x,double z) {
+        float result = OpenSimplex2.Noise2(Seed, x / 1000, z / 1000);
+        if (result > 0.8f) result = MathHelper.Lerp(90,200, (result-0.8f) * 5);
+        else if (result > -0.5f) result = MathHelper.Hermite(70,1,90,1,(result+0.5f)*(1f/1.3f));
+        else result = MathHelper.Lerp(50,70,(result+1f)*2);
+        result += OpenSimplex2.Noise2(Seed, x / 400, z / 400) * 15;
+        result += OpenSimplex2.Noise2(Seed, x / 100, z / 100) * 4;
         return result;
     }
 }
