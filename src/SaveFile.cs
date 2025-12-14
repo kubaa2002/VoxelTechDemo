@@ -82,6 +82,13 @@ static class SaveFile {
         Light.PropagateLight(Light.GreenLight, greenLightQueue, null);
         Light.PropagateLight(Light.BlueLight, blueLightQueue, null);
 
+        // Ensure that there is no hole in the line of chunks
+        for (int y = 0; y < maxY; y++) {
+            if (!world.WorldMap.ContainsKey((x, y, z))) {
+                world.WorldMap.TryAdd((x, y, z), new Chunk((x, y, z), world));
+            }
+        }
+        
         return maxYChunk;
     }
     private struct PlayerSaveFile {
