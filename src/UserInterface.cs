@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System;
 using System.IO;
-using System.Linq;
 using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Myra;
@@ -259,16 +258,18 @@ static class UserInterface{
         };
     }
     public class FrameCounter {
-        private readonly Queue<double> _sampleBuffer = new();
+        private readonly Queue<double> _sampleBuffer = [];
+        private double _sum;
         public FrameCounter() {
             for (int i = 0; i < 10; i++) {
                 _sampleBuffer.Enqueue(0);
             }
         }
         public double GetFPS(double deltaTime) {
-            _sampleBuffer.Dequeue();
             _sampleBuffer.Enqueue(deltaTime);
-            return Math.Round(1.0d / _sampleBuffer.Average(), 2);
+            _sum += deltaTime;
+            _sum -= _sampleBuffer.Dequeue();
+            return Math.Round(1.0d / (_sum / _sampleBuffer.Count), 2);
         }
     }
 }
